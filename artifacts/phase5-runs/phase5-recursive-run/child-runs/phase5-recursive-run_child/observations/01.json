@@ -1,0 +1,195 @@
+{
+  "canvasId": "canvas-character-detail",
+  "revision": 1,
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "width": 1200,
+    "height": 800,
+    "zoom": 1
+  },
+  "objects": [
+    {
+      "id": "detail-face",
+      "canvasId": "canvas-character-detail",
+      "type": "ellipse",
+      "transform": {
+        "x": 260,
+        "y": 170,
+        "width": 480,
+        "height": 360,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "zIndex": 1
+      },
+      "style": {
+        "fill": "#fce7f3",
+        "stroke": "#9d174d",
+        "strokeWidth": 4
+      },
+      "childIds": [],
+      "bindings": [],
+      "metadata": {
+        "role": "detail-face"
+      },
+      "createdBy": {
+        "actorType": "agent",
+        "actorId": "nvcl-phase5-recursive-agent",
+        "sessionId": "b9675a66-d7f8-406a-aa3d-b5538f27e6f4"
+      },
+      "createdAt": "2026-07-30T11:44:36.954Z",
+      "updatedAt": "2026-07-30T11:44:36.954Z",
+      "revision": 0
+    },
+    {
+      "id": "detail-eye-left",
+      "canvasId": "canvas-character-detail",
+      "type": "ellipse",
+      "transform": {
+        "x": 365,
+        "y": 300,
+        "width": 62,
+        "height": 48,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "zIndex": 3
+      },
+      "style": {
+        "fill": "#312e81",
+        "stroke": "#111827",
+        "strokeWidth": 2
+      },
+      "childIds": [],
+      "bindings": [],
+      "metadata": {
+        "role": "eye"
+      },
+      "createdBy": {
+        "actorType": "agent",
+        "actorId": "nvcl-phase5-recursive-agent",
+        "sessionId": "b9675a66-d7f8-406a-aa3d-b5538f27e6f4"
+      },
+      "createdAt": "2026-07-30T11:44:36.954Z",
+      "updatedAt": "2026-07-30T11:44:36.954Z",
+      "revision": 0
+    },
+    {
+      "id": "detail-eye-right",
+      "canvasId": "canvas-character-detail",
+      "type": "ellipse",
+      "transform": {
+        "x": 570,
+        "y": 300,
+        "width": 62,
+        "height": 48,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "zIndex": 3
+      },
+      "style": {
+        "fill": "#312e81",
+        "stroke": "#111827",
+        "strokeWidth": 2
+      },
+      "childIds": [],
+      "bindings": [],
+      "metadata": {
+        "role": "eye"
+      },
+      "createdBy": {
+        "actorType": "agent",
+        "actorId": "nvcl-phase5-recursive-agent",
+        "sessionId": "b9675a66-d7f8-406a-aa3d-b5538f27e6f4"
+      },
+      "createdAt": "2026-07-30T11:44:36.954Z",
+      "updatedAt": "2026-07-30T11:44:36.954Z",
+      "revision": 0
+    },
+    {
+      "id": "detail-mouth",
+      "canvasId": "canvas-character-detail",
+      "type": "line",
+      "transform": {
+        "x": 420,
+        "y": 420,
+        "width": 170,
+        "height": 28,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "zIndex": 3
+      },
+      "style": {
+        "fill": "none",
+        "stroke": "#be185d",
+        "strokeWidth": 8
+      },
+      "childIds": [],
+      "bindings": [],
+      "metadata": {
+        "role": "mouth"
+      },
+      "createdBy": {
+        "actorType": "agent",
+        "actorId": "nvcl-phase5-recursive-agent",
+        "sessionId": "b9675a66-d7f8-406a-aa3d-b5538f27e6f4"
+      },
+      "createdAt": "2026-07-30T11:44:36.954Z",
+      "updatedAt": "2026-07-30T11:44:36.954Z",
+      "revision": 0
+    },
+    {
+      "id": "detail-label",
+      "canvasId": "canvas-character-detail",
+      "type": "text",
+      "transform": {
+        "x": 330,
+        "y": 245,
+        "width": 340,
+        "height": 64,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "zIndex": 7
+      },
+      "style": {
+        "fill": "#4c1d95",
+        "stroke": "none",
+        "fontSize": 34
+      },
+      "content": {
+        "text": "Character Detail"
+      },
+      "childIds": [],
+      "bindings": [],
+      "metadata": {
+        "role": "detail-label"
+      },
+      "createdBy": {
+        "actorType": "agent",
+        "actorId": "nvcl-phase5-recursive-agent",
+        "sessionId": "b9675a66-d7f8-406a-aa3d-b5538f27e6f4"
+      },
+      "createdAt": "2026-07-30T11:44:36.954Z",
+      "updatedAt": "2026-07-30T11:44:36.954Z",
+      "revision": 0
+    }
+  ],
+  "renderUri": "canvas://workspace/workspace-demo/canvas/canvas-character-detail/render/current.svg",
+  "issues": [
+    {
+      "id": "max_overlap:detail-label:detail-face",
+      "severity": "error",
+      "rule": "max_overlap",
+      "objectIds": [
+        "detail-label",
+        "detail-face"
+      ],
+      "message": "Overlap ratio 1.000 exceeds 0.100"
+    }
+  ],
+  "eventCount": 2
+}

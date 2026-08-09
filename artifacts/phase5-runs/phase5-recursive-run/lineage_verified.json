@@ -1,0 +1,7 @@
+{
+  "lineage": [
+    "canvas-root",
+    "canvas-character-detail"
+  ],
+  "portalObjectId": "character-detail-portal"
+}

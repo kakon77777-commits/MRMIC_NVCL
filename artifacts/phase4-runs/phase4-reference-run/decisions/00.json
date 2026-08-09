@@ -1,0 +1,177 @@
+{
+  "decision": {
+    "type": "tool_call",
+    "tool": "canvas.create_objects",
+    "arguments": {
+      "canvasId": "canvas-root",
+      "intent": "Create the NVCL reference scene",
+      "expectedCanvasRevision": 0,
+      "idempotencyKey": "nvcl-reference-scene:phase4-reference-run",
+      "objects": [
+        {
+          "id": "ground",
+          "type": "rectangle",
+          "transform": {
+            "x": 80,
+            "y": 500,
+            "width": 950,
+            "height": 140,
+            "zIndex": 1
+          },
+          "style": {
+            "fill": "#86efac",
+            "stroke": "#166534"
+          },
+          "metadata": {
+            "role": "ground",
+            "cornerRadius": 28
+          }
+        },
+        {
+          "id": "moon",
+          "type": "ellipse",
+          "transform": {
+            "x": 745,
+            "y": 105,
+            "width": 190,
+            "height": 190,
+            "zIndex": 2
+          },
+          "style": {
+            "fill": "#fde68a",
+            "stroke": "#d97706"
+          },
+          "metadata": {
+            "role": "moon"
+          }
+        },
+        {
+          "id": "character",
+          "type": "ellipse",
+          "transform": {
+            "x": 430,
+            "y": 255,
+            "width": 250,
+            "height": 330,
+            "zIndex": 5
+          },
+          "style": {
+            "fill": "#f9a8d4",
+            "stroke": "#9d174d"
+          },
+          "metadata": {
+            "role": "character"
+          }
+        },
+        {
+          "id": "character-face",
+          "type": "ellipse",
+          "transform": {
+            "x": 480,
+            "y": 300,
+            "width": 150,
+            "height": 125,
+            "zIndex": 6
+          },
+          "style": {
+            "fill": "#fce7f3",
+            "stroke": "#be185d"
+          },
+          "metadata": {
+            "role": "character-face"
+          }
+        },
+        {
+          "id": "title",
+          "type": "text",
+          "transform": {
+            "x": 390,
+            "y": 225,
+            "width": 360,
+            "height": 70,
+            "zIndex": 12
+          },
+          "style": {
+            "fill": "#312e81",
+            "stroke": "none",
+            "fontSize": 38
+          },
+          "content": {
+            "text": "Native Visual Canvas"
+          },
+          "metadata": {
+            "role": "title",
+            "fontWeight": 800
+          }
+        },
+        {
+          "id": "star-1",
+          "type": "text",
+          "transform": {
+            "x": 180,
+            "y": 145,
+            "width": 55,
+            "height": 55,
+            "zIndex": 4
+          },
+          "style": {
+            "fill": "#f59e0b",
+            "stroke": "none",
+            "fontSize": 46
+          },
+          "content": {
+            "text": "★"
+          },
+          "metadata": {
+            "role": "star"
+          }
+        },
+        {
+          "id": "star-2",
+          "type": "text",
+          "transform": {
+            "x": 320,
+            "y": 95,
+            "width": 55,
+            "height": 55,
+            "zIndex": 4
+          },
+          "style": {
+            "fill": "#f59e0b",
+            "stroke": "none",
+            "fontSize": 46
+          },
+          "content": {
+            "text": "★"
+          },
+          "metadata": {
+            "role": "star"
+          }
+        },
+        {
+          "id": "star-3",
+          "type": "text",
+          "transform": {
+            "x": 995,
+            "y": 205,
+            "width": 55,
+            "height": 55,
+            "zIndex": 4
+          },
+          "style": {
+            "fill": "#f59e0b",
+            "stroke": "none",
+            "fontSize": 46
+          },
+          "content": {
+            "text": "★"
+          },
+          "metadata": {
+            "role": "star"
+          }
+        }
+      ]
+    },
+    "summary": "Create the complete reference scene with an intentionally overlapping title for closed-loop repair."
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "tool": "canvas.patch_objects",
+  "summary": "Move only the title above the character while preserving every non-target object.",
+  "arguments": {
+    "canvasId": "canvas-root",
+    "intent": "Repair title overlap using a local patch",
+    "expectedCanvasRevision": 1,
+    "patches": [
+      {
+        "objectId": "title",
+        "expectedRevision": 0,
+        "patch": {
+          "transform": {
+            "y": 55
+          }
+        }
+      }
+    ]
+  },
+  "result": {
+    "ok": true,
+    "data": {
+      "result": {
+        "ok": true,
+        "transactionId": "df4dd0c3-e947-46d0-ae03-0702e6861025",
+        "canvasId": "canvas-root",
+        "revision": 2,
+        "affectedObjectIds": [
+          "title"
+        ],
+        "beforeHash": "cc8d12bb2c0ac6f761a4cc984d51d9702a23b828bc5ac925ff775837f5604a8a",
+        "afterHash": "762107ad97a7d071dc86ac5ec093f474808b49dd7b821e3a7073e071a5480ef2"
+      },
+      "objects": [
+        {
+          "id": "title",
+          "canvasId": "canvas-root",
+          "type": "text",
+          "transform": {
+            "x": 390,
+            "y": 55,
+            "width": 360,
+            "height": 70,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "zIndex": 12
+          },
+          "style": {
+            "fill": "#312e81",
+            "stroke": "none",
+            "fontSize": 38
+          },
+          "content": {
+            "text": "Native Visual Canvas"
+          },
+          "childIds": [],
+          "bindings": [],
+          "metadata": {
+            "role": "title",
+            "fontWeight": 800
+          },
+          "createdBy": {
+            "actorType": "agent",
+            "actorId": "nvcl-phase4-agent",
+            "sessionId": "39f676a1-4c28-4920-97f5-1843d8492b7e"
+          },
+          "createdAt": "2026-07-30T11:23:43.229Z",
+          "updatedAt": "2026-07-30T11:23:43.246Z",
+          "revision": 1
+        }
+      ]
+    },
+    "warnings": [],
+    "resourceLinks": [
+      "canvas://workspace/workspace-demo/object/title"
+    ],
+    "transactionId": "df4dd0c3-e947-46d0-ae03-0702e6861025",
+    "revision": 2
+  }
+}

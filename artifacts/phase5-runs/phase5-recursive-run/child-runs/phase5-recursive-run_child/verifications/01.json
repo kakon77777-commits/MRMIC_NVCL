@@ -1,0 +1,12 @@
+[
+  {
+    "id": "max_overlap:detail-label:detail-face",
+    "severity": "error",
+    "rule": "max_overlap",
+    "objectIds": [
+      "detail-label",
+      "detail-face"
+    ],
+    "message": "Overlap ratio 1.000 exceeds 0.100"
+  }
+]

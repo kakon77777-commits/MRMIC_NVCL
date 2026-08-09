@@ -1,0 +1,128 @@
+
+> mrmic-nvcl-mvp@0.3.0 test
+> npm run build && node --test tests/*.test.mjs
+
+
+> mrmic-nvcl-mvp@0.3.0 build
+> tsc -p tsconfig.json
+
+TAP version 13
+# Subtest: SVG adapter renders core objects with stable IDs
+ok 1 - SVG adapter renders core objects with stable IDs
+  ---
+  duration_ms: 9.534591
+  type: 'test'
+  ...
+# Subtest: adapter emits one delta per committed transaction
+ok 2 - adapter emits one delta per committed transaction
+  ---
+  duration_ms: 1.81991
+  type: 'test'
+  ...
+# Subtest: adapter supports local query and viewport state
+ok 3 - adapter supports local query and viewport state
+  ---
+  duration_ms: 0.534162
+  type: 'test'
+  ...
+# Subtest: commits an atomic create transaction
+ok 4 - commits an atomic create transaction
+  ---
+  duration_ms: 8.815134
+  type: 'test'
+  ...
+# Subtest: rejects a stale object revision without changing state
+ok 5 - rejects a stale object revision without changing state
+  ---
+  duration_ms: 1.396381
+  type: 'test'
+  ...
+# Subtest: rolls back the whole transaction when one operation fails
+ok 6 - rolls back the whole transaction when one operation fails
+  ---
+  duration_ms: 0.354276
+  type: 'test'
+  ...
+# Subtest: idempotency key prevents duplicate creation
+ok 7 - idempotency key prevents duplicate creation
+  ---
+  duration_ms: 1.342011
+  type: 'test'
+  ...
+# (node:3442) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: persists and reads append-only events
+ok 8 - persists and reads append-only events
+  ---
+  duration_ms: 1.521507
+  type: 'test'
+  ...
+# Subtest: state-vector room applies updates idempotently and computes diffs
+ok 9 - state-vector room applies updates idempotently and computes diffs
+  ---
+  duration_ms: 1.660893
+  type: 'test'
+  ...
+# Subtest: state-vector rejects gaps and merges vectors
+ok 10 - state-vector rejects gaps and merges vectors
+  ---
+  duration_ms: 0.517918
+  type: 'test'
+  ...
+# Subtest: presence is ephemeral and emits removal
+ok 11 - presence is ephemeral and emits removal
+  ---
+  duration_ms: 0.243271
+  type: 'test'
+  ...
+# (node:3469) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: sync update log persists ordered updates without duplicates
+ok 12 - sync update log persists ordered updates without duplicates
+  ---
+  duration_ms: 1.140692
+  type: 'test'
+  ...
+# Subtest: calculates overlap and emits deterministic issues
+ok 13 - calculates overlap and emits deterministic issues
+  ---
+  duration_ms: 0.647551
+  type: 'test'
+  ...
+# Subtest: verifies object counts
+ok 14 - verifies object counts
+  ---
+  duration_ms: 0.180888
+  type: 'test'
+  ...
+# (node:3501) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Phase 2 web API seeds, renders, and locally repairs the canvas
+ok 15 - Phase 2 web API seeds, renders, and locally repairs the canvas
+  ---
+  duration_ms: 45.484571
+  type: 'test'
+  ...
+# Subtest: Phase 2 web API creates a one-level subcanvas portal
+ok 16 - Phase 2 web API creates a one-level subcanvas portal
+  ---
+  duration_ms: 13.799247
+  type: 'test'
+  ...
+# (node:3502) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: two WebSocket clients synchronize updates, presence, and reconnect diffs
+ok 17 - two WebSocket clients synchronize updates, presence, and reconnect diffs
+  ---
+  duration_ms: 119.042487
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 287.584645

@@ -1,0 +1,24 @@
+{
+  "goal": "Delegate a character-detail study into a child canvas, verify it, fold it, and write its result back to the parent portal.",
+  "parentCanvasId": "canvas-root",
+  "portal": {
+    "objectId": "character-detail-portal",
+    "childCanvasId": "canvas-character-detail",
+    "title": "Character Detail",
+    "transform": {
+      "x": 820,
+      "y": 560,
+      "width": 320,
+      "height": 160,
+      "zIndex": 20
+    },
+    "style": {
+      "fill": "#faf5ff",
+      "stroke": "#7c3aed",
+      "strokeWidth": 3
+    }
+  },
+  "childGoal": "Create a face detail with exactly two eyes, a mouth, and a label that does not obscure the face.",
+  "actorId": "nvcl-phase5-recursive-agent",
+  "childAgent": "reference-detail-agent"
+}

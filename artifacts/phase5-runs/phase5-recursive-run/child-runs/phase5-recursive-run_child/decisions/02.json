@@ -1,0 +1,7 @@
+{
+  "decision": {
+    "type": "stop",
+    "success": true,
+    "reason": "The child detail canvas passes every deterministic constraint."
+  }
+}

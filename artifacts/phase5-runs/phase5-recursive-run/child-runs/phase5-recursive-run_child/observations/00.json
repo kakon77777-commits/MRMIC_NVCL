@@ -1,0 +1,23 @@
+{
+  "canvasId": "canvas-character-detail",
+  "revision": 0,
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "width": 1200,
+    "height": 800,
+    "zoom": 1
+  },
+  "objects": [],
+  "renderUri": "canvas://workspace/workspace-demo/canvas/canvas-character-detail/render/current.svg",
+  "issues": [
+    {
+      "id": "two_eyes:2:0",
+      "severity": "error",
+      "rule": "two_eyes",
+      "objectIds": [],
+      "message": "Expected 2 matching objects, found 0"
+    }
+  ],
+  "eventCount": 1
+}

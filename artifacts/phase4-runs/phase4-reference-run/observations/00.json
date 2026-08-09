@@ -1,0 +1,23 @@
+{
+  "canvasId": "canvas-root",
+  "revision": 0,
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "width": 1200,
+    "height": 800,
+    "zoom": 1
+  },
+  "objects": [],
+  "renderUri": "canvas://workspace/workspace-demo/canvas/canvas-root/render/current.svg",
+  "issues": [
+    {
+      "id": "three_stars:3:0",
+      "severity": "error",
+      "rule": "three_stars",
+      "objectIds": [],
+      "message": "Expected 3 matching objects, found 0"
+    }
+  ],
+  "eventCount": 0
+}

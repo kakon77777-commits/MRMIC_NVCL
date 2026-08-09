@@ -1,0 +1,37 @@
+{
+  "name": "mrmic-nvcl-mvp",
+  "version": "0.7.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@10.9.2",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "demo": "npm run build && node --no-warnings dist/apps/cli/src/index.js",
+    "migrate": "npm run build && node --no-warnings dist/apps/cli/src/migrate.js",
+    "web": "npm run build && node --no-warnings dist/apps/web/src/server.js",
+    "phase1:demo": "npm run build && node --no-warnings dist/apps/phase1-demo/src/index.js",
+    "phase2:demo": "npm run build && node --no-warnings dist/apps/phase2-demo/src/index.js",
+    "sync": "npm run build && node --no-warnings dist/apps/web/src/server.js",
+    "phase3:demo": "npm run build && node --no-warnings dist/apps/phase3-demo/src/index.js",
+    "mcp": "npm run web",
+    "phase4:demo": "npm run build && node --no-warnings dist/apps/phase4-demo/src/index.js",
+    "phase5:demo": "npm run build && node --no-warnings dist/apps/phase5-demo/src/index.js",
+    "nvcl": "npm run phase4:demo",
+    "recursive": "npm run phase5:demo",
+    "phase6:demo": "npm run build && node --no-warnings dist/apps/phase6-demo/src/index.js",
+    "hardening": "npm run phase6:demo"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

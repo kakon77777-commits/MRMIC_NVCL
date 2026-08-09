@@ -1,0 +1,15 @@
+{
+  "portalObjectId": "character-detail-portal",
+  "fold": {
+    "title": "Character Detail",
+    "status": "completed",
+    "childCanvasId": "canvas-character-detail",
+    "childRunId": "phase5-recursive-run:child",
+    "childRevision": 2,
+    "childObjectCount": 5,
+    "issueCount": 0,
+    "summary": "Character Detail ✓ · 5 objects · revision 2",
+    "previewResourceUri": "canvas://workspace/workspace-demo/canvas/canvas-character-detail/render/current.svg",
+    "foldedAt": "2026-07-30T11:44:36.976Z"
+  }
+}

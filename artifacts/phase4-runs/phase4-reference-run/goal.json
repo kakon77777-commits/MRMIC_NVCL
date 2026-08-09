@@ -1,0 +1,31 @@
+{
+  "goal": "Create a title, character, moon, ground, and exactly three stars. Keep the title from obscuring the character and repair only the failing region.",
+  "canvasId": "canvas-root",
+  "checks": [
+    {
+      "type": "count",
+      "role": "star",
+      "expected": 3,
+      "rule": "three_stars"
+    },
+    {
+      "type": "max_overlap",
+      "foregroundId": "title",
+      "backgroundId": "character",
+      "maximum": 0.1
+    },
+    {
+      "type": "inside_bounds",
+      "objectId": "title",
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1200,
+        "height": 800
+      }
+    }
+  ],
+  "maxIterations": 6,
+  "agent": "reference-scene-agent",
+  "actorId": "nvcl-phase4-agent"
+}

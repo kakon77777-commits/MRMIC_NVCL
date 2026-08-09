@@ -1,0 +1,61 @@
+{
+  "phase": 6,
+  "version": "0.7.0",
+  "status": "completed",
+  "openedSubcanvasSyncHandle": "/sync?canvasId=phase6-child",
+  "beforeRestart": {
+    "snapshotId": "f6ad8f47-05b8-4963-a28e-ff407d69480b",
+    "replacementEvents": 1,
+    "rootObjectX": 120,
+    "rootRoom": {
+      "id": "workspace-demo:canvas-root",
+      "vector": {
+        "mcp:test-c29fe16f-c225-47da-bcc3-8864e1cbeae9": 1,
+        "mcp:test-72dd7d65-de6f-4958-bfaf-376cd320fd71": 1,
+        "mcp:test-2c06713c-d2c8-4829-9fa6-8b6dbee0d7be": 1,
+        "mcp:test-dfaa373c-318b-4657-bd58-97c92666aee0": 1
+      },
+      "handle": "/sync?canvasId=canvas-root"
+    },
+    "childRoom": {
+      "id": "workspace-demo:phase6-child",
+      "vector": {
+        "mcp:test-f6be6928-679b-4b82-a5d9-de77bab23b8e": 1,
+        "mcp:test-dfaa373c-318b-4657-bd58-97c92666aee0": 1
+      },
+      "handle": "/sync?canvasId=phase6-child"
+    },
+    "snapshots": 5,
+    "trajectories": 1
+  },
+  "afterRestart": {
+    "recoveredSnapshotId": "shutdown-1785413011344",
+    "rootObjectX": 120,
+    "childCanvasParent": "canvas-root",
+    "childObjectCanvas": "phase6-child",
+    "trajectory": {
+      "status": "completed",
+      "rootCanvasId": "canvas-root",
+      "childCanvasId": "phase6-child"
+    },
+    "snapshots": 6,
+    "rootStateVector": {
+      "mcp:test-c29fe16f-c225-47da-bcc3-8864e1cbeae9": 1,
+      "mcp:test-72dd7d65-de6f-4958-bfaf-376cd320fd71": 1,
+      "mcp:test-2c06713c-d2c8-4829-9fa6-8b6dbee0d7be": 1,
+      "mcp:test-dfaa373c-318b-4657-bd58-97c92666aee0": 1
+    },
+    "childStateVector": {
+      "mcp:test-f6be6928-679b-4b82-a5d9-de77bab23b8e": 1,
+      "mcp:test-dfaa373c-318b-4657-bd58-97c92666aee0": 1
+    }
+  },
+  "assertions": {
+    "synchronizedRestoreObserved": true,
+    "restoredXMatchesSnapshot": true,
+    "restartRecovered": true,
+    "childWorldRecovered": true,
+    "trajectoryRecovered": true,
+    "independentRooms": true
+  }
+}

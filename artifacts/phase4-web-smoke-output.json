@@ -1,0 +1,27 @@
+{
+  "httpStatus": 200,
+  "result": {
+    "runId": "web-nvcl-1785410590526",
+    "goal": "Create a title, character, moon, ground, and exactly three stars. Keep the title from obscuring the character and repair only the failing region.",
+    "canvasId": "canvas-root",
+    "status": "completed",
+    "reason": "All deterministic verification checks pass.",
+    "iterations": 3,
+    "toolCalls": 2,
+    "finalRevision": 2,
+    "finalIssues": [],
+    "initialSnapshotId": "4d569fe8-0e76-46fa-8349-2e681c7ad7ed",
+    "bestSnapshotId": "0b3b0e3f-f109-455f-9326-71401b01aa88",
+    "bestScore": 0,
+    "restoredBestSnapshot": false,
+    "startedAt": "2026-07-30T11:23:10.527Z",
+    "completedAt": "2026-07-30T11:23:10.543Z",
+    "agent": "reference-scene-agent",
+    "actorId": "web-nvcl-agent",
+    "trajectoryUri": "canvas://workspace/workspace-demo/trajectory/web-nvcl-1785410590526"
+  },
+  "runs": 1,
+  "revision": 2,
+  "objects": 8,
+  "syncUpdates": 2
+}

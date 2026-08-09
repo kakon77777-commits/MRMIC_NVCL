@@ -1,0 +1,6 @@
+{
+  "name": "@mrmic/cli",
+  "version": "0.7.0",
+  "private": true,
+  "type": "module"
+}

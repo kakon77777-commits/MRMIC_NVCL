@@ -1,0 +1,50 @@
+MRMIC/NVCL Phase 1 canvas running at http://127.0.0.1:4173
+Use POST /api/demo/seed to create the demo scene.
+--- GET /
+status=200 bytes=2584
+AI-native Infinite Canvas
+--- POST seed
+{
+  "ok": true,
+  "transactionId": "89eb9304-46a6-4e53-a770-fa725b5f1616",
+  "canvasId": "canvas-root",
+  "revision": 1,
+  "affectedObjectIds": [
+    "ground",
+    "moon",
+    "character-body",
+    "character-face",
+    "title",
+    "star-1",
+    "star-2",
+    "star-3"
+  ],
+  "beforeHash": "a3bb9045209ce4126fa951db801e86ae2c7294a0359d334f8a52a1b9d6d2ece6",
+  "afterHash": "18a074618df0969796d4e9b4dfe62f0330557ed1641dd41119c2bfec523a176d"
+}
+--- POST repair
+{
+  "ok": true,
+  "transactionId": "75fb992e-a3cc-4f99-9d45-b425fce9d2c2",
+  "canvasId": "canvas-root",
+  "revision": 2,
+  "affectedObjectIds": [
+    "title"
+  ],
+  "beforeHash": "18a074618df0969796d4e9b4dfe62f0330557ed1641dd41119c2bfec523a176d",
+  "afterHash": "8db5d11a0258572dd52b372d1ce44700bcf1fb1da62504e0e2bbf8c773aa9511"
+}
+--- POST subcanvas
+{
+  "ok": true,
+  "transactionId": "ea8d36e7-624e-4fc8-ba39-0cd9a82f0e81",
+  "canvasId": "canvas-root",
+  "revision": 3,
+  "affectedObjectIds": [
+    "subcanvas-portal"
+  ],
+  "beforeHash": "8db5d11a0258572dd52b372d1ce44700bcf1fb1da62504e0e2bbf8c773aa9511",
+  "afterHash": "02dfed7e12cb7ecace2b4b24eae902a09be2680508de7b047a6f83cae26ef7d3"
+}
+--- GET state summary
+{"revision": 3, "objects": 9, "events": 3, "titleY": 55, "hasSubcanvas": true, "actor": "mrmic-demo-agent"}

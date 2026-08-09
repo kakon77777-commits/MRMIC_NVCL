@@ -1,0 +1,6 @@
+{
+  "name": "@mrmic/mcp-reference-server",
+  "version": "0.7.0",
+  "private": true,
+  "type": "module"
+}

@@ -1,0 +1,23 @@
+{
+  "decision": {
+    "type": "tool_call",
+    "tool": "canvas.patch_objects",
+    "arguments": {
+      "canvasId": "canvas-character-detail",
+      "intent": "Repair child label overlap using a local patch",
+      "expectedCanvasRevision": 1,
+      "patches": [
+        {
+          "objectId": "detail-label",
+          "expectedRevision": 0,
+          "patch": {
+            "transform": {
+              "y": 55
+            }
+          }
+        }
+      ]
+    },
+    "summary": "Move only the child label above the face while preserving all visual detail objects."
+  }
+}

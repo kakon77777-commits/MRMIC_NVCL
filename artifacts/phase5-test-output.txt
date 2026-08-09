@@ -1,0 +1,236 @@
+
+> mrmic-nvcl-mvp@0.6.0 test
+> npm run build && node --test tests/*.test.mjs
+
+
+> mrmic-nvcl-mvp@0.6.0 build
+> tsc -p tsconfig.json
+
+TAP version 13
+# Subtest: SVG adapter renders core objects with stable IDs
+ok 1 - SVG adapter renders core objects with stable IDs
+  ---
+  duration_ms: 8.055948
+  type: 'test'
+  ...
+# Subtest: adapter emits one delta per committed transaction
+ok 2 - adapter emits one delta per committed transaction
+  ---
+  duration_ms: 1.026573
+  type: 'test'
+  ...
+# Subtest: adapter supports local query and viewport state
+ok 3 - adapter supports local query and viewport state
+  ---
+  duration_ms: 1.276454
+  type: 'test'
+  ...
+# Subtest: commits an atomic create transaction
+ok 4 - commits an atomic create transaction
+  ---
+  duration_ms: 9.792984
+  type: 'test'
+  ...
+# Subtest: rejects a stale object revision without changing state
+ok 5 - rejects a stale object revision without changing state
+  ---
+  duration_ms: 1.71297
+  type: 'test'
+  ...
+# Subtest: rolls back the whole transaction when one operation fails
+ok 6 - rolls back the whole transaction when one operation fails
+  ---
+  duration_ms: 0.46498
+  type: 'test'
+  ...
+# Subtest: idempotency key prevents duplicate creation
+ok 7 - idempotency key prevents duplicate creation
+  ---
+  duration_ms: 1.427707
+  type: 'test'
+  ...
+# (node:9172) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: persists and reads append-only events
+ok 8 - persists and reads append-only events
+  ---
+  duration_ms: 1.825397
+  type: 'test'
+  ...
+# (node:9203) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: MCP initialize, tool listing, resource listing, and resource reads work over Streamable HTTP subset
+ok 9 - MCP initialize, tool listing, resource listing, and resource reads work over Streamable HTTP subset
+  ---
+  duration_ms: 40.069759
+  type: 'test'
+  ...
+# Subtest: viewer sessions can read but cannot mutate canvas state
+ok 10 - viewer sessions can read but cannot mutate canvas state
+  ---
+  duration_ms: 13.108812
+  type: 'test'
+  ...
+# Subtest: MCP mutation becomes synchronized room update and reaches WebSocket peers
+ok 11 - MCP mutation becomes synchronized room update and reaches WebSocket peers
+  ---
+  duration_ms: 25.367744
+  type: 'test'
+  ...
+# Subtest: resource subscriptions emit resources/updated notifications on the MCP SSE stream
+ok 12 - resource subscriptions emit resources/updated notifications on the MCP SSE stream
+  ---
+  duration_ms: 9.93173
+  type: 'test'
+  ...
+# Subtest: owner can snapshot, mutate, and restore the canvas state
+ok 13 - owner can snapshot, mutate, and restore the canvas state
+  ---
+  duration_ms: 10.761581
+  type: 'test'
+  ...
+# (node:9204) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: NVCL reference agent completes observe-plan-act-render-verify-repair-stop through MCP
+ok 14 - NVCL reference agent completes observe-plan-act-render-verify-repair-stop through MCP
+  ---
+  duration_ms: 25.712596
+  type: 'test'
+  ...
+# Subtest: NVCL trace records observations, decisions, tool results, snapshots, and completion
+ok 15 - NVCL trace records observations, decisions, tool results, snapshots, and completion
+  ---
+  duration_ms: 7.692509
+  type: 'test'
+  ...
+# Subtest: NVCL restores the best snapshot after a regression followed by an MCP tool failure
+ok 16 - NVCL restores the best snapshot after a regression followed by an MCP tool failure
+  ---
+  duration_ms: 12.011925
+  type: 'test'
+  ...
+# Subtest: provider-neutral JSON model agent validates structured MCP decisions
+ok 17 - provider-neutral JSON model agent validates structured MCP decisions
+  ---
+  duration_ms: 1.033924
+  type: 'test'
+  ...
+# Subtest: verification filtering avoids unavailable object references and issue scoring is deterministic
+ok 18 - verification filtering avoids unavailable object references and issue scoring is deterministic
+  ---
+  duration_ms: 0.139417
+  type: 'test'
+  ...
+# Subtest: Flat NVCL web endpoint runs NVCL and exposes the result as an MCP trajectory resource
+ok 19 - Flat NVCL web endpoint runs NVCL and exposes the result as an MCP trajectory resource
+  ---
+  duration_ms: 32.257793
+  type: 'test'
+  ...
+# Subtest: NVCL supports cancellation and restores the best known snapshot
+ok 20 - NVCL supports cancellation and restores the best known snapshot
+  ---
+  duration_ms: 2.862926
+  type: 'test'
+  ...
+# (node:9216) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: recursive NVCL completes parent-child execution, folding, and lineage verification
+ok 21 - recursive NVCL completes parent-child execution, folding, and lineage verification
+  ---
+  duration_ms: 30.619383
+  type: 'test'
+  ...
+# Subtest: recursive trace records delegation, child completion, folding, lineage, and completion
+ok 22 - recursive trace records delegation, child completion, folding, lineage, and completion
+  ---
+  duration_ms: 7.951543
+  type: 'test'
+  ...
+# Subtest: failed child run restores the complete parent snapshot and removes the recursive world
+ok 23 - failed child run restores the complete parent snapshot and removes the recursive world
+  ---
+  duration_ms: 4.6928
+  type: 'test'
+  ...
+# Subtest: MCP fold_subcanvas and get_lineage expose recursive state as typed tools
+ok 24 - MCP fold_subcanvas and get_lineage expose recursive state as typed tools
+  ---
+  duration_ms: 1.899847
+  type: 'test'
+  ...
+# Subtest: Phase 5 web endpoint runs recursive NVCL and publishes a trajectory resource
+ok 25 - Phase 5 web endpoint runs recursive NVCL and publishes a trajectory resource
+  ---
+  duration_ms: 33.615887
+  type: 'test'
+  ...
+# Subtest: state-vector room applies updates idempotently and computes diffs
+ok 26 - state-vector room applies updates idempotently and computes diffs
+  ---
+  duration_ms: 1.720742
+  type: 'test'
+  ...
+# Subtest: state-vector rejects gaps and merges vectors
+ok 27 - state-vector rejects gaps and merges vectors
+  ---
+  duration_ms: 0.557457
+  type: 'test'
+  ...
+# Subtest: presence is ephemeral and emits removal
+ok 28 - presence is ephemeral and emits removal
+  ---
+  duration_ms: 0.238855
+  type: 'test'
+  ...
+# (node:9243) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: sync update log persists ordered updates without duplicates
+ok 29 - sync update log persists ordered updates without duplicates
+  ---
+  duration_ms: 1.036327
+  type: 'test'
+  ...
+# Subtest: calculates overlap and emits deterministic issues
+ok 30 - calculates overlap and emits deterministic issues
+  ---
+  duration_ms: 0.651657
+  type: 'test'
+  ...
+# Subtest: verifies object counts
+ok 31 - verifies object counts
+  ---
+  duration_ms: 0.173557
+  type: 'test'
+  ...
+# (node:9264) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Phase 5 web API seeds, renders, and locally repairs the canvas
+ok 32 - Phase 5 web API seeds, renders, and locally repairs the canvas
+  ---
+  duration_ms: 48.41683
+  type: 'test'
+  ...
+# Subtest: Phase 5 web API creates a one-level subcanvas portal
+ok 33 - Phase 5 web API creates a one-level subcanvas portal
+  ---
+  duration_ms: 12.521171
+  type: 'test'
+  ...
+# (node:9270) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: two WebSocket clients synchronize updates, presence, and reconnect diffs
+ok 34 - two WebSocket clients synchronize updates, presence, and reconnect diffs
+  ---
+  duration_ms: 121.96657
+  type: 'test'
+  ...
+1..34
+# tests 34
+# suites 0
+# pass 34
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 442.476552

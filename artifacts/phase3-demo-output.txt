@@ -1,0 +1,24 @@
+
+> mrmic-nvcl-mvp@0.4.0 phase3:demo
+> npm run build && node --no-warnings dist/apps/phase3-demo/src/index.js
+
+
+> mrmic-nvcl-mvp@0.4.0 build
+> tsc -p tsconfig.json
+
+{
+  "protocolVersion": "2025-11-25",
+  "sessionId": "e8ca1bf2-ae63-4e0a-9ff7-029cfa168545",
+  "toolCount": 13,
+  "resourceCount": 5,
+  "createOk": true,
+  "syncUpdates": 2,
+  "beforeIssues": 1,
+  "afterIssues": 0,
+  "titleY": 55,
+  "canvasRevision": 2,
+  "eventCount": 2,
+  "snapshotId": "b8073a9f-4efd-4201-a73b-e7e64b71f251",
+  "renderMimeType": "image/svg+xml",
+  "patchTransactionId": "a0345b81-0d75-412e-a772-bb03d2f34594"
+}

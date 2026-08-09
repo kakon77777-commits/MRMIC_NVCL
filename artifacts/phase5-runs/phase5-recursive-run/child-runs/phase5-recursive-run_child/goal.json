@@ -1,0 +1,31 @@
+{
+  "goal": "Create a face detail with exactly two eyes, a mouth, and a label that does not obscure the face.",
+  "canvasId": "canvas-character-detail",
+  "checks": [
+    {
+      "type": "count",
+      "role": "eye",
+      "expected": 2,
+      "rule": "two_eyes"
+    },
+    {
+      "type": "max_overlap",
+      "foregroundId": "detail-label",
+      "backgroundId": "detail-face",
+      "maximum": 0.1
+    },
+    {
+      "type": "inside_bounds",
+      "objectId": "detail-label",
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1000,
+        "height": 700
+      }
+    }
+  ],
+  "maxIterations": 6,
+  "agent": "reference-detail-agent",
+  "actorId": "nvcl-phase5-recursive-agent"
+}

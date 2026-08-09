@@ -1,0 +1,5 @@
+{
+  "portalObjectId": "character-detail-portal",
+  "childCanvasId": "canvas-character-detail",
+  "parentCanvasId": "canvas-root"
+}

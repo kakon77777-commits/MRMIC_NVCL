@@ -1,0 +1,49 @@
+{
+  "phase": 1,
+  "version": "0.2.0",
+  "canvasRevision": 2,
+  "objectCount": 8,
+  "eventCount": 2,
+  "deltaCount": 2,
+  "changedObject": {
+    "id": "title",
+    "canvasId": "canvas-root",
+    "type": "text",
+    "transform": {
+      "x": 390,
+      "y": 55,
+      "width": 360,
+      "height": 70,
+      "rotation": 0,
+      "scaleX": 1,
+      "scaleY": 1,
+      "zIndex": 12
+    },
+    "style": {
+      "fill": "#312e81",
+      "stroke": "none",
+      "strokeWidth": 2,
+      "opacity": 1,
+      "fontSize": 38
+    },
+    "content": {
+      "text": "Native Visual Canvas"
+    },
+    "childIds": [],
+    "bindings": [],
+    "metadata": {
+      "role": "title",
+      "fontWeight": 800
+    },
+    "createdBy": {
+      "actorType": "agent",
+      "actorId": "mrmic-demo-agent",
+      "instanceId": "local-demo"
+    },
+    "createdAt": "2026-07-30T10:03:41.064Z",
+    "updatedAt": "2026-07-30T10:03:41.073Z",
+    "revision": 1
+  },
+  "beforeSvg": "artifacts/phase1-before.svg",
+  "afterSvg": "artifacts/phase1-after.svg"
+}

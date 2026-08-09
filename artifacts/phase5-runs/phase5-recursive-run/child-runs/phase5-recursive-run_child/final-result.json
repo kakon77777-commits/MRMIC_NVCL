@@ -1,0 +1,19 @@
+{
+  "runId": "phase5-recursive-run:child",
+  "goal": "Create a face detail with exactly two eyes, a mouth, and a label that does not obscure the face.",
+  "canvasId": "canvas-character-detail",
+  "status": "completed",
+  "reason": "The child detail canvas passes every deterministic constraint.",
+  "iterations": 3,
+  "toolCalls": 2,
+  "finalRevision": 2,
+  "finalIssues": [],
+  "initialSnapshotId": "da5d6def-d7a5-4471-932f-232af8782ac4",
+  "bestSnapshotId": "dac9326c-6587-4b9f-8f39-f7bb4c6bccd6",
+  "bestScore": 0,
+  "restoredBestSnapshot": false,
+  "startedAt": "2026-07-30T11:44:36.940Z",
+  "completedAt": "2026-07-30T11:44:36.971Z",
+  "agent": "reference-detail-agent",
+  "actorId": "nvcl-phase5-recursive-agent"
+}

@@ -1,0 +1,80 @@
+{
+  "tool": "canvas.patch_objects",
+  "summary": "Move only the child label above the face while preserving all visual detail objects.",
+  "arguments": {
+    "canvasId": "canvas-character-detail",
+    "intent": "Repair child label overlap using a local patch",
+    "expectedCanvasRevision": 1,
+    "patches": [
+      {
+        "objectId": "detail-label",
+        "expectedRevision": 0,
+        "patch": {
+          "transform": {
+            "y": 55
+          }
+        }
+      }
+    ]
+  },
+  "result": {
+    "ok": true,
+    "data": {
+      "result": {
+        "ok": true,
+        "transactionId": "f839bd1d-eb68-4f1b-b438-890f4743657e",
+        "canvasId": "canvas-character-detail",
+        "revision": 2,
+        "affectedObjectIds": [
+          "detail-label"
+        ],
+        "beforeHash": "e022071987e6fe30756932a2df9be130c4bbdfb6abf56deac14cfebfd7ed565e",
+        "afterHash": "987b9cf632ad03b069a82f83320894a8ae9e4ddc934d403d9e35f50f5d9f428d"
+      },
+      "objects": [
+        {
+          "id": "detail-label",
+          "canvasId": "canvas-character-detail",
+          "type": "text",
+          "transform": {
+            "x": 330,
+            "y": 55,
+            "width": 340,
+            "height": 64,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "zIndex": 7
+          },
+          "style": {
+            "fill": "#4c1d95",
+            "stroke": "none",
+            "fontSize": 34
+          },
+          "content": {
+            "text": "Character Detail"
+          },
+          "childIds": [],
+          "bindings": [],
+          "metadata": {
+            "role": "detail-label"
+          },
+          "createdBy": {
+            "actorType": "agent",
+            "actorId": "nvcl-phase5-recursive-agent",
+            "sessionId": "b9675a66-d7f8-406a-aa3d-b5538f27e6f4"
+          },
+          "createdAt": "2026-07-30T11:44:36.954Z",
+          "updatedAt": "2026-07-30T11:44:36.964Z",
+          "revision": 1
+        }
+      ]
+    },
+    "warnings": [],
+    "resourceLinks": [
+      "canvas://workspace/workspace-demo/object/detail-label"
+    ],
+    "transactionId": "f839bd1d-eb68-4f1b-b438-890f4743657e",
+    "revision": 2
+  }
+}

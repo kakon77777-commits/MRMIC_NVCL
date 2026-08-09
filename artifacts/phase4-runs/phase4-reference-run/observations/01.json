@@ -1,0 +1,301 @@
+{
+  "canvasId": "canvas-root",
+  "revision": 1,
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "width": 1200,
+    "height": 800,
+    "zoom": 1
+  },
+  "objects": [
+    {
+      "id": "ground",
+      "canvasId": "canvas-root",
+      "type": "rectangle",
+      "transform": {
+        "x": 80,
+        "y": 500,
+        "width": 950,
+        "height": 140,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "zIndex": 1
+      },
+      "style": {
+        "fill": "#86efac",
+        "stroke": "#166534"
+      },
+      "childIds": [],
+      "bindings": [],
+      "metadata": {
+        "role": "ground",
+        "cornerRadius": 28
+      },
+      "createdBy": {
+        "actorType": "agent",
+        "actorId": "nvcl-phase4-agent",
+        "sessionId": "39f676a1-4c28-4920-97f5-1843d8492b7e"
+      },
+      "createdAt": "2026-07-30T11:23:43.229Z",
+      "updatedAt": "2026-07-30T11:23:43.229Z",
+      "revision": 0
+    },
+    {
+      "id": "moon",
+      "canvasId": "canvas-root",
+      "type": "ellipse",
+      "transform": {
+        "x": 745,
+        "y": 105,
+        "width": 190,
+        "height": 190,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "zIndex": 2
+      },
+      "style": {
+        "fill": "#fde68a",
+        "stroke": "#d97706"
+      },
+      "childIds": [],
+      "bindings": [],
+      "metadata": {
+        "role": "moon"
+      },
+      "createdBy": {
+        "actorType": "agent",
+        "actorId": "nvcl-phase4-agent",
+        "sessionId": "39f676a1-4c28-4920-97f5-1843d8492b7e"
+      },
+      "createdAt": "2026-07-30T11:23:43.229Z",
+      "updatedAt": "2026-07-30T11:23:43.229Z",
+      "revision": 0
+    },
+    {
+      "id": "star-1",
+      "canvasId": "canvas-root",
+      "type": "text",
+      "transform": {
+        "x": 180,
+        "y": 145,
+        "width": 55,
+        "height": 55,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "zIndex": 4
+      },
+      "style": {
+        "fill": "#f59e0b",
+        "stroke": "none",
+        "fontSize": 46
+      },
+      "content": {
+        "text": "★"
+      },
+      "childIds": [],
+      "bindings": [],
+      "metadata": {
+        "role": "star"
+      },
+      "createdBy": {
+        "actorType": "agent",
+        "actorId": "nvcl-phase4-agent",
+        "sessionId": "39f676a1-4c28-4920-97f5-1843d8492b7e"
+      },
+      "createdAt": "2026-07-30T11:23:43.229Z",
+      "updatedAt": "2026-07-30T11:23:43.229Z",
+      "revision": 0
+    },
+    {
+      "id": "star-2",
+      "canvasId": "canvas-root",
+      "type": "text",
+      "transform": {
+        "x": 320,
+        "y": 95,
+        "width": 55,
+        "height": 55,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "zIndex": 4
+      },
+      "style": {
+        "fill": "#f59e0b",
+        "stroke": "none",
+        "fontSize": 46
+      },
+      "content": {
+        "text": "★"
+      },
+      "childIds": [],
+      "bindings": [],
+      "metadata": {
+        "role": "star"
+      },
+      "createdBy": {
+        "actorType": "agent",
+        "actorId": "nvcl-phase4-agent",
+        "sessionId": "39f676a1-4c28-4920-97f5-1843d8492b7e"
+      },
+      "createdAt": "2026-07-30T11:23:43.229Z",
+      "updatedAt": "2026-07-30T11:23:43.229Z",
+      "revision": 0
+    },
+    {
+      "id": "star-3",
+      "canvasId": "canvas-root",
+      "type": "text",
+      "transform": {
+        "x": 995,
+        "y": 205,
+        "width": 55,
+        "height": 55,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "zIndex": 4
+      },
+      "style": {
+        "fill": "#f59e0b",
+        "stroke": "none",
+        "fontSize": 46
+      },
+      "content": {
+        "text": "★"
+      },
+      "childIds": [],
+      "bindings": [],
+      "metadata": {
+        "role": "star"
+      },
+      "createdBy": {
+        "actorType": "agent",
+        "actorId": "nvcl-phase4-agent",
+        "sessionId": "39f676a1-4c28-4920-97f5-1843d8492b7e"
+      },
+      "createdAt": "2026-07-30T11:23:43.229Z",
+      "updatedAt": "2026-07-30T11:23:43.229Z",
+      "revision": 0
+    },
+    {
+      "id": "character",
+      "canvasId": "canvas-root",
+      "type": "ellipse",
+      "transform": {
+        "x": 430,
+        "y": 255,
+        "width": 250,
+        "height": 330,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "zIndex": 5
+      },
+      "style": {
+        "fill": "#f9a8d4",
+        "stroke": "#9d174d"
+      },
+      "childIds": [],
+      "bindings": [],
+      "metadata": {
+        "role": "character"
+      },
+      "createdBy": {
+        "actorType": "agent",
+        "actorId": "nvcl-phase4-agent",
+        "sessionId": "39f676a1-4c28-4920-97f5-1843d8492b7e"
+      },
+      "createdAt": "2026-07-30T11:23:43.229Z",
+      "updatedAt": "2026-07-30T11:23:43.229Z",
+      "revision": 0
+    },
+    {
+      "id": "character-face",
+      "canvasId": "canvas-root",
+      "type": "ellipse",
+      "transform": {
+        "x": 480,
+        "y": 300,
+        "width": 150,
+        "height": 125,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "zIndex": 6
+      },
+      "style": {
+        "fill": "#fce7f3",
+        "stroke": "#be185d"
+      },
+      "childIds": [],
+      "bindings": [],
+      "metadata": {
+        "role": "character-face"
+      },
+      "createdBy": {
+        "actorType": "agent",
+        "actorId": "nvcl-phase4-agent",
+        "sessionId": "39f676a1-4c28-4920-97f5-1843d8492b7e"
+      },
+      "createdAt": "2026-07-30T11:23:43.229Z",
+      "updatedAt": "2026-07-30T11:23:43.229Z",
+      "revision": 0
+    },
+    {
+      "id": "title",
+      "canvasId": "canvas-root",
+      "type": "text",
+      "transform": {
+        "x": 390,
+        "y": 225,
+        "width": 360,
+        "height": 70,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "zIndex": 12
+      },
+      "style": {
+        "fill": "#312e81",
+        "stroke": "none",
+        "fontSize": 38
+      },
+      "content": {
+        "text": "Native Visual Canvas"
+      },
+      "childIds": [],
+      "bindings": [],
+      "metadata": {
+        "role": "title",
+        "fontWeight": 800
+      },
+      "createdBy": {
+        "actorType": "agent",
+        "actorId": "nvcl-phase4-agent",
+        "sessionId": "39f676a1-4c28-4920-97f5-1843d8492b7e"
+      },
+      "createdAt": "2026-07-30T11:23:43.229Z",
+      "updatedAt": "2026-07-30T11:23:43.229Z",
+      "revision": 0
+    }
+  ],
+  "renderUri": "canvas://workspace/workspace-demo/canvas/canvas-root/render/current.svg",
+  "issues": [
+    {
+      "id": "max_overlap:title:character",
+      "severity": "error",
+      "rule": "max_overlap",
+      "objectIds": [
+        "title",
+        "character"
+      ],
+      "message": "Overlap ratio 0.397 exceeds 0.100"
+    }
+  ],
+  "eventCount": 1
+}

@@ -1,0 +1,7 @@
+{
+  "decision": {
+    "type": "stop",
+    "success": true,
+    "reason": "All deterministic verification checks pass."
+  }
+}

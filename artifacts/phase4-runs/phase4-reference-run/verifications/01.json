@@ -1,0 +1,12 @@
+[
+  {
+    "id": "max_overlap:title:character",
+    "severity": "error",
+    "rule": "max_overlap",
+    "objectIds": [
+      "title",
+      "character"
+    ],
+    "message": "Overlap ratio 0.397 exceeds 0.100"
+  }
+]

@@ -1,0 +1,4 @@
+
+> mrmic-nvcl-mvp@0.7.0 check
+> tsc -p tsconfig.json --noEmit
+

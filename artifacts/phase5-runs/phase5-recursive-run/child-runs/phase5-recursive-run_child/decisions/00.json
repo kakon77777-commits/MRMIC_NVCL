@@ -1,0 +1,113 @@
+{
+  "decision": {
+    "type": "tool_call",
+    "tool": "canvas.create_objects",
+    "arguments": {
+      "canvasId": "canvas-character-detail",
+      "intent": "Create child character-detail scene",
+      "expectedCanvasRevision": 0,
+      "idempotencyKey": "recursive-detail:phase5-recursive-run:child",
+      "objects": [
+        {
+          "id": "detail-face",
+          "type": "ellipse",
+          "transform": {
+            "x": 260,
+            "y": 170,
+            "width": 480,
+            "height": 360,
+            "zIndex": 1
+          },
+          "style": {
+            "fill": "#fce7f3",
+            "stroke": "#9d174d",
+            "strokeWidth": 4
+          },
+          "metadata": {
+            "role": "detail-face"
+          }
+        },
+        {
+          "id": "detail-eye-left",
+          "type": "ellipse",
+          "transform": {
+            "x": 365,
+            "y": 300,
+            "width": 62,
+            "height": 48,
+            "zIndex": 3
+          },
+          "style": {
+            "fill": "#312e81",
+            "stroke": "#111827",
+            "strokeWidth": 2
+          },
+          "metadata": {
+            "role": "eye"
+          }
+        },
+        {
+          "id": "detail-eye-right",
+          "type": "ellipse",
+          "transform": {
+            "x": 570,
+            "y": 300,
+            "width": 62,
+            "height": 48,
+            "zIndex": 3
+          },
+          "style": {
+            "fill": "#312e81",
+            "stroke": "#111827",
+            "strokeWidth": 2
+          },
+          "metadata": {
+            "role": "eye"
+          }
+        },
+        {
+          "id": "detail-mouth",
+          "type": "line",
+          "transform": {
+            "x": 420,
+            "y": 420,
+            "width": 170,
+            "height": 28,
+            "zIndex": 3
+          },
+          "style": {
+            "fill": "none",
+            "stroke": "#be185d",
+            "strokeWidth": 8
+          },
+          "metadata": {
+            "role": "mouth"
+          }
+        },
+        {
+          "id": "detail-label",
+          "type": "text",
+          "transform": {
+            "x": 330,
+            "y": 245,
+            "width": 340,
+            "height": 64,
+            "zIndex": 7
+          },
+          "style": {
+            "fill": "#4c1d95",
+            "stroke": "none",
+            "fontSize": 34
+          },
+          "content": {
+            "text": "Character Detail"
+          },
+          "metadata": {
+            "role": "detail-label"
+          }
+        }
+      ]
+    },
+    "summary": "Create a character-detail study with two eyes, a mouth, and an intentionally overlapping label."
+  }
+}

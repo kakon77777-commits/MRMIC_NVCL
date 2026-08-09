@@ -1,0 +1,6 @@
+{
+  "name": "@mrmic/state-vector-sync",
+  "version": "0.7.0",
+  "private": true,
+  "type": "module"
+}

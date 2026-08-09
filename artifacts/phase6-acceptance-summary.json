@@ -1,0 +1,32 @@
+{
+  "project": "MRMIC/NVCL MVP",
+  "phase": 6,
+  "version": "0.7.0",
+  "status": "MVP complete",
+  "automatedTests": {
+    "total": 37,
+    "passed": 37,
+    "failed": 0
+  },
+  "phase6Assertions": {
+    "synchronizedRestoreObserved": true,
+    "restoredStateMatchesSnapshot": true,
+    "restartRecovery": true,
+    "recursiveChildRecovery": true,
+    "trajectoryRecovery": true,
+    "independentCanvasSyncRooms": true
+  },
+  "acceptanceCapabilities": {
+    "total": 22,
+    "passed": 22
+  },
+  "productionReady": false,
+  "knownBoundaries": [
+    "MCP compatible reference subset, not official SDK conformance",
+    "Reference state-vector protocol is not Yjs wire compatible",
+    "Full-workspace state replacement is not scalable",
+    "Per-canvas rooms share one in-process CanvasStore",
+    "Checkpoint retention and compaction are not implemented",
+    "Production authentication and rate limiting are not implemented"
+  ]
+}

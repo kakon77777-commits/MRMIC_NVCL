@@ -1,0 +1,23 @@
+
+> mrmic-nvcl-mvp@0.3.0 phase2:demo
+> npm run build && node --no-warnings dist/apps/phase2-demo/src/index.js
+
+
+> mrmic-nvcl-mvp@0.3.0 build
+> tsc -p tsconfig.json
+
+{
+  "phase": "2",
+  "server": "http://127.0.0.1:41387",
+  "updates": 2,
+  "stateVector": {
+    "agent-a": 2
+  },
+  "reconnectMissing": 1,
+  "presence": [
+    "agent-a",
+    "agent-b2"
+  ],
+  "canvasRevision": 2,
+  "objects": 8
+}
