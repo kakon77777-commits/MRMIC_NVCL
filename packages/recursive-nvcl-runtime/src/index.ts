@@ -5,6 +5,7 @@ import type { CanvasObject } from '../../canvas-schema/src/index.js'
 import {
   MemoryNvclTraceSink,
   NvclRuntime,
+  traceDirectoryName,
   type McpCanvasClient,
   type NvclAgent,
   type NvclAgentContext,
@@ -134,7 +135,7 @@ export class DirectoryRecursiveTraceSink implements RecursiveTraceSink {
   readonly root: string
 
   constructor(baseDirectory: string, runId: string) {
-    this.root = resolve(baseDirectory, runId)
+    this.root = resolve(baseDirectory, traceDirectoryName(runId))
     mkdirSync(this.root, { recursive: true })
   }
 

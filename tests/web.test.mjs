@@ -2,13 +2,13 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createPhase3Server } from '../dist/apps/web/src/server.js'
 
-test('Phase 6 web API seeds, renders, and locally repairs the canvas', async () => {
+test('Phase 7 web API preserves seed, render, and local repair compatibility', async () => {
   const app = createPhase3Server({ port: 0, databasePath: ':memory:' })
   const { url } = await app.start()
   try {
     let response = await fetch(`${url}/`)
     assert.equal(response.status, 200)
-    assert.match(await response.text(), /Recursive Subcanvas Runtime/)
+    assert.match(await response.text(), /互動式多模態畫布實驗室/)
 
     response = await fetch(`${url}/api/demo/seed`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
     assert.equal(response.status, 200)

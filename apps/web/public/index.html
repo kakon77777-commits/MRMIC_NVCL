@@ -1,6 +1,138 @@
 <!doctype html>
-<html lang="zh-Hant"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>MRMIC / NVCL Phase 5</title><link rel="stylesheet" href="/styles.css"/></head>
-<body><header class="topbar"><div><div class="eyebrow">MRMIC / NVCL MVP</div><h1>Phase 5 · Recursive Subcanvas Runtime</h1></div><div class="status-group"><span id="connection" class="status">Connecting</span><span id="sync-vector" class="pill">vector {}</span><span id="revision" class="pill">revision 0</span><span id="zoom" class="pill">100%</span></div></header>
-<main class="layout"><aside class="panel left-panel"><h2>Canvas actions</h2><button id="run-recursive">Run recursive child NVCL</button><button id="run-nvcl">Run flat NVCL loop</button><button id="seed">1. Seed scene</button><button id="repair">2. Local AI repair</button><button id="remote">3. Remote agent patch</button><button id="subcanvas">4. Add subcanvas</button><button id="fit">Fit all objects</button><button id="refresh" class="secondary">Refresh state</button><p class="hint">Open two browser tabs for sync, or connect an MCP client to /mcp. The recursive runtime delegates work into a child canvas, verifies it, folds a summary into the parent portal, and preserves a reopen handle.</p><div class="legend"><div><span class="swatch control"></span>Transaction update</div><div><span class="swatch state"></span>State-vector sync</div><div><span class="swatch memory"></span>Presence and ledger</div></div><h2>NVCL run</h2><pre id="nvcl-result">No autonomous run yet.</pre><h2>Connected actors</h2><div id="presence" class="presence-list"></div></aside>
-<section id="canvas-shell" class="canvas-shell"><svg id="canvas" aria-label="Infinite canvas"><defs><pattern id="minor-grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M 24 0 L 0 0 0 24" fill="none" stroke="#cbd5e1" stroke-width="0.7" opacity="0.52"/></pattern><pattern id="major-grid" width="120" height="120" patternUnits="userSpaceOnUse"><rect width="120" height="120" fill="url(#minor-grid)"/><path d="M 120 0 L 0 0 0 120" fill="none" stroke="#94a3b8" stroke-width="1" opacity="0.55"/></pattern></defs><rect x="-100000" y="-100000" width="200000" height="200000" fill="url(#major-grid)"/><g id="objects"></g><g id="remote-cursors"></g><g id="selection"></g></svg><div class="canvas-badge">Observe · MCP Act · Render · Verify · Repair · Stop</div></section>
-<aside class="panel right-panel"><h2>Selected object</h2><pre id="inspector">Click an object.</pre><h2>Event ledger</h2><div id="events" class="events"></div></aside></main><script type="module" src="/app.js"></script></body></html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MRMIC／NVCL Phase 7 多模態畫布實驗室</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">MRMIC／NVCL · Phase 7 v0.8</div>
+      <h1>互動式多模態畫布實驗室</h1>
+    </div>
+    <div class="status-group" aria-label="Runtime status">
+      <span id="connection" class="status">連線中</span>
+      <span id="mode-pill" class="pill">PIXEL</span>
+      <span id="revision" class="pill">revision 0</span>
+      <span id="zoom" class="pill">100%</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel left-panel">
+      <section>
+        <label class="field-label" for="observation-mode">觀察模式</label>
+        <select id="observation-mode">
+          <option value="pixel">Pixel：只給影格</option>
+          <option value="hybrid">Hybrid：影格＋事後真值</option>
+          <option value="structured">Structured：完整物件狀態</option>
+        </select>
+        <p class="hint">Pixel 模式不在觀察回應中洩漏物件 ID；結構狀態仍可由獨立驗證器判定結果。</p>
+      </section>
+
+      <section>
+        <h2>工具</h2>
+        <div class="tool-grid" role="toolbar" aria-label="Canvas tools">
+          <button class="tool active" data-tool="select" title="選取與移動 (V)">↖<span>選取</span></button>
+          <button class="tool" data-tool="pan" title="平移畫布 (H)">✋<span>平移</span></button>
+          <button class="tool" data-tool="rectangle" title="矩形 (R)">▭<span>矩形</span></button>
+          <button class="tool" data-tool="ellipse" title="橢圓 (O)">○<span>橢圓</span></button>
+          <button class="tool" data-tool="text" title="文字 (T)">T<span>文字</span></button>
+          <button class="tool" data-tool="freehand" title="自由繪圖 (P)">✎<span>畫筆</span></button>
+        </div>
+      </section>
+
+      <section>
+        <h2>可逆操作</h2>
+        <div class="button-row">
+          <button id="undo" class="secondary">↶ Undo</button>
+          <button id="redo" class="secondary">↷ Redo</button>
+        </div>
+        <button id="fit" class="secondary">適合全部物件</button>
+        <button id="refresh" class="secondary">重新觀察</button>
+      </section>
+
+      <section class="benchmark-card">
+        <div class="section-kicker">Deterministic benchmark</div>
+        <h2>紅色圓形 → 藍色框</h2>
+        <p>重設後，以視覺找到紅色圓形，拖曳至藍色目標框內。</p>
+        <button id="benchmark-reset">載入基準題</button>
+        <button id="benchmark-verify" class="secondary">驗證結果</button>
+        <div id="benchmark-result" class="result-chip neutral">尚未驗證</div>
+      </section>
+
+      <details>
+        <summary>既有 NVCL 自主流程</summary>
+        <button id="run-nvcl">執行 Flat NVCL</button>
+        <button id="run-recursive">執行 Recursive NVCL</button>
+        <pre id="nvcl-result">尚未執行。</pre>
+      </details>
+    </aside>
+
+    <section id="canvas-shell" class="canvas-shell" aria-label="Multimodal canvas work area">
+      <svg id="canvas" aria-label="可互動無限畫布" tabindex="0">
+        <defs>
+          <pattern id="minor-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+            <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#d6dce8" stroke-width="0.7" opacity="0.75"></path>
+          </pattern>
+          <pattern id="major-grid" width="120" height="120" patternUnits="userSpaceOnUse">
+            <rect width="120" height="120" fill="url(#minor-grid)"></rect>
+            <path d="M 120 0 L 0 0 0 120" fill="none" stroke="#aab5c8" stroke-width="1" opacity="0.72"></path>
+          </pattern>
+        </defs>
+        <rect x="-100000" y="-100000" width="200000" height="200000" fill="url(#major-grid)"></rect>
+        <g id="objects"></g>
+        <g id="preview"></g>
+        <g id="remote-cursors"></g>
+        <g id="selection"></g>
+      </svg>
+
+      <div class="canvas-overlay top-left">
+        <span id="frame-id">frame 尚未取得</span>
+        <span id="frame-age">age —</span>
+      </div>
+      <div class="canvas-overlay bottom-left">觀察 → 行動 → 轉場驗證 → 再觀察 → 修正</div>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    </section>
+
+    <aside class="panel right-panel">
+      <section>
+        <h2>選取物件</h2>
+        <div id="empty-inspector" class="empty-state">點選畫布物件以檢查或修改。</div>
+        <div id="object-controls" hidden>
+          <div class="object-heading"><strong id="object-name"></strong><code id="object-type"></code></div>
+          <label class="field-label" for="object-text">文字</label>
+          <input id="object-text" type="text" placeholder="此物件沒有文字">
+          <div class="color-row">
+            <label>填色<input id="object-fill" type="color" value="#ffffff"></label>
+            <label>線色<input id="object-stroke" type="color" value="#172033"></label>
+          </div>
+          <button id="apply-properties">套用屬性</button>
+          <button id="delete-object" class="danger">刪除物件</button>
+          <pre id="inspector"></pre>
+        </div>
+      </section>
+
+      <section>
+        <h2>最近一次動作證據</h2>
+        <div id="guard-status" class="guard neutral">等待動作</div>
+        <dl class="evidence-grid">
+          <div><dt>Action ID</dt><dd id="evidence-action">—</dd></div>
+          <div><dt>Freshness</dt><dd id="evidence-freshness">—</dd></div>
+          <div><dt>Before → After</dt><dd id="evidence-frames">—</dd></div>
+          <div><dt>State hash</dt><dd id="evidence-hash">—</dd></div>
+        </dl>
+      </section>
+
+      <section>
+        <h2>事件帳本</h2>
+        <div id="events" class="events"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

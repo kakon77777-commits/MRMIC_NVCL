@@ -3,6 +3,8 @@ dist/
 *.log
 .DS_Store
 coverage/
+artifacts/nvcl-runs/
+artifacts/recursive-runs/
 data/*.db
 data/*.db-*
 data/blobs/*

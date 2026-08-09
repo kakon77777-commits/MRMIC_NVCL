@@ -1,6 +1,6 @@
 {
   "name": "mrmic-nvcl-mvp",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
   "packageManager": "npm@10.9.2",
@@ -29,7 +29,11 @@
     "nvcl": "npm run phase4:demo",
     "recursive": "npm run phase5:demo",
     "phase6:demo": "npm run build && node --no-warnings dist/apps/phase6-demo/src/index.js",
-    "hardening": "npm run phase6:demo"
+    "hardening": "npm run phase6:demo",
+    "lab": "npm run web",
+    "phase7:lab": "npm run web",
+    "release:manifest": "node scripts/release-manifest.mjs",
+    "release:verify": "node scripts/verify-release.mjs"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

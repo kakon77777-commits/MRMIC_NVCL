@@ -1,66 +1,56 @@
-# MCP 相容性矩陣
+# MCP Compatibility
 
-基線：MCP `2025-11-25`。
+Protocol baseline: `2025-11-25` compatible reference subset
+Server version: `0.8.0`
 
-| 能力 | Phase 3 | 備註 |
-|---|---:|---|
-| initialize | 支援 | 僅接受 `2025-11-25` |
-| Session ID | 支援 | 記憶體 session |
-| initialized notification | 支援 | POST 回覆 202 |
-| ping | 支援 | 空結果 |
-| tools/list | 支援 | 15 個 Canvas Tools |
-| tools/call | 支援 | typed transaction bridge |
-| resource_link content | 支援 | Tool output 附 URI |
-| resources/list | 支援 | 5 個固定資源 |
-| resources/templates/list | 支援 | Canvas、Viewport、Render、Object、Snapshot |
-| resources/read | 支援 | JSON 與 SVG text |
-| resources/subscribe | 支援 | exact URI subscription |
-| resources/unsubscribe | 支援 | exact URI |
-| resources updated notification | 支援 | SSE `notifications/resources/updated` |
-| Streamable HTTP POST | 相容子集 | 單一 JSON-RPC request |
-| GET SSE | 相容子集 | server notifications |
-| DELETE session | 支援 | 關閉 streams 與 session |
-| JSON-RPC batch | 不支援 | 後續 SDK Adapter |
-| resumability | 不支援 | 無 Last-Event-ID |
-| OAuth | 不支援 | MVP header role only |
-| Prompts | 不支援 | 非 Phase 3 範圍 |
-| Sampling | 不支援 | 非 Phase 3 範圍 |
-| Elicitation | 不支援 | 非 Phase 3 範圍 |
-| Logging | 不支援 | 使用本地事件帳本 |
-| Tasks | 不支援 | Phase 4 可加入 NVCL run |
-| stdio | 不支援 | HTTP 優先驗證 |
-| official SDK | 未使用 | 執行環境無法取得套件 |
-| conformance suite | 未執行 | 不宣稱完整合規 |
+| Capability | Status | Notes |
+|---|---|---|
+| `initialize` | Implemented | Negotiates `2025-11-25` |
+| Session ID | Implemented | One runtime session per client |
+| initialized notification | Implemented | POST notification returns 202 |
+| `ping` | Implemented | Empty result |
+| `tools/list` | Implemented | 22 Canvas and Lab tools |
+| `tools/call` | Implemented | Typed transaction and lab-action bridge |
+| resource-link content | Implemented | Tool output includes Resource URIs |
+| `resources/list` | Implemented | Five stable canvas resources |
+| `resources/templates/list` | Implemented | Canvas, viewport, render, object, snapshot and lab frame templates |
+| `resources/read` | Implemented | JSON and SVG text resources |
+| `resources/subscribe` | Implemented | Exact URI subscription |
+| resource updated notification | Implemented | SSE `notifications/resources/updated` |
+| Streamable HTTP POST | Implemented subset | One JSON-RPC request per POST |
+| GET SSE | Implemented subset | Server notifications |
+| DELETE session | Implemented | Closes streams and session |
+| JSON-RPC batch | Not implemented | Future official SDK adapter |
+| resumability | Not implemented | No Last-Event-ID replay |
+| OAuth | Not implemented | Local header role only |
+| Prompts / Sampling / Elicitation | Not implemented | Outside current experiment |
+| Tasks | Application-defined | NVCL run remains an application trajectory |
+| stdio | Not implemented | HTTP is the reference transport |
+| official SDK | Not integrated | Reference subset remains handwritten |
+| conformance suite | Not run | Do not claim formal conformance |
 
-## Phase 4 extension
+## Application extensions
 
-Phase 4 adds an application-defined trajectory resource:
+Phase 4 added trajectory Resources. Phase 5 added recursive fold and lineage tools. Phase 6 made snapshots, trajectories and state replacement restart-safe.
 
-```text
-canvas://workspace/{workspaceId}/trajectory/{runId}
-```
-
-It is readable through standard `resources/read`, but its registration and persistence are MRMIC application behavior rather than a new MCP protocol primitive. In v0.5 the trajectory registry is in-memory and is not included in `resources/list` unless the client already knows the URI.
-
-
-## Phase 5 extension
-
-Phase 5 adds two application-domain Canvas Tools:
+Phase 7 adds seven application-domain tools:
 
 ```text
-canvas.fold_subcanvas
-canvas.get_lineage
+lab.observe
+lab.act
+lab.undo
+lab.redo
+lab.reset_benchmark
+lab.verify_benchmark
+lab.get_trajectory
 ```
 
-`fold_subcanvas` is a normal synchronized parent-canvas transaction. `get_lineage` is read-only and follows `CanvasDocument.parentCanvasId` plus `parentObjectId`. Neither tool changes the MCP protocol itself.
+It also adds the Resource template:
 
-## Phase 6 extension
+```text
+lab://frame/{frameId}
+```
 
-Phase 6 changes two application semantics without expanding the MCP protocol surface:
+These are MRMIC application semantics carried over MCP. They do not change the MCP protocol itself.
 
-- `canvas.create_snapshot` persists the snapshot in SQLite.
-- `canvas.restore_snapshot` emits synchronized `state_replace` updates and reports `synchronized: true`.
-- `canvas.open_subcanvas` returns a per-canvas WebSocket `syncHandle`.
-- trajectory Resources fall back to the persistent SQLite repository after restart.
-
-The `state_replace` record belongs to the MRMIC synchronization protocol, not to MCP itself. MCP remains the control and resource interface.
+`lab.reset_benchmark` is marked destructive/high-risk because it replaces the current experiment state, even though the laboratory records a reversible history entry.

@@ -15,10 +15,11 @@ import { CanvasResource, type CanvasToolResult } from '../../mcp-contract/src/in
 import type { SqliteEventLedger } from '../../event-ledger/src/index.js'
 import type { StateVectorSyncRoom } from '../../state-vector-sync/src/index.js'
 import { verifyCount, verifyInsideBounds, verifyMaxOverlap, type VerificationIssue } from '../../verifier/src/index.js'
+import type { LabAction, MultimodalCanvasLab, ObservationMode } from '../../multimodal-lab/src/index.js'
 
 export const MCP_PROTOCOL_VERSION = '2025-11-25'
 export const MCP_SERVER_NAME = 'mrmic-nvcl-canvas'
-export const MCP_SERVER_VERSION = '0.7.0'
+export const MCP_SERVER_VERSION = '0.8.0'
 
 type JsonRpcId = string | number | null
 interface JsonRpcRequest { jsonrpc: '2.0'; id?: JsonRpcId; method: string; params?: Record<string, unknown> }
@@ -45,6 +46,7 @@ export interface McpCanvasRuntime {
   ledger: SqliteEventLedger
   workspaceId: string
   rootCanvasId: string
+  lab?: MultimodalCanvasLab
 }
 
 export interface McpReferenceServerOptions {
@@ -183,6 +185,41 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
     description: 'Read append-only causal events, optionally filtered by object or transaction.',
     inputSchema: { type: 'object', properties: { objectId: { type: 'string' }, transactionId: { type: 'string' } }, additionalProperties: false },
   },
+  {
+    name: 'lab.observe', title: 'Observe multimodal canvas lab', readOnly: true,
+    description: 'Create a freshness-bound immutable visual frame. Pixel mode withholds object IDs; structured mode exposes oracle state.',
+    inputSchema: { type: 'object', properties: { mode: { type: 'string', enum: ['pixel', 'hybrid', 'structured'] } }, additionalProperties: false },
+  },
+  {
+    name: 'lab.act', title: 'Execute guarded lab action', readOnly: false,
+    description: 'Execute one action carrying a non-empty actionId, fresh frameId and expected canvas revision.',
+    inputSchema: { type: 'object', required: ['action'], properties: { action: { type: 'object' }, mode: { type: 'string', enum: ['pixel', 'hybrid', 'structured'] } }, additionalProperties: false },
+  },
+  {
+    name: 'lab.undo', title: 'Undo lab action', readOnly: false,
+    description: 'Restore the state before the latest reversible lab action through synchronized state replacement.',
+    inputSchema: { type: 'object', required: ['actionId', 'frameId'], properties: { actionId: { type: 'string' }, frameId: { type: 'string' }, mode: { type: 'string', enum: ['pixel', 'hybrid', 'structured'] } }, additionalProperties: false },
+  },
+  {
+    name: 'lab.redo', title: 'Redo lab action', readOnly: false,
+    description: 'Reapply the latest undone lab action through synchronized state replacement.',
+    inputSchema: { type: 'object', required: ['actionId', 'frameId'], properties: { actionId: { type: 'string' }, frameId: { type: 'string' }, mode: { type: 'string', enum: ['pixel', 'hybrid', 'structured'] } }, additionalProperties: false },
+  },
+  {
+    name: 'lab.reset_benchmark', title: 'Reset visual benchmark', readOnly: false, highRisk: true,
+    description: 'Replace the current laboratory state with the deterministic drag-red-circle benchmark. The transition remains undoable.',
+    inputSchema: { type: 'object', required: ['actionId'], properties: { actionId: { type: 'string' }, frameId: { type: 'string' }, mode: { type: 'string', enum: ['pixel', 'hybrid', 'structured'] } }, additionalProperties: false },
+  },
+  {
+    name: 'lab.verify_benchmark', title: 'Verify visual benchmark', readOnly: true,
+    description: 'Use the structured oracle to verify whether the red target is fully inside the blue zone.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  {
+    name: 'lab.get_trajectory', title: 'Get lab trajectory', readOnly: true,
+    description: 'Return freshness, frame hashes, action IDs and transition evidence for the current lab trajectory.',
+    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+  },
 ]
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -209,6 +246,7 @@ function asInteger(value: unknown, label: string, fallback?: number): number | u
 }
 function encodeText(value: unknown): string { return JSON.stringify(value, null, 2) }
 function now(): string { return new Date().toISOString() }
+function observationMode(value: unknown): ObservationMode { return value === 'structured' || value === 'hybrid' ? value : 'pixel' }
 
 function jsonRpcResult(id: JsonRpcId, result: unknown): JsonRpcResponse { return { jsonrpc: '2.0', id, result } }
 function jsonRpcError(id: JsonRpcId, code: number, message: string, data?: unknown): JsonRpcResponse {
@@ -523,6 +561,7 @@ export class McpReferenceCanvasServer {
       { uriTemplate: `canvas://workspace/${ws}/canvas/{canvasId}/render/current.svg`, name: 'Canvas SVG render', mimeType: 'image/svg+xml', description: 'Render any canvas through the current viewport.' },
       { uriTemplate: `canvas://workspace/${ws}/object/{objectId}`, name: 'Canvas object', mimeType: 'application/json', description: 'Read a stable canvas object by ID.' },
       { uriTemplate: `canvas://workspace/${ws}/snapshot/{snapshotId}`, name: 'Canvas snapshot', mimeType: 'application/json', description: 'Read snapshot metadata.' },
+      ...(this.#runtime.lab ? [{ uriTemplate: 'lab://frame/{frameId}', name: 'Immutable multimodal lab frame', mimeType: 'image/svg+xml', description: 'Read an exact observed frame by freshness lease ID.' }] : []),
     ]
   }
 
@@ -570,6 +609,16 @@ export class McpReferenceCanvasServer {
       if (!trajectory) throw new Error(`Trajectory ${runId} not found`)
       return [{ uri, mimeType: 'application/json', text: encodeText({ runId, trajectory }) }]
     }
+    if (uri.startsWith('lab://frame/')) {
+      const frameId = decodeURIComponent(uri.slice('lab://frame/'.length))
+      const frame = this.#runtime.lab?.frame(frameId)
+      if (!frame) throw new Error(`Lab frame ${frameId} not found`)
+      return [{ uri, mimeType: 'image/svg+xml', text: frame.svg }]
+    }
+    if (uri === 'lab://trajectory/current') {
+      if (!this.#runtime.lab) throw new Error('Multimodal lab is unavailable')
+      return [{ uri, mimeType: 'application/json', text: encodeText({ trajectory: this.#runtime.lab.trajectory, history: this.#runtime.lab.historyStatus }) }]
+    }
     throw new Error(`Resource not found: ${uri}`)
   }
 
@@ -578,6 +627,45 @@ export class McpReferenceCanvasServer {
     const canvasId = typeof args.canvasId === 'string' ? args.canvasId : rootCanvasId
     const room = this.#roomFor(canvasId)
     switch (name) {
+      case 'lab.observe': {
+        const lab = this.#runtime.lab
+        if (!lab) return errorResult('NOT_AVAILABLE', 'Multimodal lab is not configured')
+        const observation = await lab.observe(observationMode(args.mode))
+        return okResult({ observation, history: lab.historyStatus }, [`lab://frame/${encodeURIComponent(observation.frameId)}`])
+      }
+      case 'lab.act': {
+        const lab = this.#runtime.lab
+        if (!lab) return errorResult('NOT_AVAILABLE', 'Multimodal lab is not configured')
+        const action = asRecord(args.action, 'action') as unknown as LabAction
+        const result = await lab.execute({ ...action, actor: structuredClone(session.actor) }, observationMode(args.mode))
+        return okResult(result, [`lab://frame/${encodeURIComponent(result.observation.frameId)}`], { transactionId: result.transaction?.transactionId, revision: result.observation.canvasRevision })
+      }
+      case 'lab.undo': {
+        const lab = this.#runtime.lab
+        if (!lab) return errorResult('NOT_AVAILABLE', 'Multimodal lab is not configured')
+        const result = await lab.undo(asString(args.actionId, 'actionId'), asString(args.frameId, 'frameId'), observationMode(args.mode))
+        return okResult(result, [`lab://frame/${encodeURIComponent(result.observation.frameId)}`], { transactionId: result.transaction?.transactionId, revision: result.observation.canvasRevision })
+      }
+      case 'lab.redo': {
+        const lab = this.#runtime.lab
+        if (!lab) return errorResult('NOT_AVAILABLE', 'Multimodal lab is not configured')
+        const result = await lab.redo(asString(args.actionId, 'actionId'), asString(args.frameId, 'frameId'), observationMode(args.mode))
+        return okResult(result, [`lab://frame/${encodeURIComponent(result.observation.frameId)}`], { transactionId: result.transaction?.transactionId, revision: result.observation.canvasRevision })
+      }
+      case 'lab.reset_benchmark': {
+        const lab = this.#runtime.lab
+        if (!lab) return errorResult('NOT_AVAILABLE', 'Multimodal lab is not configured')
+        const result = await lab.resetBenchmark(asString(args.actionId, 'actionId'), typeof args.frameId === 'string' ? args.frameId : undefined, observationMode(args.mode))
+        return okResult(result, [`lab://frame/${encodeURIComponent(result.observation.frameId)}`], { transactionId: result.transaction?.transactionId, revision: result.observation.canvasRevision })
+      }
+      case 'lab.verify_benchmark': {
+        const lab = this.#runtime.lab
+        return lab ? okResult({ verification: lab.verifyBenchmark() }) : errorResult('NOT_AVAILABLE', 'Multimodal lab is not configured')
+      }
+      case 'lab.get_trajectory': {
+        const lab = this.#runtime.lab
+        return lab ? okResult({ trajectory: lab.trajectory, history: lab.historyStatus }, ['lab://trajectory/current']) : errorResult('NOT_AVAILABLE', 'Multimodal lab is not configured')
+      }
       case 'canvas.get_state': {
         const viewport = await adapter.getViewport()
         return okResult({

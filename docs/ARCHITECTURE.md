@@ -180,3 +180,30 @@ Snapshot restore
 ```
 
 The root and each child now have independent vectors and presence state, while remaining backed by one in-process store in the MVP.
+
+## Phase 7: Interactive multimodal canvas laboratory
+
+Phase 7 adds a guarded experimental layer without changing the authoritative canvas model:
+
+```text
+Browser or MCP client
+        ↓
+lab.observe(pixel | structured | hybrid)
+        ↓
+immutable frame lease
+  ├─ frame_id
+  ├─ canvas revision
+  ├─ state SHA-256
+  ├─ render SHA-256
+  └─ expiry
+        ↓
+lab.act(action_id, frame_id, expected_revision)
+        ↓
+CanvasTransaction or viewport transition
+        ↓
+StateVectorSyncRoom → SVG Adapter → Event Ledger
+        ↓
+after frame + Transition Guard + oracle verification
+```
+
+Undo and Redo reuse Phase 6 synchronized state replacement. Pixel mode withholds object IDs; hybrid mode reserves structured state for post-action verification.

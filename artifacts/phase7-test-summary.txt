@@ -1,0 +1,16 @@
+MRMIC/NVCL Phase 7 v0.8 final local validation
+
+node --check apps/web/public/app.js: PASS
+npm run check: PASS
+npm test: PASS
+
+tests 43
+pass 43
+fail 0
+cancelled 0
+skipped 0
+todo 0
+
+Browser acceptance: PASS
+MCP lab loop: PASS
+Freshness and Transition Guard: PASS

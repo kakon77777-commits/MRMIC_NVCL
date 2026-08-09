@@ -1,0 +1,59 @@
+{
+  "version": "0.8.0",
+  "phase": 7,
+  "automated": {
+    "typescriptCheck": "passed",
+    "tests": 43,
+    "passed": 43,
+    "failed": 0
+  },
+  "mcp": {
+    "protocolVersion": "2025-11-25",
+    "totalTools": 22,
+    "labTools": 7,
+    "pixelFrameResource": "lab://frame/{frameId}"
+  },
+  "browserAcceptance": {
+    "surface": "Codex in-app browser",
+    "viewport": "1280x720",
+    "benchmarkReset": true,
+    "physicalDrag": true,
+    "draggedObject": "benchmark-red-circle",
+    "finalTransform": {
+      "x": 511,
+      "y": 230,
+      "width": 110,
+      "height": 110
+    },
+    "freshnessMs": 39,
+    "freshnessVerified": true,
+    "transitionGuard": "passed",
+    "benchmarkPassed": true,
+    "undoProducedExpectedFailure": true,
+    "redoRestoredPass": true,
+    "rectangleCreated": true,
+    "textCreated": true,
+    "freehandCreated": true,
+    "resize": {
+      "before": "90x70",
+      "after": "145x105"
+    },
+    "recolor": "#22c55e",
+    "delete": true,
+    "consoleErrors": 0,
+    "consoleWarnings": 0
+  },
+  "issuesFoundDuringBrowserAcceptance": [
+    {
+      "issue": "The original blue drop zone was outside the default visible desktop viewport.",
+      "resolution": "Moved every benchmark object into the default visible world bounds and repeated the full acceptance run."
+    }
+  ],
+  "claimsBoundary": {
+    "realMultimodalProviderBundled": false,
+    "serverSidePng": false,
+    "policyLearning": false,
+    "gameTransfer": false,
+    "productionReady": false
+  }
+}

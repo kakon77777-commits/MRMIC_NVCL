@@ -1,15 +1,23 @@
 # Next Phase
 
-The original MRMIC／NVCL MVP is complete at Phase 6.
+Phase 7 v0.8 completes the controlled interactive multimodal laboratory.
 
-Post-MVP work should start only as a separately scoped track. The recommended order is:
+Recommended experimental order:
 
-1. official MCP TypeScript SDK adapter and conformance tests;
-2. true Yjs provider and subdocument adapter;
-3. checkpoint retention, compaction and event-replay recovery;
-4. authenticated multi-user deployment;
-5. real multimodal model provider;
-6. broader visual action vocabulary and semantic hypergraph;
-7. experiment report comparing open-loop, flat NVCL, and recursive NVCL.
+1. Add a real multimodal provider that receives only `lab.observe(mode=pixel)` frames.
+2. Build a generated benchmark suite covering selection, drag, resize, drawing, text, occlusion, pan and zoom.
+3. Compare structured, pixel and hybrid lanes with identical tasks and budgets.
+4. Add server-side PNG rasterization and cropped high-detail observations.
+5. Measure Token use, observation latency, action latency, stale-frame rate and correction count.
+6. Compare open-loop generation, flat NVCL and recursive NVCL.
+7. Only after controlled performance is stable, transfer the same Action IR to MSSP and games.
 
-No additional foundational paper is required before those engineering experiments.
+Productization remains a separate track:
+
+- official MCP TypeScript SDK and conformance tests;
+- true Yjs provider and subdocuments;
+- authenticated multi-user deployment;
+- retention, compaction and event-replay recovery;
+- production security and rate limits.
+
+Feedback trajectories must not be described as learning until a policy update and independent post-update evaluation are implemented.

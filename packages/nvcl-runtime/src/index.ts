@@ -379,11 +379,19 @@ export class MemoryNvclTraceSink implements NvclTraceSink {
   }
 }
 
+export function traceDirectoryName(runId: string): string {
+  const normalized = runId
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
+    .replace(/[. ]+$/g, '')
+  return normalized && normalized !== '.' && normalized !== '..' ? normalized : 'run'
+}
+
 export class DirectoryNvclTraceSink implements NvclTraceSink {
   readonly root: string
 
   constructor(baseDirectory: string, runId: string) {
-    this.root = resolve(baseDirectory, runId)
+    this.root = resolve(baseDirectory, traceDirectoryName(runId))
     for (const directory of ['observations', 'decisions', 'tool-calls', 'renders', 'verifications']) {
       mkdirSync(resolve(this.root, directory), { recursive: true })
     }
