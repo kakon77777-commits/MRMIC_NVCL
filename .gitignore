@@ -11,3 +11,4 @@ data/blobs/*
 !data/blobs/.gitkeep
 data/snapshots/*
 !data/snapshots/.gitkeep
+.mrmic-codex-frame-*.png

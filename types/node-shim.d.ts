@@ -1,6 +1,6 @@
 declare module 'node:crypto' {
   export function createHash(algorithm: string): {
-    update(data: string): { digest(encoding: 'hex' | 'base64'): string }
+    update(data: string | Uint8Array): { digest(encoding: 'hex' | 'base64'): string }
   }
   export function randomUUID(): string
 }
@@ -38,6 +38,17 @@ declare module 'node:fs' {
   export function readFileSync(path: string): Uint8Array
   export function writeFileSync(path: string, data: string | Uint8Array): void
   export function appendFileSync(path: string, data: string | Uint8Array): void
+  export function unlinkSync(path: string): void
+  export function readdirSync(path: string, options: { withFileTypes: true }): Array<{ name: string; isDirectory(): boolean }>
+  export function statSync(path: string): { isFile(): boolean; mtimeMs: number }
+}
+
+declare module 'node:child_process' {
+  export function spawn(command: string, args?: string[], options?: Record<string, unknown>): any
+}
+
+declare module 'node:readline' {
+  export function createInterface(options: { input: any; crlfDelay?: number }): any
 }
 
 declare module 'node:path' {
@@ -47,10 +58,12 @@ declare module 'node:path' {
 
 declare const Buffer: {
   concat(chunks: Uint8Array[]): { toString(encoding: string): string }
+  from(data: Uint8Array | string, encoding?: string): Uint8Array & { toString(encoding?: string): string }
 }
 
 declare const process: {
   cwd(): string
+  platform: string
   argv: string[]
   env: Record<string, string | undefined>
   exitCode?: number

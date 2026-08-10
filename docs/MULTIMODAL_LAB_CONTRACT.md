@@ -1,12 +1,12 @@
 # Multimodal Canvas Lab Contract
 
-Version: 0.8.0
+Version: 0.9.0
 
 ## 1. Observation modes
 
 | Mode | Actor receives | Verifier may use |
 |---|---|---|
-| `pixel` | Immutable SVG frame metadata and URI | Nothing beyond requested public evidence |
+| `pixel` | Immutable frame metadata plus SVG and PNG URIs | Nothing beyond requested public evidence |
 | `structured` | Frame plus complete `CanvasObject[]` | Complete state |
 | `hybrid` | Immutable frame without object IDs | Complete state after action |
 
@@ -24,6 +24,7 @@ Every observation creates an immutable frame:
   "stateHash": "sha256",
   "renderSha256": "sha256",
   "renderUri": "/api/lab/frame/{frameId}.svg",
+  "rasterUri": "/api/lab/frame/{frameId}.png",
   "observedAt": "ISO-8601",
   "expiresAt": "ISO-8601",
   "mode": "pixel",
@@ -112,6 +113,7 @@ The verifier checks containment using authoritative geometry and reports center 
 | MCP tool | Purpose |
 |---|---|
 | `lab.observe` | Create a frame lease |
+| `lab.rasterize` | Create an immutable full or cropped PNG |
 | `lab.act` | Execute guarded Action IR |
 | `lab.undo` | Restore previous state |
 | `lab.redo` | Reapply undone state |
@@ -119,8 +121,8 @@ The verifier checks containment using authoritative geometry and reports center 
 | `lab.verify_benchmark` | Run structured oracle |
 | `lab.get_trajectory` | Read evidence trajectory |
 
-Exact observed SVG content is available as `lab://frame/{frameId}`.
+Exact observed SVG content is available as `lab://frame/{frameId}`. PNG content is available as `lab://frame/{frameId}.png` and `lab://raster/{rasterId}`.
 
 ## 8. Epistemic boundary
 
-Feedback is not automatically learning. Phase 7 records trajectories and corrections. A later experiment may compare policies trained or adapted from those trajectories, but v0.8 does not claim policy improvement.
+Feedback is not automatically learning. Phase 8 records trajectories, corrections and Provider telemetry. A later experiment may compare policies trained or adapted from those trajectories, but v0.9 does not claim policy improvement.

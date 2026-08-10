@@ -1,70 +1,61 @@
-# MRMIC／NVCL Phase 7 v0.8
+# MRMIC／NVCL Phase 8 v0.9
 
-Phase 7 turns the persistent MCP-native canvas runtime into an interactive multimodal laboratory.
-
-The executable loop is now:
+Phase 8 turns the guarded canvas laboratory into a real pixel-native multimodal agent loop.
 
 ```text
-pixel / structured / hybrid observation
-        ↓
-fresh immutable frame lease
-        ↓
-action_id + frame_id + expected revision
-        ↓
-interactive SVG canvas or MCP lab.act
-        ↓
-state hash + render hash transition guard
-        ↓
-undo / redo / deterministic oracle verification
-        ↓
-trajectory evidence for later NVCL learning experiments
+immutable PNG observation
+  → provider-neutral pixel request (no object IDs)
+  → normalized or pixel Gesture IR
+  → fresh-frame coordinate projection and runtime hit-test
+  → guarded transaction
+  → before/after render evidence
+  → structured oracle verification
+  → Token, latency, correction and stale-frame metrics
 ```
 
-## What Phase 7 adds
+## Phase 8 additions
 
-- A real browser drawing surface: select, move, resize, rectangle, ellipse, text, freehand, delete, recolor, pan and zoom.
-- Three observation lanes:
-  - `pixel`: immutable SVG frame without object IDs;
-  - `structured`: frame plus complete object oracle;
-  - `hybrid`: frame for the actor, structured state reserved for verification.
-- Every lab mutation requires a non-empty `actionId`, a fresh `frameId`, and the expected canvas revision.
-- Frame leases bind the render SHA-256, state SHA-256, viewport, revision and expiry time.
-- Guarded reversible history with synchronized Undo and Redo.
-- A deterministic visual benchmark: move the red circle completely inside the blue target frame.
-- Seven MCP lab tools and immutable `lab://frame/{frameId}` Resources.
-- A portable Windows trace-path fix that keeps logical run IDs unchanged while sanitizing filesystem path segments.
+- Deterministic server-side SVG → PNG rasterization through `@resvg/resvg-js`.
+- Full-frame and cropped immutable raster Resources with SHA-256 lineage.
+- Pixel-native drag, resize, delete, restyle, text, path, pan and zoom gestures.
+- Crop-to-full-frame coordinate projection before any action executes.
+- Provider requests and outputs reject `objectId` / `objectIds` fields recursively.
+- Provider-neutral episode runner with Token, latency, correction and freshness telemetry.
+- Experimental Codex Account Provider using the versioned local Codex CLI App Server and `localImage`.
+- Real acceptance: one PNG observation → one model-planned drag → guarded transition → oracle PASS.
 
-Phase 0–6 persistence, recursive subcanvas, WebSocket synchronization and NVCL behavior remain available.
+Phases 0–7 remain available: typed canvas state, SQLite recovery, synchronization, MCP Resources/Tools, flat and recursive NVCL, browser drawing, freshness guards, Undo/Redo and deterministic visual verification.
 
 ## Run
 
-Requirements:
-
-- Node.js 22.5 or newer
-- npm 10 or newer
+Requirements: Node.js 22.5+ and npm 10+.
 
 ```bash
 npm install
 npm run check
 npm test
+npm run phase8:demo
 npm run lab
 ```
 
-Open `http://127.0.0.1:4173`.
+Open `http://127.0.0.1:4173` for the interactive laboratory.
 
-For persistent local state:
+The real account-backed acceptance is opt-in because it consumes account capacity:
 
 ```bash
-MRMIC_DB=./data/local.db \
-MRMIC_SYNC_DB=./data/sync.db \
-npm run lab
+npm run phase8:codex
 ```
 
-## Important endpoints
+The Provider uses an ephemeral read-only Codex thread, enables no dynamic tools, writes one bounded temporary PNG, and removes it in `finally`.
+
+## Phase 8 endpoints
 
 ```text
 GET  /api/lab/observe?mode=pixel|hybrid|structured
 GET  /api/lab/frame/{frameId}.svg
+GET  /api/lab/frame/{frameId}.png
+GET  /api/lab/frame/{frameId}.png?x=40&y=140&width=700&height=300
+GET  /api/lab/raster/{rasterId}.png
 POST /api/lab/action
 POST /api/lab/undo
 POST /api/lab/redo
@@ -76,46 +67,28 @@ GET  /mcp
 WS   /sync?canvasId=<canvasId>
 ```
 
-## MCP lab tools
-
-```text
-lab.observe
-lab.act
-lab.undo
-lab.redo
-lab.reset_benchmark
-lab.verify_benchmark
-lab.get_trajectory
-```
-
-The MCP server exposes 22 tools in total: the original 15 `canvas.*` tools plus these seven `lab.*` tools.
+The MCP reference server exposes 23 tools: 15 `canvas.*` tools and eight `lab.*` tools, including `lab.rasterize`.
 
 ## Validation
 
-- TypeScript strict check passes.
-- 43 automated tests pass.
-- Real browser validation passed for benchmark reset, physical drag, deterministic verification, Undo, Redo, rectangle, text, freehand, resize, recolor and delete.
-- The browser console produced no warnings or errors during the acceptance run.
+- TypeScript strict build: PASS.
+- Automated tests: 53/53 PASS.
+- Real browser: Phase 8 UI and immutable PNG render PASS; console 0 warnings and 0 errors.
+- Real Codex Account Provider: one-call pixel loop PASS with no structured-object or object-ID input.
+- Full high-detail run: 19,283 total tokens, 14.571 s.
+- Cropped auto-detail run: 17,269 total tokens, 15.981 s, a 10.4% token reduction in this sample.
 
-See:
-
-- `docs/MULTIMODAL_LAB_CONTRACT.md`
-- `docs/ADR-007_INTERACTIVE_MULTIMODAL_CANVAS_LAB.md`
-- `docs/PHASE7_COMPLETION_REPORT.md`
-- `docs/MCP_COMPATIBILITY.md`
-- `docs/theory/canonical/README.md`
+See `docs/PHASE8_COMPLETION_REPORT.md`, `docs/PIXEL_GESTURE_IR.md`, `docs/CODEX_ACCOUNT_PROVIDER.md`, and `docs/ADR-008_PIXEL_NATIVE_MULTIMODAL_AGENT.md`.
 
 ## Honest boundary
 
-This is an experimental local reference runtime, not a production collaboration service.
-
-- Pixel observations are immutable SVG frames; server-side PNG rasterization is not included yet.
-- The deterministic verifier is an oracle, not a trained visual model.
-- No real multimodal provider is bundled in Phase 7.
-- The state-vector protocol is still not Yjs wire-compatible.
-- Production authentication, rate limits, origin policy and multi-tenant isolation remain future work.
-- Recorded feedback trajectories are evidence; they are not automatically policy learning.
+- The benchmark is a controlled synthetic drag task, not a broad game or desktop benchmark.
+- The structured oracle verifies results but is never sent to the pixel Provider.
+- Codex Account/App Server carries substantial fixed context overhead; crop alone does not solve continuous-video cost.
+- Raster output can vary across machines when system fonts differ.
+- The MCP server remains a handwritten `2025-11-25` stateful subset. It has not migrated to the finalized stateless `2026-07-28` core and does not claim formal conformance.
+- Recorded trajectories are evidence, not policy learning.
 
 ## License
 
-See `LICENSE` and `NOTICE.md`. Phase 7 retains the dependency-light SVG reference adapter and does not add an Excalidraw or tldraw runtime dependency.
+See `LICENSE`, `NOTICE.md`, and `THIRD_PARTY_NOTICES.md`.

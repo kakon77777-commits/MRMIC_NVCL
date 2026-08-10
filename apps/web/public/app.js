@@ -41,7 +41,7 @@ function svgElement(name, attributes = {}) {
 }
 
 function actionId(kind) {
-  return `phase7-${kind}-${crypto.randomUUID()}`
+  return `phase8-${kind}-${crypto.randomUUID()}`
 }
 
 function showToast(message, error = false) {
@@ -272,7 +272,7 @@ async function executeLabAction(action, frame, quiet = false) {
           frameId: frame.frameId,
           canvasId: frame.canvasId,
           expectedCanvasRevision: frame.canvasRevision,
-          actor: { actorType: 'user', actorId: clientId, instanceId: 'phase7-browser' },
+          actor: { actorType: 'user', actorId: clientId, instanceId: 'phase8-browser' },
           ...action,
         },
       }),
@@ -574,7 +574,7 @@ function sendPresence(cursor) {
       cursor,
       viewport,
       selectedObjectIds: selectedId ? [selectedId] : [],
-      task: `Phase 7 ${activeTool}`,
+      task: `Phase 8 ${activeTool}`,
       updatedAt: new Date().toISOString(),
     },
   }))

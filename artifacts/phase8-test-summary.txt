@@ -1,0 +1,16 @@
+MRMIC/NVCL Phase 8 v0.9 local acceptance
+Date: 2026-08-10
+
+TypeScript strict build: PASS
+Automated tests: 53 passed, 0 failed
+Provider capability probe: PASS (local Codex installation)
+Protocol fixture pixel loop: PASS
+Real Codex full-frame pixel loop: PASS
+Real Codex cropped pixel loop: PASS
+Browser UI: PASS
+Browser immutable PNG: PASS
+Browser warnings: 0
+Browser errors: 0
+MCP tools: 23 total, 8 lab tools
+
+See artifacts/phase8-codex-acceptance.json for sanitized Token and latency data.

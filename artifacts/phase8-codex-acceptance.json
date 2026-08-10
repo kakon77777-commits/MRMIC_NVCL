@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "phase8-acceptance-v1",
+  "date": "2026-08-10",
+  "benchmark": "synthetic-drag-red-circle",
+  "provider": "openai_codex_account",
+  "model": "gpt-5.6-sol",
+  "privacy": {
+    "syntheticFrameOnly": true,
+    "containsImageBytes": false,
+    "containsPrompt": false,
+    "containsThreadId": false,
+    "containsCredentials": false,
+    "providerReceivedStructuredObjects": false,
+    "providerReceivedObjectIds": false
+  },
+  "runs": [
+    {
+      "observationPolicy": "full-1200x800-high-detail",
+      "status": "completed",
+      "success": true,
+      "metrics": {
+        "observations": 2,
+        "providerCalls": 1,
+        "actions": 1,
+        "corrections": 0,
+        "staleFrameRejections": 0,
+        "observationLatencyMs": 372,
+        "providerLatencyMs": 14180,
+        "actionLatencyMs": 8,
+        "totalLatencyMs": 14571,
+        "inputTokens": 18885,
+        "cachedInputTokens": 0,
+        "outputTokens": 398,
+        "reasoningOutputTokens": 279,
+        "totalTokens": 19283
+      },
+      "evidence": {
+        "freshnessVerified": true,
+        "transitionGuard": "passed",
+        "verifiedChange": true,
+        "hitTestVerified": true,
+        "resolvedObjectCount": 1,
+        "beforeRenderSha256": "7436b0581b1420ff82331b53db1f7238a610703e0f9ea53af7d98f2501b04a6d",
+        "afterRenderSha256": "f2e8f541e75dffa18e7e9be2ce3e3ad19160c3954847c85dd923d9e7bc36dd30"
+      }
+    },
+    {
+      "observationPolicy": "crop-700x300-auto-detail",
+      "status": "completed",
+      "success": true,
+      "metrics": {
+        "observations": 2,
+        "providerCalls": 1,
+        "actions": 1,
+        "corrections": 0,
+        "staleFrameRejections": 0,
+        "observationLatencyMs": 344,
+        "providerLatencyMs": 15617,
+        "actionLatencyMs": 9,
+        "totalLatencyMs": 15981,
+        "inputTokens": 16939,
+        "cachedInputTokens": 0,
+        "outputTokens": 330,
+        "reasoningOutputTokens": 212,
+        "totalTokens": 17269
+      },
+      "evidence": {
+        "freshnessVerified": true,
+        "transitionGuard": "passed",
+        "verifiedChange": true,
+        "hitTestVerified": true,
+        "resolvedObjectCount": 1,
+        "beforeRenderSha256": "7436b0581b1420ff82331b53db1f7238a610703e0f9ea53af7d98f2501b04a6d",
+        "afterRenderSha256": "935f1adb0ddb5d2babc07ec4fdee870ede45027bfedd4c0c84007b12c2c48039"
+      }
+    }
+  ],
+  "comparison": {
+    "totalTokenReduction": 2014,
+    "totalTokenReductionPercent": 10.4,
+    "conclusion": "Cropping helps, but fixed account/App Server context remains dominant in this sample."
+  }
+}
