@@ -2,7 +2,7 @@
   "name": "MRMIC_NVCL_MVP_Phase9_v0.10",
   "version": "0.10.0",
   "phase": 9,
-  "generatedAt": "2026-08-10T03:45:56.431Z",
+  "generatedAt": "2026-08-10T03:49:12.429Z",
   "sourceBaseline": "git agent/phase8-pixel-native-loop 60bf9c4 (Phase 8 v0.9)",
   "automatedTests": {
     "total": 61,
@@ -169,8 +169,8 @@
     },
     {
       "path": "apps/phase9-demo/src/index.ts",
-      "size": 1722,
-      "sha256": "d4a47859b5e24391a38eab226d9d4e38e0dcec962886b86593516a77f2cdd04b",
+      "size": 1721,
+      "sha256": "b888f5e2134ddb17fc4d3e42981c6ca7c94922590cac1b33f655eac1cf3fb2e9",
       "normalization": "lf"
     },
     {
@@ -727,8 +727,8 @@
     },
     {
       "path": "artifacts/phase9-governor-benchmark.json",
-      "size": 1612,
-      "sha256": "c9751288be8e218d44a517d927bf9009ee986481f4578321e8ed7e2468ea8148",
+      "size": 1611,
+      "sha256": "b9bc6299255f8e044d54e01141d811d39328c74166119e2202188fffd2e43be0",
       "normalization": "lf"
     },
     {
@@ -1327,8 +1327,8 @@
     },
     {
       "path": "tests/multimodal-agent-runtime.test.mjs",
-      "size": 11579,
-      "sha256": "8fd4030b0e8e15540356f6921247c5222b4516409f13a1487d4a18a72ce1c9f7",
+      "size": 11578,
+      "sha256": "2f2d16c6f1f8b9b98a0c5d8a6ad5327c4a23ace1efe30aa3eb4044235c127c01",
       "normalization": "lf"
     },
     {

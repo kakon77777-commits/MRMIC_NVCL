@@ -16,7 +16,7 @@ for (const seed of seeds) {
       differenceThreshold: 0.0001,
       blockDifferenceThreshold: 0.02,
       keyframeInterval: 8,
-      maxRoiFraction: 0.45,
+      maxRoiFraction: 0.3,
       roiPaddingPx: 24,
     })
     const runner = new SustainedObservationBenchmarkRunner({ lab: app.lab, governor })
