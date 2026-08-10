@@ -86,6 +86,14 @@ export interface LabRasterObservation {
 export interface LabRasterFrame {
   observation: LabRasterObservation
   png: Uint8Array
+  perceptualSignature: RasterPerceptualSignature
+}
+
+export interface RasterPerceptualSignature {
+  width: number
+  height: number
+  channels: 3
+  samples: Uint8Array
 }
 
 interface LabActionBase {
@@ -257,7 +265,7 @@ export interface MultimodalCanvasLabOptions {
 const defaultActor: ActorRef = {
   actorType: 'user',
   actorId: 'multimodal-lab-user',
-  instanceId: 'phase8-browser',
+  instanceId: 'phase9-browser',
 }
 
 function finite(value: number, label: string): number {
@@ -345,6 +353,7 @@ export class MultimodalCanvasLab {
       throw new MultimodalLabError('INVALID_ACTION', `Unable to rasterize frame: ${error instanceof Error ? error.message : String(error)}`)
     }
     const png = new Uint8Array(rendered.asPng())
+    const perceptualSignature = this.#perceptualSignature(new Uint8Array(rendered.pixels), rendered.width, rendered.height)
     const sha256 = createHash('sha256').update(png).digest('hex')
     const rasterId = createHash('sha256')
       .update(JSON.stringify({ frameId, crop: normalizedCrop ?? null, sha256 }))
@@ -361,7 +370,7 @@ export class MultimodalCanvasLab {
       uri: this.#rasterResourceUri(rasterId),
       ...(normalizedCrop ? { crop: normalizedCrop } : {}),
     }
-    const raster = { observation, png }
+    const raster = { observation, png, perceptualSignature }
     this.#rasters.set(rasterId, structuredClone(raster))
     return structuredClone(raster)
   }
@@ -408,7 +417,7 @@ export class MultimodalCanvasLab {
       return { ...structuredClone(recorded.result), idempotentReplay: true }
     }
 
-    const frame = this.#assertFreshFrame(action.frameId, action.canvasId, action.expectedCanvasRevision)
+    const frame = await this.#assertFreshFrame(action.frameId, action.canvasId, action.expectedCanvasRevision)
     if (action.type === 'viewport') return await this.#executeViewport(action, frame, actionFingerprint, outputMode)
     if (action.type === 'gesture') return await this.#executeGesture(action, frame, actionFingerprint, outputMode)
     const before = this.#store.snapshot()
@@ -447,7 +456,7 @@ export class MultimodalCanvasLab {
       if (recorded.fingerprint !== actionFingerprint) throw new MultimodalLabError('ACTION_ID_REUSED', `Action ID ${actionId} was already used with different input`)
       return { ...structuredClone(recorded.result), idempotentReplay: true }
     }
-    const input = this.#assertHistoryRequest(actionId, frameId)
+    const input = await this.#assertHistoryRequest(actionId, frameId)
     const entry = this.#undo.pop()
     if (!entry) throw new MultimodalLabError('NOTHING_TO_UNDO', 'No reversible canvas action is available')
     try {
@@ -469,7 +478,7 @@ export class MultimodalCanvasLab {
       if (recorded.fingerprint !== actionFingerprint) throw new MultimodalLabError('ACTION_ID_REUSED', `Action ID ${actionId} was already used with different input`)
       return { ...structuredClone(recorded.result), idempotentReplay: true }
     }
-    const input = this.#assertHistoryRequest(actionId, frameId)
+    const input = await this.#assertHistoryRequest(actionId, frameId)
     const entry = this.#redo.pop()
     if (!entry) throw new MultimodalLabError('NOTHING_TO_REDO', 'No canvas action is available to redo')
     try {
@@ -492,7 +501,7 @@ export class MultimodalCanvasLab {
       if (recorded.fingerprint !== actionFingerprint) throw new MultimodalLabError('ACTION_ID_REUSED', `Action ID ${actionId} was already used with different input`)
       return { ...structuredClone(recorded.result), idempotentReplay: true }
     }
-    const input = frameId ? this.#assertFreshFrame(frameId, this.#canvasId) : await this.#frameFromObservation('hybrid')
+    const input = frameId ? await this.#assertFreshFrame(frameId, this.#canvasId) : await this.#frameFromObservation('hybrid')
     const before = this.#store.snapshot()
     await this.#replaceWith(this.#initialState, `benchmark-base:${actionId}`)
     const transaction = this.#benchmarkTransaction(actionId)
@@ -550,7 +559,7 @@ export class MultimodalCanvasLab {
     }
   }
 
-  #assertFreshFrame(frameId: string, canvasId: string, expectedRevision?: number): LabFrame {
+  async #assertFreshFrame(frameId: string, canvasId: string, expectedRevision?: number): Promise<LabFrame> {
     const frame = this.#frames.get(frameId)
     if (!frame) throw new MultimodalLabError('FRAME_NOT_FOUND', `Frame ${frameId} is unavailable`)
     const age = this.#now() - Date.parse(frame.observation.observedAt)
@@ -562,6 +571,17 @@ export class MultimodalCanvasLab {
     }
     const currentHash = stateHash(this.#store.snapshot())
     if (currentHash !== frame.observation.stateHash) throw new MultimodalLabError('STALE_FRAME', 'Frame state hash no longer matches the canvas')
+    const currentViewport = await this.#adapter.getViewport()
+    const observedViewport = frame.observation.viewport
+    if (
+      currentViewport.x !== observedViewport.x
+      || currentViewport.y !== observedViewport.y
+      || currentViewport.width !== observedViewport.width
+      || currentViewport.height !== observedViewport.height
+      || currentViewport.zoom !== observedViewport.zoom
+    ) {
+      throw new MultimodalLabError('STALE_FRAME', 'Frame viewport no longer matches the current visual surface')
+    }
     return structuredClone(frame)
   }
 
@@ -603,25 +623,25 @@ export class MultimodalCanvasLab {
         revision: 0,
       }
       operations = [{ op: 'create_object', object }]
-      intent = `Phase 8 ${actor.actorType} creates ${object.type} ${object.id}`
+      intent = `Phase 9 ${actor.actorType} creates ${object.type} ${object.id}`
     } else {
       const object = this.#store.getObject(action.objectId)
       preconditions.push({ type: 'object_revision', targetId: object.id, expected: object.revision })
       if (action.type === 'move') {
         operations = [{ op: 'patch_object', objectId: object.id, expectedRevision: object.revision, patch: { transform: { x: finite(action.x, 'x'), y: finite(action.y, 'y') } } }]
-        intent = `Phase 8 moves ${object.id}`
+        intent = `Phase 9 moves ${object.id}`
       } else if (action.type === 'resize') {
         operations = [{ op: 'patch_object', objectId: object.id, expectedRevision: object.revision, patch: { transform: { width: Math.max(1, finite(action.width, 'width')), height: Math.max(1, finite(action.height, 'height')) } } }]
-        intent = `Phase 8 resizes ${object.id}`
+        intent = `Phase 9 resizes ${object.id}`
       } else if (action.type === 'delete') {
         operations = [{ op: 'delete_object', objectId: object.id, expectedRevision: object.revision }]
-        intent = `Phase 8 deletes ${object.id}`
+        intent = `Phase 9 deletes ${object.id}`
       } else if (action.type === 'restyle') {
         operations = [{ op: 'patch_object', objectId: object.id, expectedRevision: object.revision, patch: { style: structuredClone(action.style) } }]
-        intent = `Phase 8 restyles ${object.id}`
+        intent = `Phase 9 restyles ${object.id}`
       } else {
         operations = [{ op: 'patch_object', objectId: object.id, expectedRevision: object.revision, patch: { content: { text: action.text } } }]
-        intent = `Phase 8 edits text in ${object.id}`
+        intent = `Phase 9 edits text in ${object.id}`
       }
     }
 
@@ -635,13 +655,13 @@ export class MultimodalCanvasLab {
       operations,
       mode: 'direct',
       createdAt: now,
-      idempotencyKey: `phase8-action:${action.actionId}`,
+      idempotencyKey: `phase9-action:${action.actionId}`,
     }
   }
 
   #benchmarkTransaction(actionId: string): CanvasTransaction {
     const now = new Date(this.#now()).toISOString()
-    const actor: ActorRef = { actorType: 'system', actorId: 'phase8-benchmark', instanceId: 'drag-red-circle' }
+    const actor: ActorRef = { actorType: 'system', actorId: 'phase9-benchmark', instanceId: 'drag-red-circle' }
     const make = (
       id: string,
       type: CanvasObjectType,
@@ -675,19 +695,19 @@ export class MultimodalCanvasLab {
       id: `benchmark:${actionId}`,
       canvasId: this.#canvasId,
       actor,
-      intent: 'Reset the Phase 8 drag-red-circle benchmark',
+      intent: 'Reset the Phase 9 drag-red-circle benchmark',
       expectedOutcome: 'A deterministic, reversible visual interaction task',
       preconditions: [{ type: 'canvas_revision', targetId: this.#canvasId, expected: this.#store.getCanvas(this.#canvasId).revision }],
       operations: objects.map(object => ({ op: 'create_object' as const, object })),
       mode: 'direct',
       createdAt: now,
-      idempotencyKey: `phase8-benchmark:${actionId}`,
+      idempotencyKey: `phase9-benchmark:${actionId}`,
     }
   }
 
-  #assertHistoryRequest(actionId: string, frameId: string): LabFrame {
+  async #assertHistoryRequest(actionId: string, frameId: string): Promise<LabFrame> {
     if (!actionId.trim()) throw new MultimodalLabError('INVALID_ACTION', 'History action requires actionId')
-    return this.#assertFreshFrame(frameId, this.#canvasId)
+    return await this.#assertFreshFrame(frameId, this.#canvasId)
   }
 
   async #replaceWith(state: CanvasState, snapshotId: string): Promise<TransactionResult> {
@@ -983,6 +1003,9 @@ export class MultimodalCanvasLab {
       height: Math.max(1, finite(action.viewport.height ?? current.height, 'viewport.height')),
       zoom: Math.min(8, Math.max(0.1, finite(action.viewport.zoom ?? current.zoom, 'viewport.zoom'))),
     }
+    if (next.x === current.x && next.y === current.y && next.width === current.width && next.height === current.height && next.zoom === current.zoom) {
+      throw new MultimodalLabError('INVALID_ACTION', 'Viewport action must change the current visual surface')
+    }
     await this.#adapter.setViewport(next)
     const afterObservation = await this.observe(outputMode)
     const currentStateHash = stateHash(this.#store.snapshot())
@@ -1085,6 +1108,24 @@ export class MultimodalCanvasLab {
     )
   }
 
+  #perceptualSignature(pixels: Uint8Array, width: number, height: number): RasterPerceptualSignature {
+    const gridWidth = Math.min(32, width)
+    const gridHeight = Math.min(32, height)
+    const samples = new Uint8Array(gridWidth * gridHeight * 3)
+    for (let gridY = 0; gridY < gridHeight; gridY += 1) {
+      const sourceY = Math.min(height - 1, Math.floor((gridY + 0.5) * height / gridHeight))
+      for (let gridX = 0; gridX < gridWidth; gridX += 1) {
+        const sourceX = Math.min(width - 1, Math.floor((gridX + 0.5) * width / gridWidth))
+        const source = (sourceY * width + sourceX) * 4
+        const target = (gridY * gridWidth + gridX) * 3
+        samples[target] = pixels[source] ?? 0
+        samples[target + 1] = pixels[source + 1] ?? 0
+        samples[target + 2] = pixels[source + 2] ?? 0
+      }
+    }
+    return { width: gridWidth, height: gridHeight, channels: 3, samples }
+  }
+
   #pruneFrames(nowMs: number): void {
     if (this.#frames.size > 200) {
       const frames = [...this.#frames.entries()].sort((a, b) => Date.parse(a[1].observation.observedAt) - Date.parse(b[1].observation.observedAt))
@@ -1092,12 +1133,20 @@ export class MultimodalCanvasLab {
         if (this.#frames.size <= 120) break
         if (nowMs - Date.parse(frame.observation.observedAt) > this.#leaseTtlMs) this.#frames.delete(frameId)
       }
+      for (const [frameId] of frames) {
+        if (this.#frames.size <= 160) break
+        this.#frames.delete(frameId)
+      }
     }
     if (this.#rasters.size > 240) {
       const retainedFrameIds = new Set(this.#frames.keys())
       for (const [rasterId, raster] of this.#rasters) {
         if (this.#rasters.size <= 160) break
         if (!retainedFrameIds.has(raster.observation.frameId)) this.#rasters.delete(rasterId)
+      }
+      for (const rasterId of this.#rasters.keys()) {
+        if (this.#rasters.size <= 160) break
+        this.#rasters.delete(rasterId)
       }
     }
   }

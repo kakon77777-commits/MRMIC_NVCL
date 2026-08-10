@@ -1,0 +1,21 @@
+MRMIC/NVCL Phase 9 v0.10.0 automated validation
+Date: 2026-08-10
+
+npm test
+TypeScript build: PASS
+Tests: 61
+Passed: 61
+Failed: 0
+Cancelled: 0
+Skipped: 0
+Todo: 0
+
+Focused Phase 9 coverage:
+- static skip, localized ROI, full-frame fallback and periodic keyframe
+- stale decision rejection and fresh-keyframe regeneration
+- measured Token budget stop before subsequent Provider call
+- seeded sustained-observation benchmark
+- session-local MCP Governor isolation
+- viewport drift invalidates old coordinates
+- no-op viewport rejected; real viewport transition records PASS evidence
+- rapid observation cache remains bounded; evicted frames fail closed

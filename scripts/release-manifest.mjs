@@ -30,15 +30,23 @@ const files = listed.map(path => {
 })
 
 const manifest = {
-  name: 'MRMIC_NVCL_MVP_Phase8_v0.9',
-  version: '0.9.0',
-  phase: 8,
+  name: 'MRMIC_NVCL_MVP_Phase9_v0.10',
+  version: '0.10.0',
+  phase: 9,
   generatedAt: new Date().toISOString(),
-  sourceBaseline: 'git main c917e65 (Phase 7 v0.8)',
-  automatedTests: { total: 53, passed: 53, failed: 0 },
-  mcpTools: { total: 23, lab: 8 },
+  sourceBaseline: 'git agent/phase8-pixel-native-loop 60bf9c4 (Phase 8 v0.9)',
+  automatedTests: { total: 61, passed: 61, failed: 0 },
+  mcpTools: { total: 24, lab: 9 },
   browserAcceptance: 'passed',
-  realCodexPixelAcceptance: 'passed',
+  realCodexPixelAcceptance: 'inherited Phase 8 pass; not rerun for single-call Phase 9',
+  sustainedObservationBenchmark: {
+    seeds: [7, 42, 2026],
+    observations: 27,
+    providerCallsAvoided: 12,
+    alwaysFullBytes: 1505658,
+    governedBytes: 529716,
+    savedPercent: 64.81830535221145,
+  },
   fileCount: files.length,
   files,
 }

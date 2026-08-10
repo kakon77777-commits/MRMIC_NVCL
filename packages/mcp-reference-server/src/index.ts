@@ -16,10 +16,11 @@ import type { SqliteEventLedger } from '../../event-ledger/src/index.js'
 import type { StateVectorSyncRoom } from '../../state-vector-sync/src/index.js'
 import { verifyCount, verifyInsideBounds, verifyMaxOverlap, type VerificationIssue } from '../../verifier/src/index.js'
 import type { LabAction, MultimodalCanvasLab, ObservationMode } from '../../multimodal-lab/src/index.js'
+import { ObservationGovernor } from '../../multimodal-agent-runtime/src/governor.js'
 
 export const MCP_PROTOCOL_VERSION = '2025-11-25'
 export const MCP_SERVER_NAME = 'mrmic-nvcl-canvas'
-export const MCP_SERVER_VERSION = '0.9.0'
+export const MCP_SERVER_VERSION = '0.10.0'
 
 type JsonRpcId = string | number | null
 interface JsonRpcRequest { jsonrpc: '2.0'; id?: JsonRpcId; method: string; params?: Record<string, unknown> }
@@ -33,6 +34,7 @@ interface McpSession {
   actor: ActorRef
   subscriptions: Set<string>
   streams: Set<any>
+  governors: Map<string, ObservationGovernor>
   createdAt: string
 }
 
@@ -189,6 +191,20 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
     name: 'lab.observe', title: 'Observe multimodal canvas lab', readOnly: true,
     description: 'Create a freshness-bound immutable visual frame. Pixel mode withholds object IDs; structured mode exposes oracle state.',
     inputSchema: { type: 'object', properties: { mode: { type: 'string', enum: ['pixel', 'hybrid', 'structured'] } }, additionalProperties: false },
+  },
+  {
+    name: 'lab.observe_adaptive', title: 'Observe through a session-local visual governor', readOnly: true,
+    description: 'Create a pixel frame, compare a compact perceptual signature with this MCP session history, and return a keyframe, full frame, ROI raster, or skip decision.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        governorId: { type: 'string' }, reset: { type: 'boolean' },
+        differenceThreshold: { type: 'number' }, blockDifferenceThreshold: { type: 'number' },
+        keyframeInterval: { type: 'integer' }, maxRoiFraction: { type: 'number' },
+        roiPaddingPx: { type: 'integer' }, minimumRoiSize: { type: 'integer' },
+      },
+      additionalProperties: false,
+    },
   },
   {
     name: 'lab.act', title: 'Execute guarded lab action', readOnly: false,
@@ -424,7 +440,7 @@ export class McpReferenceCanvasServer {
       const session: McpSession = {
         id: randomUUID(), initialized: false, role,
         actor: { actorType: role === 'viewer' ? 'user' : 'agent', actorId, sessionId: randomUUID() },
-        subscriptions: new Set(), streams: new Set(), createdAt: now(),
+        subscriptions: new Set(), streams: new Set(), governors: new Map(), createdAt: now(),
       }
       this.#sessions.set(session.id, session)
       this.#sendRpc(response, 200, jsonRpcResult(rpc.id ?? null, {
@@ -468,7 +484,7 @@ export class McpReferenceCanvasServer {
     const internal: McpSession = {
       id: `test-${randomUUID()}`, initialized: true, role: session.role ?? 'owner',
       actor: { actorType: 'agent', actorId: session.actorId ?? 'test-agent' },
-      subscriptions: new Set(), streams: new Set(), createdAt: now(),
+      subscriptions: new Set(), streams: new Set(), governors: new Map(), createdAt: now(),
     }
     return this.#dispatch(rpc, internal)
   }
@@ -663,6 +679,31 @@ export class McpReferenceCanvasServer {
         if (!lab) return errorResult('NOT_AVAILABLE', 'Multimodal lab is not configured')
         const observation = await lab.observe(observationMode(args.mode))
         return okResult({ observation, history: lab.historyStatus }, [`lab://frame/${encodeURIComponent(observation.frameId)}`, `lab://frame/${encodeURIComponent(observation.frameId)}.png`])
+      }
+      case 'lab.observe_adaptive': {
+        const lab = this.#runtime.lab
+        if (!lab) return errorResult('NOT_AVAILABLE', 'Multimodal lab is not configured')
+        const governorId = typeof args.governorId === 'string' && args.governorId.trim() ? args.governorId.trim() : 'default'
+        if (governorId.length > 128) return errorResult('INVALID_ARGUMENT', 'governorId must not exceed 128 characters')
+        if (args.reset === true) session.governors.delete(governorId)
+        let governor = session.governors.get(governorId)
+        if (!governor) {
+          governor = new ObservationGovernor({
+            lab,
+            differenceThreshold: asFinite(args.differenceThreshold, 'differenceThreshold', 0.006),
+            blockDifferenceThreshold: asFinite(args.blockDifferenceThreshold, 'blockDifferenceThreshold', 0.06),
+            keyframeInterval: asInteger(args.keyframeInterval, 'keyframeInterval', 8),
+            maxRoiFraction: asFinite(args.maxRoiFraction, 'maxRoiFraction', 0.55),
+            roiPaddingPx: asInteger(args.roiPaddingPx, 'roiPaddingPx', 32),
+            minimumRoiSize: asInteger(args.minimumRoiSize, 'minimumRoiSize', 96),
+          })
+          session.governors.set(governorId, governor)
+        }
+        const observation = await lab.observe('pixel')
+        const decision = await governor.observe(observation.frameId)
+        const { raster, ...governance } = decision
+        const links = raster ? [`lab://raster/${encodeURIComponent(raster.observation.rasterId)}`] : []
+        return okResult({ observation, governance, raster: raster?.observation, governorId }, links)
       }
       case 'lab.rasterize': {
         const lab = this.#runtime.lab

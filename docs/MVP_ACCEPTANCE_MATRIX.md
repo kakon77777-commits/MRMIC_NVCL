@@ -19,12 +19,19 @@
 | Recursive zero-object-ID Provider boundary | 8 | agent runtime tests | Pass |
 | Token, latency, correction and freshness telemetry | 8 | runtime tests + real acceptance | Pass |
 | Real Codex Account PNG → gesture → guard → oracle loop | 8 | `artifacts/phase8-codex-acceptance.json` | Pass |
+| Keyframe, threshold skip, ROI and periodic full resync | 9 | Governor + runtime tests | Pass |
+| Stale decision rejection and fresh-keyframe regeneration | 9 | agent runtime tests | Pass |
+| Viewport-bound pixel freshness | 9 | multimodal lab tests | Pass |
+| Measured Token budget before subsequent Provider call | 9 | agent runtime tests | Pass |
+| Session-local adaptive MCP observation | 9 | MCP tests | Pass |
+| Seeded sustained-observation payload benchmark | 9 | `artifacts/phase9-governor-benchmark.json` | Pass |
 
 ```text
-Automated tests: 53 / 53 passed
-Browser console warnings: 0
-Browser console errors: 0
-Real Provider actions: 1 / 1 verified
+Automated tests: 61 / 61 passed
+Seeded Phase 9 observations: 27 / 27 classified
+Phase 9 Provider calls avoided: 12
+Phase 9 browser warnings/errors: 0 / 0
+Inherited real Provider actions: 1 / 1 verified
 ```
 
-Not claimed: broad visual-agent generalization, policy learning, deterministic cross-machine font rasterization, production security, official MCP conformance, MCP `2026-07-28` support, or transfer to uncontrolled games/desktops.
+Not claimed: real multi-call Token reduction, broad visual-agent generalization, arbitrary video/audio understanding, policy learning, deterministic cross-machine font rasterization, production security, official MCP conformance, MCP `2026-07-28` support, or transfer to uncontrolled games/desktops.

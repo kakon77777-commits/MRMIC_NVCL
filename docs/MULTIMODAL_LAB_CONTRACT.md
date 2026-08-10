@@ -1,6 +1,6 @@
 # Multimodal Canvas Lab Contract
 
-Version: 0.9.0
+Version: 0.10.0
 
 ## 1. Observation modes
 
@@ -40,6 +40,7 @@ An action fails closed when:
 - the frame belongs to a different canvas;
 - the current revision differs from the observed revision;
 - the current state hash differs from the observed state hash.
+- the current viewport tuple (`x`, `y`, `width`, `height`, `zoom`) differs from the observed viewport.
 
 ## 3. Action invariant
 
@@ -113,6 +114,7 @@ The verifier checks containment using authoritative geometry and reports center 
 | MCP tool | Purpose |
 |---|---|
 | `lab.observe` | Create a frame lease |
+| `lab.observe_adaptive` | Create a frame and apply a session-local keyframe/ROI/skip policy |
 | `lab.rasterize` | Create an immutable full or cropped PNG |
 | `lab.act` | Execute guarded Action IR |
 | `lab.undo` | Restore previous state |
@@ -125,4 +127,4 @@ Exact observed SVG content is available as `lab://frame/{frameId}`. PNG content 
 
 ## 8. Epistemic boundary
 
-Feedback is not automatically learning. Phase 8 records trajectories, corrections and Provider telemetry. A later experiment may compare policies trained or adapted from those trajectories, but v0.9 does not claim policy improvement.
+Feedback is not automatically learning. Phase 9 records trajectories, corrections, rejected stale decisions, observation dispositions and Provider telemetry. A later experiment may compare policies trained or adapted from those trajectories, but v0.10 does not claim policy improvement.

@@ -227,3 +227,25 @@ MultimodalCanvasLab
 The Provider-neutral runtime recursively rejects object-identifier fields. Object identities may appear in trusted transaction and audit evidence after hit-testing, but never in pixel-mode Provider input or feedback.
 
 The first experimental Provider uses a versioned local Codex CLI App Server with an ephemeral read-only thread and no dynamic tools. It is replaceable through the same `MultimodalProvider` interface.
+
+## Phase 9: Adaptive sustained observation
+
+Phase 9 inserts a trusted Observation Governor before the Provider:
+
+```text
+immutable pixel frame
+  → local full raster + 32×32 RGB signature
+  → difference score + changed-block bounds
+  ├─ skip: no Provider call
+  ├─ ROI: cropped immutable PNG
+  ├─ full_frame: change region exceeds ROI budget
+  └─ keyframe: initial, forced, geometry change or periodic resync
+       ↓
+Provider → coordinate-only Gesture IR → freshness gate → guarded action
+```
+
+The signature and changed-block map never cross the Provider boundary. A Provider request may receive only the selected pixels and safe policy metadata. Token budgets use measured Provider telemetry and stop before a subsequent call.
+
+Freshness now includes the exact viewport tuple. If an action is rejected because its frame is stale, the Runtime stores the rejection, obtains a new pixel frame, forces a keyframe and asks the Provider to regenerate. It never replays coordinates from the rejected frame.
+
+MCP exposes the same policy through `lab.observe_adaptive`. Governor state is isolated per MCP session and `governorId`; it is not global canvas truth.

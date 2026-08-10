@@ -1,0 +1,17 @@
+{
+  "version": "0.10.0",
+  "date": "2026-08-10",
+  "target": "local Phase 9 canvas laboratory",
+  "title": "MRMIC／NVCL Phase 9 自適應觀察實驗室",
+  "checks": {
+    "pageLoaded": "passed",
+    "pixelMode": "passed",
+    "benchmarkReset": "passed",
+    "phase9ActionProvenance": "passed",
+    "freshness": "passed",
+    "transitionGuard": "passed",
+    "browserWarnings": 0,
+    "browserErrors": 0
+  },
+  "privacy": "No screenshots, image bytes, account data, browser identifiers or user content are stored."
+}
