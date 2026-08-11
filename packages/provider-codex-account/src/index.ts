@@ -9,6 +9,11 @@ import type {
   PixelProviderRequest,
   ProviderUsage,
 } from '../../multimodal-agent-runtime/src/index.js'
+import {
+  validateVisualObservationResponse,
+  type VisualObservationRequest,
+  type VisualObservationResponse,
+} from '../../multimodal-agent-runtime/src/provider-ab.js'
 import type { PixelGesture } from '../../multimodal-lab/src/index.js'
 
 const MAX_IMAGE_BYTES = 16 * 1024 * 1024
@@ -206,6 +211,21 @@ export function codexGestureOutputSchema(): Record<string, unknown> {
   }
 }
 
+export function codexVisualObservationOutputSchema(): Record<string, unknown> {
+  const properties = {
+    circleColor: { type: 'string', enum: ['red', 'amber', 'other', 'not_visible'] },
+    targetVisible: { type: 'boolean' },
+    confidence: { type: 'number', minimum: 0, maximum: 1 },
+    summary: { type: 'string' },
+  }
+  return {
+    type: 'object',
+    additionalProperties: false,
+    properties,
+    required: Object.keys(properties),
+  }
+}
+
 export function normalizeCodexUsage(value: unknown): ProviderUsage | undefined {
   const usage = record(record(value).tokenUsage)
   const last = record(usage.last)
@@ -279,6 +299,12 @@ export interface CodexProviderProbe {
   credentialFilesAccessed: false
 }
 
+interface StructuredImageInference {
+  output: unknown
+  model: string
+  usage?: ProviderUsage
+}
+
 export class CodexAccountMultimodalProvider implements MultimodalProvider {
   readonly name = 'openai_codex_account'
   readonly #executable?: string
@@ -319,8 +345,57 @@ export class CodexAccountMultimodalProvider implements MultimodalProvider {
   }
 
   async generate(request: PixelProviderRequest): Promise<MultimodalProviderResponse> {
+    const prompt = [
+      `Goal: ${request.goal}`,
+      `Iteration: ${request.iteration}/${request.maxIterations}`,
+      `Frame size: ${request.frame.width}x${request.frame.height}.`,
+      'Inspect the image. Return a normalized-frame gesture. Do not mention or emit object IDs.',
+      request.previous ? `Previous safe feedback: ${JSON.stringify(request.previous)}.` : 'There is no previous action feedback.',
+    ].join('\n')
+    const inferred = await this.#inferStructuredImage({
+      imageBase64: request.frame.imageBase64,
+      prompt,
+      outputSchema: codexGestureOutputSchema(),
+      baseInstructions: 'You are a bounded visual action planner. Never use tools or modify files. Inspect only the supplied image and return one schema-valid decision.',
+      developerInstructions: 'Do not infer or emit object IDs. Use normalized frame coordinates in [0,1]. Choose a reversible gesture that advances the supplied goal. Return JSON only.',
+    })
+    return {
+      decision: normalizeCodexDecision(inferred.output),
+      model: inferred.model,
+      ...(inferred.usage ? { usage: inferred.usage } : {}),
+    }
+  }
+
+  async observeVisual(request: VisualObservationRequest): Promise<VisualObservationResponse> {
+    if (JSON.stringify(request).match(/object_?ids?/i)) throw new Error('Visual observation request contains a forbidden object identifier field')
+    const prompt = [
+      `Task: ${request.task}`,
+      `Delivered frame size: ${request.frame.width}x${request.frame.height}.`,
+      'Classify only what is visible in this image. Return JSON only.',
+    ].join('\n')
+    const inferred = await this.#inferStructuredImage({
+      imageBase64: request.frame.imageBase64,
+      prompt,
+      outputSchema: codexVisualObservationOutputSchema(),
+      baseInstructions: 'You are a bounded visual observation classifier. Never use tools or modify files. Inspect only the supplied image and return one schema-valid observation.',
+      developerInstructions: 'Do not infer hidden state and do not emit object identifiers. Classify only visible pixels. Return JSON only.',
+    })
+    return validateVisualObservationResponse({
+      ...record(inferred.output),
+      model: inferred.model,
+      ...(inferred.usage ? { usage: inferred.usage } : {}),
+    })
+  }
+
+  async #inferStructuredImage(input: {
+    imageBase64: string
+    prompt: string
+    outputSchema: Record<string, unknown>
+    baseInstructions: string
+    developerInstructions: string
+  }): Promise<StructuredImageInference> {
     if (!this.#executable) throw new Error('Codex CLI executable is unavailable')
-    const image = Buffer.from(request.frame.imageBase64, 'base64')
+    const image = Buffer.from(input.imageBase64, 'base64')
     if (image.byteLength === 0 || image.byteLength > MAX_IMAGE_BYTES) throw new Error('Pixel frame size is outside provider bounds')
     const tempPath = resolve(this.#cwd, `.mrmic-codex-frame-${randomUUID()}.png`)
     const client = new AppServerClient(this.#executable)
@@ -338,25 +413,18 @@ export class CodexAccountMultimodalProvider implements MultimodalProvider {
         ephemeral: true,
         environments: [],
         dynamicTools: [],
-        baseInstructions: 'You are a bounded visual action planner. Never use tools or modify files. Inspect only the supplied image and return one schema-valid decision.',
-        developerInstructions: 'Do not infer or emit object IDs. Use normalized frame coordinates in [0,1]. Choose a reversible gesture that advances the supplied goal. Return JSON only.',
+        baseInstructions: input.baseInstructions,
+        developerInstructions: input.developerInstructions,
       }, this.#timeoutMs))
       const threadId = text(record(threadResult.thread).id)
       if (!threadId) throw new Error('Codex thread/start did not return a thread ID')
-      const prompt = [
-        `Goal: ${request.goal}`,
-        `Iteration: ${request.iteration}/${request.maxIterations}`,
-        `Frame size: ${request.frame.width}x${request.frame.height}.`,
-        'Inspect the image. Return a normalized-frame gesture. Do not mention or emit object IDs.',
-        request.previous ? `Previous safe feedback: ${JSON.stringify(request.previous)}.` : 'There is no previous action feedback.',
-      ].join('\n')
       const turnResult = record(await client.request('turn/start', {
         threadId,
         input: [
-          { type: 'text', text: prompt, text_elements: [] },
+          { type: 'text', text: input.prompt, text_elements: [] },
           { type: 'localImage', path: tempPath, detail: this.#detail },
         ],
-        outputSchema: codexGestureOutputSchema(),
+        outputSchema: input.outputSchema,
         approvalPolicy: 'never',
       }, this.#timeoutMs))
       const turnId = text(record(turnResult.turn).id)
@@ -406,7 +474,7 @@ export class CodexAccountMultimodalProvider implements MultimodalProvider {
       }
       if (!assistantText) throw new Error('Codex inference completed without an agent message')
       return {
-        decision: normalizeCodexDecision(parseAssistantJson(assistantText)),
+        output: parseAssistantJson(assistantText),
         model: selectedModel,
         ...(usage ? { usage } : {}),
       }

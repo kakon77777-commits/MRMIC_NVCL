@@ -1,0 +1,18 @@
+{
+  "acceptance": "phase12-opt-in-real-provider-ab-attempt",
+  "date": "2026-08-12",
+  "status": "ABORTED",
+  "provider": "openai_codex_account",
+  "authorization": {
+    "maxProviderCalls": 8,
+    "maxTotalTokens": 50000
+  },
+  "verified": {
+    "budgetStoppedBeforeNextCall": true,
+    "apiKeyOrApiCreditUsed": false
+  },
+  "error": "Provider Token budget 50000 exhausted before another call",
+  "partialTelemetryAvailable": false,
+  "reasonPartialTelemetryUnavailable": "The first real attempt exposed that the CLI wrote evidence only after both arms completed. Phase 12 was patched to checkpoint each subsequent sample atomically before retrying.",
+  "boundary": "This artifact does not claim an exact call count, Token count, completed arm, semantic result, or source-trace identity for the aborted attempt."
+}

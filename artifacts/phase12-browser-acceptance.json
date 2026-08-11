@@ -1,0 +1,53 @@
+{
+  "acceptance": "phase12-local-browser-interaction",
+  "date": "2026-08-12",
+  "status": "PASS",
+  "browser": "Codex In-app Browser",
+  "url": "http://127.0.0.1:4173/",
+  "identity": {
+    "title": "MRMIC／NVCL Phase 12 Hybrid 觀察實驗室",
+    "eyebrow": "MRMIC／NVCL · Phase 12 v0.13",
+    "workspaceVisible": true
+  },
+  "benchmark": {
+    "task": "drag the red circle fully into the blue target zone",
+    "drag": {
+      "actionId": "phase12-move-b7cd1e40-1050-41a3-b252-818e5cffbee5",
+      "freshnessMs": 55,
+      "freshnessVerified": true,
+      "transitionGuard": "passed",
+      "beforeFramePrefix": "3bd61dfe",
+      "afterFramePrefix": "14aa1d2a",
+      "beforeStatePrefix": "2bcc4f3d",
+      "afterStatePrefix": "878f8950",
+      "finalPosition": { "x": 509, "y": 230 },
+      "oracle": "PASS: target fully inside zone"
+    },
+    "undo": {
+      "actionId": "phase12-undo-561795d6-dc09-46b5-b8e2-1714d0d4d5fe",
+      "freshnessMs": 8,
+      "freshnessVerified": true,
+      "transitionGuard": "passed",
+      "beforeFramePrefix": "13d3142a",
+      "afterFramePrefix": "4ba4bb11",
+      "beforeStatePrefix": "878f8950",
+      "afterStatePrefix": "2bcc4f3d",
+      "restoredPosition": { "x": 90, "y": 230 }
+    },
+    "redo": {
+      "actionId": "phase12-redo-a1077ed7-bb6a-446e-90b5-fb857e1f3e81",
+      "freshnessMs": 8,
+      "freshnessVerified": true,
+      "transitionGuard": "passed",
+      "beforeFramePrefix": "c7be4af1",
+      "afterFramePrefix": "85cd97c8",
+      "beforeStatePrefix": "2bcc4f3d",
+      "afterStatePrefix": "878f8950",
+      "restoredPosition": { "x": 509, "y": 230 },
+      "oracle": "PASS: target fully inside zone"
+    }
+  },
+  "browserWarnings": 0,
+  "browserErrors": 0,
+  "providerInferenceCalls": 0
+}

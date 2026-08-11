@@ -1,0 +1,328 @@
+{
+  "acceptance": "phase12-opt-in-real-provider-ab",
+  "status": "COMPLETED",
+  "probe": {
+    "provider": "openai_codex_account",
+    "appServer": "available",
+    "selectedModel": "gpt-5.6-sol",
+    "credentialFilesAccessed": false
+  },
+  "authorization": {
+    "explicitEnvironmentAcknowledgement": true,
+    "explicitCommandFlag": true,
+    "maxProviderCalls": 8,
+    "maxTotalTokens": 150000
+  },
+  "result": {
+    "protocolVersion": "mrmic-real-provider-ab-v1",
+    "runId": "phase12-real-provider-ab-1786470933019",
+    "provider": "openai_codex_account",
+    "model": "gpt-5.6-sol",
+    "sourceTraceIdentical": true,
+    "actionPlanIdentical": true,
+    "callsSavedByGovernor": 2,
+    "inputTokensSavedByGovernor": 45453,
+    "totalTokensSavedByGovernor": 46303,
+    "arms": [
+      {
+        "policy": "always_full",
+        "sourceTraceSha256": "9e03a5ccc7079e4eb632e3eeea638a32a5c370df1529afa2ee8bd50650ee73f0",
+        "actionPlanSha256": "c43a9b3bdd97e55f963e5fcb5df7f31f760927b78378efd55422ac35129d425b",
+        "samples": 5,
+        "providerCalls": 5,
+        "providerCallsAvoided": 0,
+        "deliveredBytes": 278526,
+        "sourceBytes": 278526,
+        "semanticCorrect": 5,
+        "semanticEvaluated": 5,
+        "semanticAccuracy": 1,
+        "providerLatencyMs": 62978,
+        "usage": {
+          "inputTokens": 103009,
+          "cachedInputTokens": 0,
+          "outputTokens": 1304,
+          "reasoningOutputTokens": 1077,
+          "totalTokens": 104313
+        },
+        "freshnessPassed": 2,
+        "transitionGuardsPassed": 2,
+        "steps": [
+          {
+            "sampleIndex": 1,
+            "label": "initial_red",
+            "expectedCircleColor": "red",
+            "sourceRasterSha256": "9d9d48110a14aa73620d1a0181ec8d8dbc987dff21f51d3a57c49e6d105d8875",
+            "sourceRenderSha256": "7436b0581b1420ff82331b53db1f7238a610703e0f9ea53af7d98f2501b04a6d",
+            "sourceByteLength": 55699,
+            "disposition": "full_frame",
+            "delivered": true,
+            "deliveredByteLength": 55699,
+            "providerLatencyMs": 10140,
+            "semanticCorrect": true,
+            "response": {
+              "circleColor": "red",
+              "targetVisible": true,
+              "confidence": 0.99,
+              "summary": "A solid red circle and a blue dashed target area are visible.",
+              "model": "gpt-5.6-sol"
+            },
+            "usage": {
+              "inputTokens": 20602,
+              "cachedInputTokens": 0,
+              "outputTokens": 255,
+              "reasoningOutputTokens": 210,
+              "totalTokens": 20857
+            }
+          },
+          {
+            "sampleIndex": 2,
+            "label": "static_red",
+            "expectedCircleColor": "red",
+            "sourceRasterSha256": "9d9d48110a14aa73620d1a0181ec8d8dbc987dff21f51d3a57c49e6d105d8875",
+            "sourceRenderSha256": "7436b0581b1420ff82331b53db1f7238a610703e0f9ea53af7d98f2501b04a6d",
+            "sourceByteLength": 55699,
+            "disposition": "full_frame",
+            "delivered": true,
+            "deliveredByteLength": 55699,
+            "providerLatencyMs": 11085,
+            "semanticCorrect": true,
+            "response": {
+              "circleColor": "red",
+              "targetVisible": true,
+              "confidence": 0.99,
+              "summary": "A solid red circle and a blue dashed target are visible.",
+              "model": "gpt-5.6-sol"
+            },
+            "usage": {
+              "inputTokens": 20604,
+              "cachedInputTokens": 0,
+              "outputTokens": 315,
+              "reasoningOutputTokens": 271,
+              "totalTokens": 20919
+            }
+          },
+          {
+            "sampleIndex": 3,
+            "label": "transient_on",
+            "expectedCircleColor": "amber",
+            "sourceRasterSha256": "fa2a514f99266808ccdc021d8eb16f2d20285180bf1babb3544af8ed7c09d973",
+            "sourceRenderSha256": "e797cdf8fc3ece4e0c59cabfa410df0315af592196e30e88cc45e7fb300272b2",
+            "sourceByteLength": 55730,
+            "disposition": "full_frame",
+            "delivered": true,
+            "deliveredByteLength": 55730,
+            "providerLatencyMs": 9668,
+            "semanticCorrect": true,
+            "response": {
+              "circleColor": "amber",
+              "targetVisible": true,
+              "confidence": 0.99,
+              "summary": "Visible solid circular fill is amber; the blue target area is visible.",
+              "model": "gpt-5.6-sol"
+            },
+            "usage": {
+              "inputTokens": 20601,
+              "cachedInputTokens": 0,
+              "outputTokens": 183,
+              "reasoningOutputTokens": 137,
+              "totalTokens": 20784
+            }
+          },
+          {
+            "sampleIndex": 4,
+            "label": "transient_restore",
+            "expectedCircleColor": "red",
+            "sourceRasterSha256": "9d9d48110a14aa73620d1a0181ec8d8dbc987dff21f51d3a57c49e6d105d8875",
+            "sourceRenderSha256": "7436b0581b1420ff82331b53db1f7238a610703e0f9ea53af7d98f2501b04a6d",
+            "sourceByteLength": 55699,
+            "disposition": "full_frame",
+            "delivered": true,
+            "deliveredByteLength": 55699,
+            "providerLatencyMs": 12558,
+            "semanticCorrect": true,
+            "response": {
+              "circleColor": "red",
+              "targetVisible": true,
+              "confidence": 0.99,
+              "summary": "A solid red circle and a blue dashed target area are clearly visible.",
+              "model": "gpt-5.6-sol"
+            },
+            "usage": {
+              "inputTokens": 20601,
+              "cachedInputTokens": 0,
+              "outputTokens": 290,
+              "reasoningOutputTokens": 244,
+              "totalTokens": 20891
+            }
+          },
+          {
+            "sampleIndex": 5,
+            "label": "settled_red",
+            "expectedCircleColor": "red",
+            "sourceRasterSha256": "9d9d48110a14aa73620d1a0181ec8d8dbc987dff21f51d3a57c49e6d105d8875",
+            "sourceRenderSha256": "7436b0581b1420ff82331b53db1f7238a610703e0f9ea53af7d98f2501b04a6d",
+            "sourceByteLength": 55699,
+            "disposition": "full_frame",
+            "delivered": true,
+            "deliveredByteLength": 55699,
+            "providerLatencyMs": 19527,
+            "semanticCorrect": true,
+            "response": {
+              "circleColor": "red",
+              "targetVisible": true,
+              "confidence": 0.99,
+              "summary": "A solid red circle and a visible blue dashed target area are present.",
+              "model": "gpt-5.6-sol"
+            },
+            "usage": {
+              "inputTokens": 20601,
+              "cachedInputTokens": 0,
+              "outputTokens": 261,
+              "reasoningOutputTokens": 215,
+              "totalTokens": 20862
+            }
+          }
+        ]
+      },
+      {
+        "policy": "governor_roi",
+        "sourceTraceSha256": "9e03a5ccc7079e4eb632e3eeea638a32a5c370df1529afa2ee8bd50650ee73f0",
+        "actionPlanSha256": "c43a9b3bdd97e55f963e5fcb5df7f31f760927b78378efd55422ac35129d425b",
+        "samples": 5,
+        "providerCalls": 3,
+        "providerCallsAvoided": 2,
+        "deliveredBytes": 63490,
+        "sourceBytes": 278526,
+        "semanticCorrect": 3,
+        "semanticEvaluated": 3,
+        "semanticAccuracy": 1,
+        "providerLatencyMs": 29568,
+        "usage": {
+          "inputTokens": 57556,
+          "cachedInputTokens": 15104,
+          "outputTokens": 454,
+          "reasoningOutputTokens": 330,
+          "totalTokens": 58010
+        },
+        "freshnessPassed": 2,
+        "transitionGuardsPassed": 2,
+        "steps": [
+          {
+            "sampleIndex": 1,
+            "label": "initial_red",
+            "expectedCircleColor": "red",
+            "sourceRasterSha256": "9d9d48110a14aa73620d1a0181ec8d8dbc987dff21f51d3a57c49e6d105d8875",
+            "sourceRenderSha256": "7436b0581b1420ff82331b53db1f7238a610703e0f9ea53af7d98f2501b04a6d",
+            "sourceByteLength": 55699,
+            "disposition": "keyframe",
+            "delivered": true,
+            "deliveredByteLength": 55699,
+            "providerLatencyMs": 13555,
+            "semanticCorrect": true,
+            "response": {
+              "circleColor": "red",
+              "targetVisible": true,
+              "confidence": 0.99,
+              "summary": "A solid red circle and a blue dashed target area are visible.",
+              "model": "gpt-5.6-sol"
+            },
+            "usage": {
+              "inputTokens": 18546,
+              "cachedInputTokens": 15104,
+              "outputTokens": 249,
+              "reasoningOutputTokens": 204,
+              "totalTokens": 18795
+            }
+          },
+          {
+            "sampleIndex": 2,
+            "label": "static_red",
+            "expectedCircleColor": "red",
+            "sourceRasterSha256": "9d9d48110a14aa73620d1a0181ec8d8dbc987dff21f51d3a57c49e6d105d8875",
+            "sourceRenderSha256": "7436b0581b1420ff82331b53db1f7238a610703e0f9ea53af7d98f2501b04a6d",
+            "sourceByteLength": 55699,
+            "disposition": "skip",
+            "delivered": false,
+            "deliveredByteLength": 0,
+            "providerLatencyMs": 0
+          },
+          {
+            "sampleIndex": 3,
+            "label": "transient_on",
+            "expectedCircleColor": "amber",
+            "sourceRasterSha256": "fa2a514f99266808ccdc021d8eb16f2d20285180bf1babb3544af8ed7c09d973",
+            "sourceRenderSha256": "e797cdf8fc3ece4e0c59cabfa410df0315af592196e30e88cc45e7fb300272b2",
+            "sourceByteLength": 55730,
+            "disposition": "roi",
+            "delivered": true,
+            "deliveredByteLength": 3890,
+            "providerLatencyMs": 7344,
+            "semanticCorrect": true,
+            "response": {
+              "circleColor": "amber",
+              "targetVisible": true,
+              "confidence": 0.99,
+              "summary": "A solid amber circle is clearly visible.",
+              "model": "gpt-5.6-sol"
+            },
+            "usage": {
+              "inputTokens": 19505,
+              "cachedInputTokens": 0,
+              "outputTokens": 95,
+              "reasoningOutputTokens": 55,
+              "totalTokens": 19600
+            }
+          },
+          {
+            "sampleIndex": 4,
+            "label": "transient_restore",
+            "expectedCircleColor": "red",
+            "sourceRasterSha256": "9d9d48110a14aa73620d1a0181ec8d8dbc987dff21f51d3a57c49e6d105d8875",
+            "sourceRenderSha256": "7436b0581b1420ff82331b53db1f7238a610703e0f9ea53af7d98f2501b04a6d",
+            "sourceByteLength": 55699,
+            "disposition": "roi",
+            "delivered": true,
+            "deliveredByteLength": 3901,
+            "providerLatencyMs": 8669,
+            "semanticCorrect": true,
+            "response": {
+              "circleColor": "red",
+              "targetVisible": true,
+              "confidence": 0.99,
+              "summary": "Visible solid circle fill is red.",
+              "model": "gpt-5.6-sol"
+            },
+            "usage": {
+              "inputTokens": 19505,
+              "cachedInputTokens": 0,
+              "outputTokens": 110,
+              "reasoningOutputTokens": 71,
+              "totalTokens": 19615
+            }
+          },
+          {
+            "sampleIndex": 5,
+            "label": "settled_red",
+            "expectedCircleColor": "red",
+            "sourceRasterSha256": "9d9d48110a14aa73620d1a0181ec8d8dbc987dff21f51d3a57c49e6d105d8875",
+            "sourceRenderSha256": "7436b0581b1420ff82331b53db1f7238a610703e0f9ea53af7d98f2501b04a6d",
+            "sourceByteLength": 55699,
+            "disposition": "skip",
+            "delivered": false,
+            "deliveredByteLength": 0,
+            "providerLatencyMs": 0
+          }
+        ]
+      }
+    ],
+    "totalProviderCalls": 8,
+    "totalUsage": {
+      "inputTokens": 160565,
+      "cachedInputTokens": 15104,
+      "outputTokens": 1758,
+      "reasoningOutputTokens": 1407,
+      "totalTokens": 162323
+    },
+    "boundary": "Opt-in controlled synthetic observation A/B. Provider responses cannot authorize actions; PNG and Token results do not prove arbitrary video, game, or desktop generalization."
+  }
+}

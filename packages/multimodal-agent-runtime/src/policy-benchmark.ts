@@ -11,7 +11,7 @@ import type {
 import { ObservationGovernor } from './governor.js'
 import { PassiveObservationScheduler, type PassiveSceneEvent } from './passive.js'
 
-export type ObservationPolicyKind = 'always_full' | 'static_crop' | 'governor_roi' | 'passive_timeline'
+export type ObservationPolicyKind = 'always_full' | 'static_crop' | 'governor_roi' | 'passive_timeline' | 'hybrid_transient'
 
 export interface ObservationPolicyBenchmarkOptions {
   lab: MultimodalCanvasLab
@@ -25,6 +25,9 @@ export interface ObservationPolicyBenchmarkOptions {
   roiPaddingPx?: number
   coalesceWindowMs?: number
   maxCoalescedRoiFraction?: number
+  transientReturnDifferenceThreshold?: number
+  transientPulseDifferenceThreshold?: number
+  transientReversalRatio?: number
   actionSpacingMs?: number
   settleMs?: number
   now?: () => number
@@ -428,7 +431,7 @@ export class ObservationPolicyBenchmarkRunner {
     this.#actionSpacingMs = Math.max(1, Math.floor(options.actionSpacingMs ?? 40))
     this.#settleMs = Math.max(this.#actionSpacingMs, Math.floor(options.settleMs ?? 300))
     this.#advanceTime = options.advanceTime ?? (() => undefined)
-    if (options.policy === 'governor_roi' || options.policy === 'passive_timeline') {
+    if (options.policy === 'governor_roi' || options.policy === 'passive_timeline' || options.policy === 'hybrid_transient') {
       const governor = new ObservationGovernor({
         lab: options.lab,
         differenceThreshold: options.differenceThreshold ?? 0.0001,
@@ -445,6 +448,10 @@ export class ObservationPolicyBenchmarkRunner {
           timelineId: options.timelineId,
           coalesceWindowMs: options.coalesceWindowMs ?? 200,
           maxCoalescedRoiFraction: options.maxCoalescedRoiFraction ?? 0.55,
+          boundaryMode: options.policy === 'hybrid_transient' ? 'transient_preserving' : 'coalesce_only',
+          transientReturnDifferenceThreshold: options.transientReturnDifferenceThreshold,
+          transientPulseDifferenceThreshold: options.transientPulseDifferenceThreshold,
+          transientReversalRatio: options.transientReversalRatio,
           now: options.now,
         })
       }
@@ -454,7 +461,7 @@ export class ObservationPolicyBenchmarkRunner {
   async run(options: { runId?: string; seed?: number; seedClass?: 'fixed' | 'held_out' } = {}): Promise<ObservationPolicyBenchmarkResult> {
     const seed = Math.floor(options.seed ?? 11) >>> 0
     const seedClass = options.seedClass ?? 'fixed'
-    const runId = options.runId?.trim() || `phase11-${this.#policy}-${seedClass}-${seed}`
+    const runId = options.runId?.trim() || `phase12-${this.#policy}-${seedClass}-${seed}`
     const plan = createPlan(seed)
     this.#samples = 0
     this.#deliveryTrace.length = 0
@@ -584,7 +591,7 @@ export class ObservationPolicyBenchmarkRunner {
 
   async #sample(audits: AuditSample[]): Promise<PolicySample> {
     let sample: PolicySample
-    if (this.#policy === 'passive_timeline') {
+    if (this.#policy === 'passive_timeline' || this.#policy === 'hybrid_transient') {
       const result = await this.#passive!.sample()
       sample = {
         observation: result.sample.observation,

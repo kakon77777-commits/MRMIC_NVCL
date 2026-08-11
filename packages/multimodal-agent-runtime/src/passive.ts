@@ -5,6 +5,7 @@ import type {
   LabRasterObservation,
   MultimodalCanvasLab,
   RasterCrop,
+  RasterPerceptualSignature,
 } from '../../multimodal-lab/src/index.js'
 import { ObservationGovernor, type GovernedObservation, type ObservationDisposition } from './governor.js'
 
@@ -17,6 +18,10 @@ export interface PassiveObservationSchedulerOptions {
   coalesceWindowMs?: number
   maxCoalescedSamples?: number
   maxCoalescedRoiFraction?: number
+  boundaryMode?: 'coalesce_only' | 'transient_preserving'
+  transientReturnDifferenceThreshold?: number
+  transientPulseDifferenceThreshold?: number
+  transientReversalRatio?: number
   now?: () => number
   sleep?: (milliseconds: number) => Promise<void>
 }
@@ -46,6 +51,7 @@ export interface PassiveSceneEvent {
   differenceScoreMax: number
   changedFractionMax: number
   resynchronization: boolean
+  boundaryReason?: 'return_to_recent_visual_state'
   sourceFrameId: string
   sourceRasterSha256: string
   raster: LabRasterObservation
@@ -63,6 +69,7 @@ export interface PassiveObservationStats {
   skippedFrames: number
   emittedEvents: number
   coalescedSamples: number
+  transientInterruptions: number
   deliveredBytes: number
   pendingSamples: number
   elapsedMs: number
@@ -111,6 +118,21 @@ function ratio(value: number, fallback: number, label: string): number {
   return selected
 }
 
+function signatureDifference(
+  left: RasterPerceptualSignature,
+  right: RasterPerceptualSignature,
+): number | undefined {
+  if (left.width !== right.width || left.height !== right.height || left.samples.length !== right.samples.length) {
+    return undefined
+  }
+  if (!left.samples.length) return 0
+  let total = 0
+  for (let index = 0; index < left.samples.length; index += 1) {
+    total += Math.abs((left.samples[index] ?? 0) - (right.samples[index] ?? 0)) / 255
+  }
+  return total / left.samples.length
+}
+
 function unionCrops(crops: RasterCrop[], width: number, height: number): RasterCrop {
   const x = Math.max(0, Math.min(...crops.map(crop => crop.x)))
   const y = Math.max(0, Math.min(...crops.map(crop => crop.y)))
@@ -126,6 +148,10 @@ export class PassiveObservationScheduler {
   readonly #coalesceWindowMs: number
   readonly #maxCoalescedSamples: number
   readonly #maxCoalescedRoiFraction: number
+  readonly #boundaryMode: 'coalesce_only' | 'transient_preserving'
+  readonly #transientReturnDifferenceThreshold: number
+  readonly #transientPulseDifferenceThreshold: number
+  readonly #transientReversalRatio: number
   readonly #now: () => number
   readonly #sleep: (milliseconds: number) => Promise<void>
   readonly #events: PassiveSceneEvent[] = []
@@ -139,7 +165,10 @@ export class PassiveObservationScheduler {
   #roiFrames = 0
   #skippedFrames = 0
   #coalescedSamples = 0
+  #transientInterruptions = 0
   #deliveredBytes = 0
+  #previousSignature?: RasterPerceptualSignature
+  #penultimateSignature?: RasterPerceptualSignature
 
   constructor(options: PassiveObservationSchedulerOptions) {
     this.#lab = options.lab
@@ -148,6 +177,22 @@ export class PassiveObservationScheduler {
     this.#coalesceWindowMs = nonNegative(options.coalesceWindowMs ?? 250, 250, 'coalesceWindowMs')
     this.#maxCoalescedSamples = positiveInteger(options.maxCoalescedSamples ?? 8, 8, 'maxCoalescedSamples')
     this.#maxCoalescedRoiFraction = ratio(options.maxCoalescedRoiFraction ?? 0.55, 0.55, 'maxCoalescedRoiFraction')
+    this.#boundaryMode = options.boundaryMode ?? 'coalesce_only'
+    this.#transientReturnDifferenceThreshold = ratio(
+      options.transientReturnDifferenceThreshold ?? 0.0005,
+      0.0005,
+      'transientReturnDifferenceThreshold',
+    )
+    this.#transientPulseDifferenceThreshold = ratio(
+      options.transientPulseDifferenceThreshold ?? 0.00005,
+      0.00005,
+      'transientPulseDifferenceThreshold',
+    )
+    this.#transientReversalRatio = ratio(
+      options.transientReversalRatio ?? 0.2,
+      0.2,
+      'transientReversalRatio',
+    )
     this.#now = options.now ?? Date.now
     this.#sleep = options.sleep ?? (milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)))
     this.#startedAtMs = this.#now()
@@ -173,6 +218,7 @@ export class PassiveObservationScheduler {
       skippedFrames: this.#skippedFrames,
       emittedEvents: this.#events.length,
       coalescedSamples: this.#coalescedSamples,
+      transientInterruptions: this.#transientInterruptions,
       deliveredBytes: this.#deliveredBytes,
       pendingSamples: this.#pending.length,
       elapsedMs: Math.max(0, this.#now() - this.#startedAtMs),
@@ -192,7 +238,10 @@ export class PassiveObservationScheduler {
     this.#roiFrames = 0
     this.#skippedFrames = 0
     this.#coalescedSamples = 0
+    this.#transientInterruptions = 0
     this.#deliveredBytes = 0
+    this.#previousSignature = undefined
+    this.#penultimateSignature = undefined
   }
 
   async sample(): Promise<PassiveObservationResult> {
@@ -222,6 +271,14 @@ export class PassiveObservationScheduler {
     }
     const emitted: PassiveSceneEvent[] = []
 
+    const signature = this.#boundaryMode === 'transient_preserving'
+      ? structuredClone((await this.#lab.rasterize(observation.frameId)).perceptualSignature)
+      : undefined
+    if (signature && this.#isTransientReversal(signature) && this.#pending.length) {
+      emitted.push(await this.#flushPending('return_to_recent_visual_state'))
+      this.#transientInterruptions += 1
+    }
+
     if (decision.disposition === 'keyframe') {
       this.#pending.push({ sampledAtMs, sample, decision })
       emitted.push(await this.#flushPending())
@@ -235,6 +292,11 @@ export class PassiveObservationScheduler {
       }
       this.#pending.push({ sampledAtMs, sample, decision })
       if (this.#pending.length >= this.#maxCoalescedSamples) emitted.push(await this.#flushPending())
+    }
+
+    if (signature) {
+      this.#penultimateSignature = this.#previousSignature
+      this.#previousSignature = signature
     }
 
     return { sample: structuredClone(sample), emitted: structuredClone(emitted), stats: this.stats }
@@ -269,7 +331,7 @@ export class PassiveObservationScheduler {
     return { status, events: structuredClone(emitted), stats: this.stats }
   }
 
-  async #flushPending(): Promise<PassiveSceneEvent> {
+  async #flushPending(boundaryReason?: 'return_to_recent_visual_state'): Promise<PassiveSceneEvent> {
     const pending = this.#pending.splice(0)
     const first = pending[0]
     const latest = pending.at(-1)
@@ -281,7 +343,10 @@ export class PassiveObservationScheduler {
       : dispositions.has('full_frame') || !delivery.observation.crop
         ? 'full_frame'
         : 'roi'
-    const reasons = [...new Set(pending.map(item => item.decision.reason))]
+    const reasons = [...new Set([
+      ...pending.map(item => item.decision.reason),
+      ...(boundaryReason ? [boundaryReason] : []),
+    ])]
     const event: PassiveSceneEvent = {
       timelineId: this.#timelineId,
       eventIndex: this.#events.length + 1,
@@ -293,11 +358,12 @@ export class PassiveObservationScheduler {
       observedAtStart: first.sample.observation.observedAt,
       observedAtEnd: latest.sample.observation.observedAt,
       disposition,
-      reason: pending.length > 1 ? 'coalesced_visual_burst' : latest.decision.reason,
+      reason: boundaryReason ?? (pending.length > 1 ? 'coalesced_visual_burst' : latest.decision.reason),
       reasons,
       differenceScoreMax: Math.max(...pending.map(item => item.decision.differenceScore)),
       changedFractionMax: Math.max(...pending.map(item => item.decision.changedFraction)),
       resynchronization: dispositions.has('keyframe'),
+      ...(boundaryReason ? { boundaryReason } : {}),
       sourceFrameId: latest.sample.observation.frameId,
       sourceRasterSha256: latest.decision.sourceRasterSha256,
       raster: structuredClone(delivery.observation),
@@ -307,6 +373,16 @@ export class PassiveObservationScheduler {
     this.#coalescedSamples += Math.max(0, pending.length - 1)
     this.#deliveredBytes += delivery.observation.byteLength
     return event
+  }
+
+  #isTransientReversal(current: RasterPerceptualSignature): boolean {
+    if (!this.#previousSignature || !this.#penultimateSignature) return false
+    const returned = signatureDifference(current, this.#penultimateSignature)
+    const pulse = signatureDifference(this.#previousSignature, this.#penultimateSignature)
+    if (returned === undefined || pulse === undefined) return false
+    return pulse >= this.#transientPulseDifferenceThreshold
+      && returned <= this.#transientReturnDifferenceThreshold
+      && returned <= pulse * this.#transientReversalRatio
   }
 
   async #deliveryRaster(pending: PendingSample[]): Promise<LabRasterFrame> {

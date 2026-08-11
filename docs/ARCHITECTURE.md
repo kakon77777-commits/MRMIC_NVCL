@@ -291,3 +291,23 @@ seeded coordinate action plan
 Every world executes the same guarded action plan. The audit raster is always full-frame and is not controlled by the policy under test. This separates source identity from delivery selection and makes spatial omissions or burst coalescing visible.
 
 `lab.rank_observation_policies` evaluates only summaries supplied by the caller. It has no reference to `MultimodalCanvasLab`, creates no frame, changes no revision, invokes no Provider and cannot authorize an action.
+
+## Phase 12: Transient Hybrid and Real Provider A/B
+
+Phase 12 adds two observation-only layers without widening action authority:
+
+```text
+Passive sample signatures A → B → A
+  → local reversal boundary
+  → flush B before coalescing the returned A
+
+identical five-frame audit trace
+  ├─ always_full → Codex visual classifier
+  └─ governor_roi → skip / keyframe / ROI → same classifier
+       ↓
+semantic accuracy + per-call Token + latency evidence
+```
+
+Hybrid signature state is local to one scheduler. Real A/B uses isolated Lab instances, immutable full-PNG source hashes and a trusted evaluator whose expected labels never cross the Provider boundary. Provider responses are observational only and cannot become `LabAction` or SCL authorization.
+
+Normal tests use a deterministic Provider-shaped fixture. Account-backed inference is available only through the dual-opt-in Phase 12 CLI and atomically checkpoints every sample.

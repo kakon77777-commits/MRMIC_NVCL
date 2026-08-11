@@ -182,6 +182,76 @@ test('passive reset isolates timeline statistics, scene epochs, and governor his
   }
 })
 
+test('transient-preserving boundary emits the middle state before an A-B-A visual return', async () => {
+  let clock = 5_000
+  const now = () => clock
+  const app = createLab(now)
+  try {
+    const blank = await app.lab.observe('pixel')
+    await app.lab.resetBenchmark('phase12-transient-reset', blank.frameId, 'pixel')
+    const scheduler = new PassiveObservationScheduler({
+      lab: app.lab,
+      governor: createGovernor(app),
+      timelineId: 'transient-preserving-a-b-a',
+      coalesceWindowMs: 500,
+      maxCoalescedSamples: 8,
+      maxCoalescedRoiFraction: 0.9,
+      boundaryMode: 'transient_preserving',
+      now,
+    })
+
+    const initial = await scheduler.sample()
+    clock += 20
+    const baseline = await scheduler.sample()
+
+    clock += 20
+    await app.lab.execute({
+      actionId: 'phase12-transient-on',
+      frameId: baseline.sample.observation.frameId,
+      canvasId: baseline.sample.observation.canvasId,
+      expectedCanvasRevision: baseline.sample.observation.canvasRevision,
+      type: 'gesture',
+      coordinateSpace: 'frame_pixel',
+      gesture: {
+        kind: 'restyle',
+        at: { x: 145, y: 285 },
+        style: { fill: '#f59e0b', stroke: '#92400e', strokeWidth: 7 },
+      },
+    }, 'pixel')
+    const transient = await scheduler.sample()
+    assert.equal(transient.emitted.length, 0)
+
+    clock += 20
+    await app.lab.execute({
+      actionId: 'phase12-transient-restore',
+      frameId: transient.sample.observation.frameId,
+      canvasId: transient.sample.observation.canvasId,
+      expectedCanvasRevision: transient.sample.observation.canvasRevision,
+      type: 'gesture',
+      coordinateSpace: 'frame_pixel',
+      gesture: {
+        kind: 'restyle',
+        at: { x: 145, y: 285 },
+        style: { fill: '#ef4444', stroke: '#991b1b', strokeWidth: 4 },
+      },
+    }, 'pixel')
+    const restored = await scheduler.sample()
+    assert.equal(restored.emitted.length, 1)
+    assert.equal(restored.emitted[0].boundaryReason, 'return_to_recent_visual_state')
+    assert.equal(restored.emitted[0].reason, 'return_to_recent_visual_state')
+    assert.equal(restored.emitted[0].sourceFrameId, transient.sample.observation.frameId)
+    assert.equal(restored.emitted[0].raster.sourceRenderSha256, transient.sample.observation.renderSha256)
+    assert.equal(scheduler.stats.transientInterruptions, 1)
+
+    const tail = await scheduler.flush()
+    assert.equal(tail.length, 1)
+    assert.equal(tail[0].sourceFrameId, restored.sample.observation.frameId)
+    assert.equal(JSON.stringify([...restored.emitted, ...tail]).includes('objectId'), false)
+  } finally {
+    closeLab(app)
+  }
+})
+
 test('generated fixed and held-out passive timelines preserve guarded multi-action evidence', async () => {
   let clock = 10_000
   const now = () => clock

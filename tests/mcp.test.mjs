@@ -39,7 +39,7 @@ test('MCP initialize, tool listing, resource listing, and resource reads work ov
     const tools=await client.rpc('tools/list'); assert.equal(tools.result.tools.length,26); assert.ok(tools.result.tools.some(t=>t.name==='canvas.patch_objects')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe_adaptive')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe_passive')); assert.ok(tools.result.tools.some(t=>t.name==='lab.rank_observation_policies')); assert.ok(tools.result.tools.some(t=>t.name==='lab.act')); assert.ok(tools.result.tools.some(t=>t.name==='lab.rasterize'))
     const resources=await client.rpc('resources/list'); assert.equal(resources.result.resources.length,5)
     const uri=`canvas://workspace/${encodeURIComponent(app.workspace.id)}`
-    const read=await client.rpc('resources/read',{uri}); assert.equal(read.result.contents[0].mimeType,'application/json'); assert.match(read.result.contents[0].text,/MRMIC NVCL Phase 11/)
+    const read=await client.rpc('resources/read',{uri}); assert.equal(read.result.contents[0].mimeType,'application/json'); assert.match(read.result.contents[0].text,/MRMIC NVCL Phase 12/)
   }finally{await app.close()}
 })
 
@@ -102,6 +102,30 @@ test('passive MCP timelines remain pixel-only and isolated by session and reset'
   }finally{await app.close()}
 })
 
+test('passive MCP timeline can opt into transient-preserving A-B-A boundaries', async()=>{
+  const app=createPhase3Server({port:0,databasePath:':memory:',syncDatabasePath:':memory:'}); const started=await app.start()
+  try{
+    const blank=await app.lab.observe('pixel'); await app.lab.resetBenchmark('phase12-mcp-hybrid-reset',blank.frameId,'pixel')
+    const client=await createMcpClient(started.url,'viewer','hybrid-viewer')
+    await client.rpc('tools/call',{name:'lab.observe_passive',arguments:{timelineId:'hybrid',boundaryMode:'transient_preserving',differenceThreshold:0.0001,blockDifferenceThreshold:0.02,keyframeInterval:50,coalesceWindowMs:500}})
+    const baseline=await client.rpc('tools/call',{name:'lab.observe_passive',arguments:{timelineId:'hybrid'}})
+    const baselineObservation=baseline.result.structuredContent.data.sample.observation
+    const transientAction=await app.lab.execute({actionId:'phase12-mcp-transient-on',frameId:baselineObservation.frameId,canvasId:baselineObservation.canvasId,expectedCanvasRevision:baselineObservation.canvasRevision,type:'gesture',coordinateSpace:'frame_pixel',gesture:{kind:'restyle',at:{x:145,y:285},style:{fill:'#f59e0b',stroke:'#92400e',strokeWidth:7}}},'pixel')
+    const transient=await client.rpc('tools/call',{name:'lab.observe_passive',arguments:{timelineId:'hybrid'}})
+    assert.equal(transient.result.structuredContent.data.emitted.length,0)
+    const transientObservation=transient.result.structuredContent.data.sample.observation
+    assert.equal(transientObservation.renderSha256,transientAction.observation.renderSha256)
+    await app.lab.execute({actionId:'phase12-mcp-transient-restore',frameId:transientObservation.frameId,canvasId:transientObservation.canvasId,expectedCanvasRevision:transientObservation.canvasRevision,type:'gesture',coordinateSpace:'frame_pixel',gesture:{kind:'restyle',at:{x:145,y:285},style:{fill:'#ef4444',stroke:'#991b1b',strokeWidth:4}}},'pixel')
+    const restored=await client.rpc('tools/call',{name:'lab.observe_passive',arguments:{timelineId:'hybrid'}})
+    const data=restored.result.structuredContent.data
+    assert.equal(data.emitted.length,1)
+    assert.equal(data.emitted[0].boundaryReason,'return_to_recent_visual_state')
+    assert.equal(data.emitted[0].raster.sourceRenderSha256,transientObservation.renderSha256)
+    assert.equal(data.stats.transientInterruptions,1)
+    assert.equal(JSON.stringify(data).includes('objectId'),false)
+  }finally{await app.close()}
+})
+
 test('viewer can rank supplied policy evidence without observing or mutating canvas state', async()=>{
   const app=createPhase3Server({port:0,databasePath:':memory:',syncDatabasePath:':memory:'}); const started=await app.start()
   try{
@@ -109,13 +133,17 @@ test('viewer can rank supplied policy evidence without observing or mutating can
     const beforeRevision=app.store.getCanvas(app.rootCanvas.id).revision
     const call=await client.rpc('tools/call',{name:'lab.rank_observation_policies',arguments:{policies:[
       {policy:'always_full',actions:10,transitionGuardsPassed:10,perceptualActions:10,perceptuallyDeliveredActions:10,exactPostStatesRetained:10,transientStateRetained:true,alwaysFullBytes:1000,deliveredBytes:1000},
+      {policy:'static_crop',actions:10,transitionGuardsPassed:10,perceptualActions:10,perceptuallyDeliveredActions:9,exactPostStatesRetained:6,transientStateRetained:true,alwaysFullBytes:1000,deliveredBytes:250},
+      {policy:'governor_roi',actions:10,transitionGuardsPassed:10,perceptualActions:10,perceptuallyDeliveredActions:10,exactPostStatesRetained:10,transientStateRetained:true,alwaysFullBytes:1000,deliveredBytes:400},
       {policy:'passive_timeline',actions:10,transitionGuardsPassed:10,perceptualActions:10,perceptuallyDeliveredActions:10,exactPostStatesRetained:7,transientStateRetained:false,alwaysFullBytes:1000,deliveredBytes:200},
+      {policy:'hybrid_transient',actions:10,transitionGuardsPassed:10,perceptualActions:10,perceptuallyDeliveredActions:10,exactPostStatesRetained:7,transientStateRetained:true,alwaysFullBytes:1000,deliveredBytes:180},
     ]}})
     const ranking=call.result.structuredContent.data.ranking
     assert.equal(call.result.isError,false)
     assert.equal(ranking.protocolVersion,'mrmic-observation-policy-ranking-v1')
-    assert.equal(ranking.recommendedPolicy,'passive_timeline')
-    assert.equal(ranking.cards.length,2)
+    assert.equal(ranking.recommendedPolicy,'governor_roi')
+    assert.equal(ranking.cards.length,5)
+    assert.equal(ranking.cards.some(card=>card.policy==='hybrid_transient'),true)
     assert.equal(ranking.cards[0].score>ranking.cards[1].score,true)
     assert.match(ranking.boundary,/does not authorize actions/)
     assert.equal(app.store.getCanvas(app.rootCanvas.id).revision,beforeRevision)
