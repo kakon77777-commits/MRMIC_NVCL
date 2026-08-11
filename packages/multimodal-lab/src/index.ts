@@ -265,7 +265,7 @@ export interface MultimodalCanvasLabOptions {
 const defaultActor: ActorRef = {
   actorType: 'user',
   actorId: 'multimodal-lab-user',
-  instanceId: 'phase9-browser',
+  instanceId: 'phase10-browser',
 }
 
 function finite(value: number, label: string): number {
@@ -623,25 +623,25 @@ export class MultimodalCanvasLab {
         revision: 0,
       }
       operations = [{ op: 'create_object', object }]
-      intent = `Phase 9 ${actor.actorType} creates ${object.type} ${object.id}`
+      intent = `Phase 10 ${actor.actorType} creates ${object.type} ${object.id}`
     } else {
       const object = this.#store.getObject(action.objectId)
       preconditions.push({ type: 'object_revision', targetId: object.id, expected: object.revision })
       if (action.type === 'move') {
         operations = [{ op: 'patch_object', objectId: object.id, expectedRevision: object.revision, patch: { transform: { x: finite(action.x, 'x'), y: finite(action.y, 'y') } } }]
-        intent = `Phase 9 moves ${object.id}`
+        intent = `Phase 10 moves ${object.id}`
       } else if (action.type === 'resize') {
         operations = [{ op: 'patch_object', objectId: object.id, expectedRevision: object.revision, patch: { transform: { width: Math.max(1, finite(action.width, 'width')), height: Math.max(1, finite(action.height, 'height')) } } }]
-        intent = `Phase 9 resizes ${object.id}`
+        intent = `Phase 10 resizes ${object.id}`
       } else if (action.type === 'delete') {
         operations = [{ op: 'delete_object', objectId: object.id, expectedRevision: object.revision }]
-        intent = `Phase 9 deletes ${object.id}`
+        intent = `Phase 10 deletes ${object.id}`
       } else if (action.type === 'restyle') {
         operations = [{ op: 'patch_object', objectId: object.id, expectedRevision: object.revision, patch: { style: structuredClone(action.style) } }]
-        intent = `Phase 9 restyles ${object.id}`
+        intent = `Phase 10 restyles ${object.id}`
       } else {
         operations = [{ op: 'patch_object', objectId: object.id, expectedRevision: object.revision, patch: { content: { text: action.text } } }]
-        intent = `Phase 9 edits text in ${object.id}`
+        intent = `Phase 10 edits text in ${object.id}`
       }
     }
 
@@ -655,13 +655,13 @@ export class MultimodalCanvasLab {
       operations,
       mode: 'direct',
       createdAt: now,
-      idempotencyKey: `phase9-action:${action.actionId}`,
+      idempotencyKey: `phase10-action:${action.actionId}`,
     }
   }
 
   #benchmarkTransaction(actionId: string): CanvasTransaction {
     const now = new Date(this.#now()).toISOString()
-    const actor: ActorRef = { actorType: 'system', actorId: 'phase9-benchmark', instanceId: 'drag-red-circle' }
+    const actor: ActorRef = { actorType: 'system', actorId: 'phase10-benchmark', instanceId: 'drag-red-circle' }
     const make = (
       id: string,
       type: CanvasObjectType,
@@ -695,13 +695,13 @@ export class MultimodalCanvasLab {
       id: `benchmark:${actionId}`,
       canvasId: this.#canvasId,
       actor,
-      intent: 'Reset the Phase 9 drag-red-circle benchmark',
+      intent: 'Reset the Phase 10 drag-red-circle benchmark',
       expectedOutcome: 'A deterministic, reversible visual interaction task',
       preconditions: [{ type: 'canvas_revision', targetId: this.#canvasId, expected: this.#store.getCanvas(this.#canvasId).revision }],
       operations: objects.map(object => ({ op: 'create_object' as const, object })),
       mode: 'direct',
       createdAt: now,
-      idempotencyKey: `phase9-benchmark:${actionId}`,
+      idempotencyKey: `phase10-benchmark:${actionId}`,
     }
   }
 
@@ -841,7 +841,12 @@ export class MultimodalCanvasLab {
       const tolerance = Math.max(12 / frame.observation.viewport.zoom, Math.min(target.transform.width, target.transform.height) * 0.3)
       const nearHandle = from.x >= target.transform.x + target.transform.width - tolerance
         && from.y >= target.transform.y + target.transform.height - tolerance
-      if (!nearHandle) throw new MultimodalLabError('NO_GESTURE_TARGET', 'Resize must begin on the target bottom-right handle region')
+      if (!nearHandle) {
+        throw new MultimodalLabError(
+          'NO_GESTURE_TARGET',
+          `Resize must begin on the target bottom-right handle region; visible target type=${target.type}`,
+        )
+      }
       targetIds = [target.id]
       semantic = {
         ...base,

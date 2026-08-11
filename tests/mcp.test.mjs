@@ -36,10 +36,10 @@ test('MCP initialize, tool listing, resource listing, and resource reads work ov
   const app=createPhase3Server({port:0,databasePath:':memory:',syncDatabasePath:':memory:'}); const started=await app.start()
   try{
     const client=await createMcpClient(started.url)
-    const tools=await client.rpc('tools/list'); assert.equal(tools.result.tools.length,24); assert.ok(tools.result.tools.some(t=>t.name==='canvas.patch_objects')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe_adaptive')); assert.ok(tools.result.tools.some(t=>t.name==='lab.act')); assert.ok(tools.result.tools.some(t=>t.name==='lab.rasterize'))
+    const tools=await client.rpc('tools/list'); assert.equal(tools.result.tools.length,25); assert.ok(tools.result.tools.some(t=>t.name==='canvas.patch_objects')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe_adaptive')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe_passive')); assert.ok(tools.result.tools.some(t=>t.name==='lab.act')); assert.ok(tools.result.tools.some(t=>t.name==='lab.rasterize'))
     const resources=await client.rpc('resources/list'); assert.equal(resources.result.resources.length,5)
     const uri=`canvas://workspace/${encodeURIComponent(app.workspace.id)}`
-    const read=await client.rpc('resources/read',{uri}); assert.equal(read.result.contents[0].mimeType,'application/json'); assert.match(read.result.contents[0].text,/MRMIC NVCL Phase 9/)
+    const read=await client.rpc('resources/read',{uri}); assert.equal(read.result.contents[0].mimeType,'application/json'); assert.match(read.result.contents[0].text,/MRMIC NVCL Phase 10/)
   }finally{await app.close()}
 })
 
@@ -61,6 +61,44 @@ test('adaptive MCP observations keep governor state isolated inside one session'
     const reset=await client.rpc('tools/call',{name:'lab.observe_adaptive',arguments:{governorId:'watch',reset:true}})
     assert.equal(reset.result.structuredContent.data.governance.disposition,'keyframe')
     assert.equal(JSON.stringify(reset.result.structuredContent.data).includes('objectId'),false)
+  }finally{await app.close()}
+})
+
+test('passive MCP timelines remain pixel-only and isolated by session and reset', async()=>{
+  const app=createPhase3Server({port:0,databasePath:':memory:',syncDatabasePath:':memory:'}); const started=await app.start()
+  try{
+    const client=await createMcpClient(started.url,'viewer','passive-viewer')
+    const first=await client.rpc('tools/call',{name:'lab.observe_passive',arguments:{timelineId:'watch',keyframeInterval:8}})
+    const firstData=first.result.structuredContent.data
+    assert.equal(first.result.isError,false)
+    assert.equal(firstData.sample.governance.disposition,'keyframe')
+    assert.equal(firstData.sample.observation.objects,undefined)
+    assert.equal(firstData.emitted.length,1)
+    assert.equal(firstData.emitted[0].disposition,'keyframe')
+    assert.equal(first.result.structuredContent.resourceLinks.length,1)
+
+    const second=await client.rpc('tools/call',{name:'lab.observe_passive',arguments:{timelineId:'watch'}})
+    const secondData=second.result.structuredContent.data
+    assert.equal(secondData.sample.governance.disposition,'skip')
+    assert.equal(secondData.emitted.length,0)
+    assert.equal(secondData.stats.samples,2)
+    assert.equal(second.result.structuredContent.resourceLinks.length,0)
+
+    const independentClient=await createMcpClient(started.url,'viewer','passive-independent')
+    const independent=await independentClient.rpc('tools/call',{name:'lab.observe_passive',arguments:{timelineId:'watch'}})
+    assert.equal(independent.result.structuredContent.data.sample.governance.disposition,'keyframe')
+
+    const reset=await client.rpc('tools/call',{name:'lab.observe_passive',arguments:{timelineId:'watch',reset:true}})
+    const resetData=reset.result.structuredContent.data
+    assert.equal(resetData.sample.sampleIndex,1)
+    assert.equal(resetData.sample.sceneEpoch,1)
+    assert.equal(resetData.emitted[0].eventIndex,1)
+    assert.equal(resetData.stats.samples,1)
+    assert.equal(JSON.stringify(resetData).includes('objectId'),false)
+
+    const flushed=await client.rpc('tools/call',{name:'lab.observe_passive',arguments:{timelineId:'watch',flush:true}})
+    assert.deepEqual(flushed.result.structuredContent.data.emitted,[])
+    assert.equal(flushed.result.structuredContent.data.stats.samples,1)
   }finally{await app.close()}
 })
 

@@ -1,0 +1,83 @@
+{
+  "benchmark": "phase10-passive-scene-timeline",
+  "protocolVersion": "mrmic-passive-scene-timeline-v1",
+  "generatedAt": "2026-08-11T11:36:15.4805997+08:00",
+  "environment": "controlled synthetic canvas with injected deterministic clock",
+  "runs": [
+    {
+      "seed": 7,
+      "seedClass": "fixed",
+      "planSha256": "76245605f1fb90733ca35489b92e36157a980bab6dcd6c11e338c5376d8e14ce",
+      "actions": 8,
+      "samples": 11,
+      "events": 4,
+      "sceneEpochs": 8,
+      "savedPercent": 69.16624123196566,
+      "passed": true
+    },
+    {
+      "seed": 42,
+      "seedClass": "fixed",
+      "planSha256": "04f46bef461f60155e85d2da75a4baabd60d123d3c2daf3d7f019f37a27b99ce",
+      "actions": 8,
+      "samples": 11,
+      "events": 4,
+      "sceneEpochs": 8,
+      "savedPercent": 68.21669149121747,
+      "passed": true
+    },
+    {
+      "seed": 2026,
+      "seedClass": "fixed",
+      "planSha256": "d8a024dccbc8c8ec78e2a34feeb6b4bff19d621a2f8418d085ec2a0834a10fe9",
+      "actions": 8,
+      "samples": 11,
+      "events": 4,
+      "sceneEpochs": 9,
+      "savedPercent": 67.37734227264913,
+      "passed": true
+    },
+    {
+      "seed": 9001,
+      "seedClass": "held_out",
+      "planSha256": "76ab8625145040356d5709a86e54f9cb706710e627c58b58728e91f8361004ba",
+      "actions": 8,
+      "samples": 11,
+      "events": 4,
+      "sceneEpochs": 9,
+      "savedPercent": 66.8762133678469,
+      "passed": true
+    },
+    {
+      "seed": 65537,
+      "seedClass": "held_out",
+      "planSha256": "e520f55b7d5b6da423fb13ef7756f01c4c463f846edf6fd6e393c31c664dba3f",
+      "actions": 8,
+      "samples": 11,
+      "events": 4,
+      "sceneEpochs": 8,
+      "savedPercent": 68.86876970521854,
+      "passed": true
+    }
+  ],
+  "aggregate": {
+    "passedRuns": 5,
+    "actions": 40,
+    "freshnessPassed": 40,
+    "transitionGuardsPassed": 40,
+    "samples": 55,
+    "sceneEpochs": 42,
+    "emittedEvents": 20,
+    "coalescedSamples": 27,
+    "providerDeliveriesAvoided": 35,
+    "alwaysFullBytes": 2914396,
+    "deliveredBytes": 929788,
+    "savedBytes": 1984608,
+    "savedPercent": 68.09671712423432
+  },
+  "claims": {
+    "objectIdentifierLeakage": false,
+    "realProviderTokenReductionMeasured": false,
+    "arbitraryVideoOrDesktopGeneralization": false
+  }
+}

@@ -25,13 +25,23 @@
 | Measured Token budget before subsequent Provider call | 9 | agent runtime tests | Pass |
 | Session-local adaptive MCP observation | 9 | MCP tests | Pass |
 | Seeded sustained-observation payload benchmark | 9 | `artifacts/phase9-governor-benchmark.json` | Pass |
+| Passive scheduler, flush, abort and reset lifecycle | 10 | `tests/passive-observation.test.mjs` | Pass |
+| Scene epochs separated from periodic resynchronization | 10 | passive observation tests | Pass |
+| Bounded burst coalescing and ROI union fallback | 10 | passive observation tests | Pass |
+| Session-local pixel-only passive MCP timeline | 10 | MCP tests | Pass |
+| Fixed and held-out guarded multi-action timelines | 10 | `artifacts/phase10-passive-timeline-benchmark.json` | Pass |
+| Strict freehand SVG rasterization | 10 | adapter + generated benchmark tests | Pass |
 
 ```text
-Automated tests: 61 / 61 passed
+Automated tests: 67 / 67 passed
 Seeded Phase 9 observations: 27 / 27 classified
 Phase 9 Provider calls avoided: 12
 Phase 9 browser warnings/errors: 0 / 0
+Phase 10 generated runs: 5 / 5 passed
+Phase 10 actions with Freshness and Transition Guard: 40 / 40
+Phase 10 samples / emitted events: 55 / 20
+Phase 10 Provider deliveries avoided: 35
 Inherited real Provider actions: 1 / 1 verified
 ```
 
-Not claimed: real multi-call Token reduction, broad visual-agent generalization, arbitrary video/audio understanding, policy learning, deterministic cross-machine font rasterization, production security, official MCP conformance, MCP `2026-07-28` support, or transfer to uncontrolled games/desktops.
+Not claimed: real multi-call Token reduction, broad visual-agent generalization, arbitrary video/audio understanding, semantic narration, policy learning, deterministic cross-machine font rasterization, production security, official MCP conformance, MCP `2026-07-28` support, or transfer to uncontrolled games/desktops.

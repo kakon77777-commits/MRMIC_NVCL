@@ -1,0 +1,21 @@
+MRMIC/NVCL Phase 10 v0.11.0 automated validation
+Date: 2026-08-11 Asia/Taipei
+
+Command: npm test
+Result: PASS
+Tests: 67
+Passed: 67
+Failed: 0
+Duration: 17866.4575 ms (Node test runner)
+
+Focused Phase 10 coverage:
+- Passive burst coalescing without object identifier leakage
+- Static suppression and periodic keyframe resynchronization
+- Scheduler reset isolation for timeline, epoch and governor history
+- Fixed and held-out guarded multi-action timelines
+- MCP session/timeline isolation, flush and reset
+- Strict freehand SVG attributes for PNG rasterizers
+
+Additional commands already passed:
+- npm run check
+- npm run phase10:demo

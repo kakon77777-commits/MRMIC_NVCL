@@ -22,6 +22,24 @@ export {
   type SustainedObservationBenchmarkResult,
   type SustainedObservationBenchmarkStep,
 } from './benchmark.js'
+export {
+  PassiveObservationScheduler,
+  type PassiveObservationResult,
+  type PassiveObservationRunRequest,
+  type PassiveObservationRunResult,
+  type PassiveObservationSample,
+  type PassiveObservationSchedulerOptions,
+  type PassiveObservationStats,
+  type PassiveSceneEvent,
+  type PassiveSceneEventDisposition,
+} from './passive.js'
+export {
+  PassiveSceneBenchmarkRunner,
+  type PassiveBenchmarkSeedClass,
+  type PassiveSceneBenchmarkResult,
+  type PassiveSceneBenchmarkRunnerOptions,
+  type PassiveSceneBenchmarkStep,
+} from './passive-benchmark.js'
 
 export interface ProviderUsage {
   inputTokens?: number
@@ -336,7 +354,7 @@ export class MultimodalAgentRuntime {
 
   async run(request: MultimodalEpisodeRequest): Promise<MultimodalEpisodeResult> {
     if (!request.goal.trim()) throw new Error('Multimodal episode goal is required')
-    const runId = request.runId?.trim() || `phase9-${randomUUID()}`
+    const runId = request.runId?.trim() || `phase10-${randomUUID()}`
     const maxIterations = Math.max(1, Math.min(50, Math.floor(request.maxIterations ?? 6)))
     const startedAtMs = this.#now()
     const startedAt = new Date(startedAtMs).toISOString()

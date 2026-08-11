@@ -17,10 +17,11 @@ import type { StateVectorSyncRoom } from '../../state-vector-sync/src/index.js'
 import { verifyCount, verifyInsideBounds, verifyMaxOverlap, type VerificationIssue } from '../../verifier/src/index.js'
 import type { LabAction, MultimodalCanvasLab, ObservationMode } from '../../multimodal-lab/src/index.js'
 import { ObservationGovernor } from '../../multimodal-agent-runtime/src/governor.js'
+import { PassiveObservationScheduler } from '../../multimodal-agent-runtime/src/passive.js'
 
 export const MCP_PROTOCOL_VERSION = '2025-11-25'
 export const MCP_SERVER_NAME = 'mrmic-nvcl-canvas'
-export const MCP_SERVER_VERSION = '0.10.0'
+export const MCP_SERVER_VERSION = '0.11.0'
 
 type JsonRpcId = string | number | null
 interface JsonRpcRequest { jsonrpc: '2.0'; id?: JsonRpcId; method: string; params?: Record<string, unknown> }
@@ -35,6 +36,7 @@ interface McpSession {
   subscriptions: Set<string>
   streams: Set<any>
   governors: Map<string, ObservationGovernor>
+  passiveSchedulers: Map<string, PassiveObservationScheduler>
   createdAt: string
 }
 
@@ -202,6 +204,22 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         differenceThreshold: { type: 'number' }, blockDifferenceThreshold: { type: 'number' },
         keyframeInterval: { type: 'integer' }, maxRoiFraction: { type: 'number' },
         roiPaddingPx: { type: 'integer' }, minimumRoiSize: { type: 'integer' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'lab.observe_passive', title: 'Sample a passive scene timeline', readOnly: true,
+    description: 'Sample or flush a session-local pixel-only scene timeline with burst coalescing, scene epochs and periodic keyframes. The result contains raster metadata and resource links, never object identifiers.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        timelineId: { type: 'string' }, reset: { type: 'boolean' }, flush: { type: 'boolean' },
+        coalesceWindowMs: { type: 'number' }, maxCoalescedSamples: { type: 'integer' },
+        maxCoalescedRoiFraction: { type: 'number' }, differenceThreshold: { type: 'number' },
+        blockDifferenceThreshold: { type: 'number' }, keyframeInterval: { type: 'integer' },
+        maxRoiFraction: { type: 'number' }, roiPaddingPx: { type: 'integer' },
+        minimumRoiSize: { type: 'integer' },
       },
       additionalProperties: false,
     },
@@ -440,7 +458,7 @@ export class McpReferenceCanvasServer {
       const session: McpSession = {
         id: randomUUID(), initialized: false, role,
         actor: { actorType: role === 'viewer' ? 'user' : 'agent', actorId, sessionId: randomUUID() },
-        subscriptions: new Set(), streams: new Set(), governors: new Map(), createdAt: now(),
+        subscriptions: new Set(), streams: new Set(), governors: new Map(), passiveSchedulers: new Map(), createdAt: now(),
       }
       this.#sessions.set(session.id, session)
       this.#sendRpc(response, 200, jsonRpcResult(rpc.id ?? null, {
@@ -484,7 +502,7 @@ export class McpReferenceCanvasServer {
     const internal: McpSession = {
       id: `test-${randomUUID()}`, initialized: true, role: session.role ?? 'owner',
       actor: { actorType: 'agent', actorId: session.actorId ?? 'test-agent' },
-      subscriptions: new Set(), streams: new Set(), governors: new Map(), createdAt: now(),
+      subscriptions: new Set(), streams: new Set(), governors: new Map(), passiveSchedulers: new Map(), createdAt: now(),
     }
     return this.#dispatch(rpc, internal)
   }
@@ -704,6 +722,41 @@ export class McpReferenceCanvasServer {
         const { raster, ...governance } = decision
         const links = raster ? [`lab://raster/${encodeURIComponent(raster.observation.rasterId)}`] : []
         return okResult({ observation, governance, raster: raster?.observation, governorId }, links)
+      }
+      case 'lab.observe_passive': {
+        const lab = this.#runtime.lab
+        if (!lab) return errorResult('NOT_AVAILABLE', 'Multimodal lab is not configured')
+        const timelineId = typeof args.timelineId === 'string' && args.timelineId.trim() ? args.timelineId.trim() : 'default'
+        if (timelineId.length > 128) return errorResult('INVALID_ARGUMENT', 'timelineId must not exceed 128 characters')
+        if (args.reset === true) session.passiveSchedulers.delete(timelineId)
+        let scheduler = session.passiveSchedulers.get(timelineId)
+        if (!scheduler) {
+          scheduler = new PassiveObservationScheduler({
+            lab,
+            timelineId,
+            governor: new ObservationGovernor({
+              lab,
+              differenceThreshold: asFinite(args.differenceThreshold, 'differenceThreshold', 0.006),
+              blockDifferenceThreshold: asFinite(args.blockDifferenceThreshold, 'blockDifferenceThreshold', 0.06),
+              keyframeInterval: asInteger(args.keyframeInterval, 'keyframeInterval', 8),
+              maxRoiFraction: asFinite(args.maxRoiFraction, 'maxRoiFraction', 0.55),
+              roiPaddingPx: asInteger(args.roiPaddingPx, 'roiPaddingPx', 32),
+              minimumRoiSize: asInteger(args.minimumRoiSize, 'minimumRoiSize', 96),
+            }),
+            coalesceWindowMs: asFinite(args.coalesceWindowMs, 'coalesceWindowMs', 250),
+            maxCoalescedSamples: asInteger(args.maxCoalescedSamples, 'maxCoalescedSamples', 8),
+            maxCoalescedRoiFraction: asFinite(args.maxCoalescedRoiFraction, 'maxCoalescedRoiFraction', 0.55),
+          })
+          session.passiveSchedulers.set(timelineId, scheduler)
+        }
+        if (args.flush === true) {
+          const emitted = await scheduler.flush()
+          const links = emitted.map(event => `lab://raster/${encodeURIComponent(event.raster.rasterId)}`)
+          return okResult({ timelineId, emitted, stats: scheduler.stats }, links)
+        }
+        const result = await scheduler.sample()
+        const links = result.emitted.map(event => `lab://raster/${encodeURIComponent(event.raster.rasterId)}`)
+        return okResult({ timelineId, ...result }, links)
       }
       case 'lab.rasterize': {
         const lab = this.#runtime.lab

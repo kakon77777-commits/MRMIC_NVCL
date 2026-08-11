@@ -1,0 +1,43 @@
+{
+  "version": "0.11.0",
+  "date": "2026-08-11",
+  "target": "http://127.0.0.1:4173/",
+  "title": "MRMIC／NVCL Phase 10 被動場景時間線實驗室",
+  "browser": "Codex In-app Browser",
+  "result": "PASS",
+  "steps": [
+    {
+      "step": "load deterministic benchmark",
+      "revision": 1,
+      "guard": "Freshness and Transition Guard PASS"
+    },
+    {
+      "step": "drag red target into blue frame through real pointer interaction",
+      "actionId": "phase10-move-ab750075-f987-411a-abd4-108d234dd222",
+      "freshnessMs": 51,
+      "beforeFramePrefix": "a004d628",
+      "afterFramePrefix": "98192b20",
+      "revision": 2,
+      "oracle": "PASS: target fully inside frame",
+      "guard": "Freshness and Transition Guard PASS"
+    },
+    {
+      "step": "undo",
+      "revision": 1,
+      "oracle": "FAIL: center distance 420",
+      "redoEnabled": true,
+      "guard": "Freshness and Transition Guard PASS"
+    },
+    {
+      "step": "redo",
+      "revision": 2,
+      "oracle": "PASS: target fully inside frame",
+      "guard": "Freshness and Transition Guard PASS"
+    }
+  ],
+  "console": {
+    "warnings": 0,
+    "errors": 0
+  },
+  "scope": "controlled localhost canvas only; no desktop, game, audio, or external website interaction"
+}

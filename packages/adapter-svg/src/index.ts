@@ -65,7 +65,7 @@ function objectToSvg(object: CanvasObject): string {
       return `<line ${common} x1="${x}" y1="${y}" x2="${x + width}" y2="${y + height}" />`
     case 'freehand': {
       const path = object.content?.pathData ?? `M ${x} ${y} L ${x + width} ${y + height}`
-      return `<path ${common} d="${escapeXml(path)}" fill="none" stroke-linecap="round" stroke-linejoin="round" />`
+      return `<path ${common} d="${escapeXml(path)}" stroke-linecap="round" stroke-linejoin="round" />`
     }
     case 'text':
     case 'agent_note': {
