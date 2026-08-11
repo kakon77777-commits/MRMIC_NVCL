@@ -76,6 +76,7 @@ export interface McpResourceContent {
   uri: string
   mimeType?: string
   text?: string
+  blob?: string
 }
 
 export interface McpCanvasClient {

@@ -1,23 +1,16 @@
 # Next Phase
 
-Phase 7 v0.8 completes the controlled interactive multimodal laboratory.
+Phase 8 v0.9 establishes the first real pixel-native model loop. Phase 9 should optimize sustained multimodality rather than immediately transferring to an uncontrolled game.
 
-Recommended experimental order:
+Recommended order:
 
-1. Add a real multimodal provider that receives only `lab.observe(mode=pixel)` frames.
-2. Build a generated benchmark suite covering selection, drag, resize, drawing, text, occlusion, pan and zoom.
-3. Compare structured, pixel and hybrid lanes with identical tasks and budgets.
-4. Add server-side PNG rasterization and cropped high-detail observations.
-5. Measure Token use, observation latency, action latency, stale-frame rate and correction count.
-6. Compare open-loop generation, flat NVCL and recursive NVCL.
-7. Only after controlled performance is stable, transfer the same Action IR to MSSP and games.
+1. Add an observation governor: keyframes, perceptual-difference thresholds, region-of-interest crops and periodic full-frame resynchronization.
+2. Build generated tasks for selection, drag, resize, drawing, text, occlusion, pan and zoom with fixed seeds and held-out seeds.
+3. Compare full frame, crop, image pyramid and event-triggered observation policies under identical Token and latency budgets.
+4. Add stale-frame recovery that records the rejected attempt, re-observes, and never replays a coordinate against a newer frame.
+5. Separate Provider planning confidence from action authorization; calibrate confidence against verified outcomes.
+6. Add audio as a timestamped observation lane without forcing the user to speak.
+7. Implement a separate MCP `2026-07-28` stateless adapter and conformance suite while retaining a legacy `2025-11-25` compatibility endpoint.
+8. Only after controlled benchmark stability, reuse the Gesture IR in MSSP for desktop and game experiments.
 
-Productization remains a separate track:
-
-- official MCP TypeScript SDK and conformance tests;
-- true Yjs provider and subdocuments;
-- authenticated multi-user deployment;
-- retention, compaction and event-replay recovery;
-- production security and rate limits.
-
-Feedback trajectories must not be described as learning until a policy update and independent post-update evaluation are implemented.
+Productization remains separate: authentication, rate limits, multi-tenant isolation, bundled deterministic fonts, retention policy, official SDK integration, and independent security review.

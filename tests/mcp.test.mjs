@@ -36,10 +36,10 @@ test('MCP initialize, tool listing, resource listing, and resource reads work ov
   const app=createPhase3Server({port:0,databasePath:':memory:',syncDatabasePath:':memory:'}); const started=await app.start()
   try{
     const client=await createMcpClient(started.url)
-    const tools=await client.rpc('tools/list'); assert.equal(tools.result.tools.length,22); assert.ok(tools.result.tools.some(t=>t.name==='canvas.patch_objects')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe')); assert.ok(tools.result.tools.some(t=>t.name==='lab.act'))
+    const tools=await client.rpc('tools/list'); assert.equal(tools.result.tools.length,23); assert.ok(tools.result.tools.some(t=>t.name==='canvas.patch_objects')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe')); assert.ok(tools.result.tools.some(t=>t.name==='lab.act')); assert.ok(tools.result.tools.some(t=>t.name==='lab.rasterize'))
     const resources=await client.rpc('resources/list'); assert.equal(resources.result.resources.length,5)
     const uri=`canvas://workspace/${encodeURIComponent(app.workspace.id)}`
-    const read=await client.rpc('resources/read',{uri}); assert.equal(read.result.contents[0].mimeType,'application/json'); assert.match(read.result.contents[0].text,/MRMIC NVCL Phase 7/)
+    const read=await client.rpc('resources/read',{uri}); assert.equal(read.result.contents[0].mimeType,'application/json'); assert.match(read.result.contents[0].text,/MRMIC NVCL Phase 8/)
   }finally{await app.close()}
 })
 

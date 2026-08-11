@@ -1,17 +1,13 @@
 # Notice
 
-MRMIC／NVCL MVP Phase 6 v0.7
+MRMIC／NVCL MVP Phase 8 v0.9
 
-This release contains an executable reference implementation of an MCP-native recursive multimodal canvas and Native Visual Construction Loop.
+This release contains an executable local reference implementation of a guarded pixel-native multimodal canvas agent loop and the earlier MCP-native recursive NVCL stack.
 
-Phase 6 adds:
+Phase 8 adds PNG rasterization, cropped observations, coordinate-only Gesture IR, runtime hit-testing, a provider-neutral episode runner, a bounded Codex Account Provider, and real Token/latency/freshness/transition evidence.
 
-- SQLite-backed whole-workspace checkpoints and trajectory persistence;
-- restart hydration for root and child canvases;
-- synchronized state-replacement snapshot restore;
-- independent state-vector rooms and WebSocket handles for each canvas;
-- Phase 0–6 acceptance evidence and repeatable hardening demo.
+The implementation intentionally keeps the structured canvas oracle behind the action boundary. Pixel Providers receive PNG bytes and frame metadata, not canvas object identities.
 
-The implementation intentionally uses a replaceable SVG canvas adapter and a custom reference synchronization engine. It does not bundle tldraw, Yjs, or the official MCP TypeScript SDK.
+Known limitations and protocol boundaries are documented in `docs/PHASE8_COMPLETION_REPORT.md`, `docs/MCP_COMPATIBILITY.md`, and `docs/MVP_ACCEPTANCE_MATRIX.md`.
 
-Known limitations are documented in `docs/PHASE6_COMPLETION_REPORT.md` and `docs/MVP_ACCEPTANCE_MATRIX.md`.
+Third-party software notices are listed in `THIRD_PARTY_NOTICES.md`.

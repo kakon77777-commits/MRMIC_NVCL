@@ -207,3 +207,23 @@ after frame + Transition Guard + oracle verification
 ```
 
 Undo and Redo reuse Phase 6 synchronized state replacement. Pixel mode withholds object IDs; hybrid mode reserves structured state for post-action verification.
+
+## Phase 8: Pixel-native multimodal agent loop
+
+Phase 8 adds a Provider boundary above the guarded laboratory:
+
+```text
+MultimodalCanvasLab
+  → immutable SVG frame
+  → Resvg full/cropped PNG + raster hash lineage
+  → PixelProviderRequest (PNG, dimensions, goal, safe feedback)
+  → MultimodalProvider
+  → coordinate-only Gesture IR
+  → crop projection + runtime hit-test
+  → fresh guarded action
+  → structured oracle + episode metrics
+```
+
+The Provider-neutral runtime recursively rejects object-identifier fields. Object identities may appear in trusted transaction and audit evidence after hit-testing, but never in pixel-mode Provider input or feedback.
+
+The first experimental Provider uses a versioned local Codex CLI App Server with an ephemeral read-only thread and no dynamic tools. It is replaceable through the same `MultimodalProvider` interface.

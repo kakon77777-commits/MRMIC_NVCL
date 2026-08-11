@@ -29,6 +29,27 @@ test('pixel observation exposes an immutable frame without structured objects', 
   })
 })
 
+test('immutable SVG frames rasterize to full and cropped PNG observations', async () => {
+  await withServer(async app => {
+    const observation = await app.lab.observe('pixel')
+    const full = await app.lab.rasterize(observation.frameId)
+    assert.equal(full.observation.frameId, observation.frameId)
+    assert.equal(full.observation.mimeType, 'image/png')
+    assert.equal(full.observation.width, observation.width)
+    assert.equal(full.observation.height, observation.height)
+    assert.equal(full.observation.sourceRenderSha256, observation.renderSha256)
+    assert.match(full.observation.sha256, /^[a-f0-9]{64}$/)
+    assert.equal(Buffer.from(full.png).subarray(0, 8).toString('hex'), '89504e470d0a1a0a')
+
+    const crop = await app.lab.rasterize(observation.frameId, { x: 20, y: 30, width: 240, height: 160 })
+    assert.deepEqual(crop.observation.crop, { x: 20, y: 30, width: 240, height: 160 })
+    assert.equal(crop.observation.width, 240)
+    assert.equal(crop.observation.height, 160)
+    assert.notEqual(crop.observation.sha256, full.observation.sha256)
+    assert.deepEqual(app.lab.raster(crop.observation.rasterId).observation, crop.observation)
+  })
+})
+
 test('fresh action records action ID, frame hashes and a guarded transition', async () => {
   await withServer(async app => {
     const before = await app.lab.observe('structured')
@@ -124,10 +145,51 @@ test('benchmark supports visual move, deterministic verification, undo and redo'
   })
 })
 
-test('Phase 7 HTTP lab endpoints preserve pixel and oracle separation', async () => {
+test('pixel-native drag resolves a target by fresh frame coordinates without object ID input', async () => {
+  await withServer(async app => {
+    const initial = await app.lab.observe('pixel')
+    const reset = await app.lab.resetBenchmark('gesture-benchmark-reset', initial.frameId, 'pixel')
+    const action = {
+      actionId: 'gesture-drag-red-into-blue',
+      frameId: reset.observation.frameId,
+      canvasId: reset.observation.canvasId,
+      expectedCanvasRevision: reset.observation.canvasRevision,
+      type: 'gesture',
+      coordinateSpace: 'normalized_frame',
+      gesture: {
+        kind: 'drag',
+        from: { x: 145 / reset.observation.width, y: 285 / reset.observation.height },
+        to: { x: 565 / reset.observation.width, y: 285 / reset.observation.height },
+      },
+    }
+    assert.equal(JSON.stringify(action).includes('objectId'), false)
+    const result = await app.lab.execute(action, 'pixel')
+    assert.equal(result.observation.objects, undefined)
+    assert.equal(result.evidence.actionType, 'gesture')
+    assert.equal(result.evidence.gesture.kind, 'drag')
+    assert.equal(result.evidence.gesture.hitTestVerified, true)
+    assert.equal(result.evidence.gesture.resolvedObjectCount, 1)
+    assert.deepEqual(result.evidence.affectedObjectIds, ['benchmark-red-circle'])
+    assert.equal(result.evidence.transitionGuard, 'passed')
+    assert.equal(app.lab.verifyBenchmark().passed, true)
+
+    const replay = await app.lab.execute(action, 'pixel')
+    assert.equal(replay.idempotentReplay, true)
+  })
+})
+
+test('Phase 8 HTTP lab endpoints preserve pixel and oracle separation', async () => {
   await withServer(async (_app, url) => {
     const pixel = await fetch(`${url}/api/lab/observe?mode=pixel`).then(response => response.json())
     assert.equal(pixel.observation.objects, undefined)
+    const png = await fetch(`${url}${pixel.observation.rasterUri}`)
+    assert.equal(png.status, 200)
+    assert.equal(png.headers.get('content-type'), 'image/png')
+    assert.equal(png.headers.get('x-mrmic-frame-id'), pixel.observation.frameId)
+    assert.equal(Buffer.from(await png.arrayBuffer()).subarray(0, 8).toString('hex'), '89504e470d0a1a0a')
+    const crop = await fetch(`${url}${pixel.observation.rasterUri}?x=10&y=20&width=120&height=80`)
+    assert.equal(crop.status, 200)
+    assert.equal(crop.headers.get('content-type'), 'image/png')
 
     const structured = await fetch(`${url}/api/lab/observe?mode=structured`).then(response => response.json())
     assert.ok(Array.isArray(structured.observation.objects))
@@ -155,6 +217,16 @@ test('MCP exposes the freshness-bound lab loop to local AI clients', async () =>
     const observed = await client.callTool('lab.observe', { mode: 'pixel' })
     assert.equal(observed.ok, true)
     assert.equal(observed.data.observation.objects, undefined)
+    const rasterized = await client.callTool('lab.rasterize', {
+      frameId: observed.data.observation.frameId,
+      crop: { x: 10, y: 20, width: 160, height: 100 },
+    })
+    assert.equal(rasterized.ok, true)
+    assert.equal(rasterized.data.observation.mimeType, 'image/png')
+    assert.equal(rasterized.data.observation.width, 160)
+    const rasterResource = await client.readResource(rasterized.resourceLinks[0])
+    assert.equal(rasterResource[0].mimeType, 'image/png')
+    assert.equal(typeof rasterResource[0].blob, 'string')
 
     const reset = await client.callTool('lab.reset_benchmark', {
       actionId: 'mcp-benchmark-reset',

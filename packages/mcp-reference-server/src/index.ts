@@ -19,7 +19,7 @@ import type { LabAction, MultimodalCanvasLab, ObservationMode } from '../../mult
 
 export const MCP_PROTOCOL_VERSION = '2025-11-25'
 export const MCP_SERVER_NAME = 'mrmic-nvcl-canvas'
-export const MCP_SERVER_VERSION = '0.8.0'
+export const MCP_SERVER_VERSION = '0.9.0'
 
 type JsonRpcId = string | number | null
 interface JsonRpcRequest { jsonrpc: '2.0'; id?: JsonRpcId; method: string; params?: Record<string, unknown> }
@@ -194,6 +194,21 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
     name: 'lab.act', title: 'Execute guarded lab action', readOnly: false,
     description: 'Execute one action carrying a non-empty actionId, fresh frameId and expected canvas revision.',
     inputSchema: { type: 'object', required: ['action'], properties: { action: { type: 'object' }, mode: { type: 'string', enum: ['pixel', 'hybrid', 'structured'] } }, additionalProperties: false },
+  },
+  {
+    name: 'lab.rasterize', title: 'Rasterize immutable lab frame', readOnly: true,
+    description: 'Derive an immutable full-frame or cropped PNG from an exact SVG frame without exposing canvas objects.',
+    inputSchema: {
+      type: 'object', required: ['frameId'],
+      properties: {
+        frameId: { type: 'string' },
+        crop: {
+          type: 'object', required: ['x', 'y', 'width', 'height'],
+          properties: { x: { type: 'number' }, y: { type: 'number' }, width: { type: 'number' }, height: { type: 'number' } },
+          additionalProperties: false,
+        },
+      }, additionalProperties: false,
+    },
   },
   {
     name: 'lab.undo', title: 'Undo lab action', readOnly: false,
@@ -561,7 +576,11 @@ export class McpReferenceCanvasServer {
       { uriTemplate: `canvas://workspace/${ws}/canvas/{canvasId}/render/current.svg`, name: 'Canvas SVG render', mimeType: 'image/svg+xml', description: 'Render any canvas through the current viewport.' },
       { uriTemplate: `canvas://workspace/${ws}/object/{objectId}`, name: 'Canvas object', mimeType: 'application/json', description: 'Read a stable canvas object by ID.' },
       { uriTemplate: `canvas://workspace/${ws}/snapshot/{snapshotId}`, name: 'Canvas snapshot', mimeType: 'application/json', description: 'Read snapshot metadata.' },
-      ...(this.#runtime.lab ? [{ uriTemplate: 'lab://frame/{frameId}', name: 'Immutable multimodal lab frame', mimeType: 'image/svg+xml', description: 'Read an exact observed frame by freshness lease ID.' }] : []),
+      ...(this.#runtime.lab ? [
+        { uriTemplate: 'lab://frame/{frameId}', name: 'Immutable multimodal lab frame', mimeType: 'image/svg+xml', description: 'Read an exact observed SVG frame by freshness lease ID.' },
+        { uriTemplate: 'lab://frame/{frameId}.png', name: 'Immutable multimodal lab PNG', mimeType: 'image/png', description: 'Read a full PNG rendition derived from an exact observed frame.' },
+        { uriTemplate: 'lab://raster/{rasterId}', name: 'Immutable multimodal lab raster', mimeType: 'image/png', description: 'Read a full or cropped PNG created by lab.rasterize.' },
+      ] : []),
     ]
   }
 
@@ -609,6 +628,18 @@ export class McpReferenceCanvasServer {
       if (!trajectory) throw new Error(`Trajectory ${runId} not found`)
       return [{ uri, mimeType: 'application/json', text: encodeText({ runId, trajectory }) }]
     }
+    if (uri.startsWith('lab://frame/') && uri.endsWith('.png')) {
+      const frameId = decodeURIComponent(uri.slice('lab://frame/'.length, -4))
+      if (!this.#runtime.lab) throw new Error('Multimodal lab is unavailable')
+      const raster = await this.#runtime.lab.rasterize(frameId)
+      return [{ uri, mimeType: 'image/png', blob: Buffer.from(raster.png).toString('base64') }]
+    }
+    if (uri.startsWith('lab://raster/')) {
+      const rasterId = decodeURIComponent(uri.slice('lab://raster/'.length))
+      const raster = this.#runtime.lab?.raster(rasterId)
+      if (!raster) throw new Error(`Lab raster ${rasterId} not found`)
+      return [{ uri, mimeType: 'image/png', blob: Buffer.from(raster.png).toString('base64') }]
+    }
     if (uri.startsWith('lab://frame/')) {
       const frameId = decodeURIComponent(uri.slice('lab://frame/'.length))
       const frame = this.#runtime.lab?.frame(frameId)
@@ -631,7 +662,14 @@ export class McpReferenceCanvasServer {
         const lab = this.#runtime.lab
         if (!lab) return errorResult('NOT_AVAILABLE', 'Multimodal lab is not configured')
         const observation = await lab.observe(observationMode(args.mode))
-        return okResult({ observation, history: lab.historyStatus }, [`lab://frame/${encodeURIComponent(observation.frameId)}`])
+        return okResult({ observation, history: lab.historyStatus }, [`lab://frame/${encodeURIComponent(observation.frameId)}`, `lab://frame/${encodeURIComponent(observation.frameId)}.png`])
+      }
+      case 'lab.rasterize': {
+        const lab = this.#runtime.lab
+        if (!lab) return errorResult('NOT_AVAILABLE', 'Multimodal lab is not configured')
+        const crop = args.crop === undefined ? undefined : asRecord(args.crop, 'crop') as unknown as { x: number; y: number; width: number; height: number }
+        const raster = await lab.rasterize(asString(args.frameId, 'frameId'), crop)
+        return okResult({ observation: raster.observation }, [`lab://raster/${encodeURIComponent(raster.observation.rasterId)}`])
       }
       case 'lab.act': {
         const lab = this.#runtime.lab

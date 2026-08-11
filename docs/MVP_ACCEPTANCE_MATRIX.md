@@ -2,39 +2,29 @@
 
 | Capability | Phase | Evidence | Status |
 |---|---:|---|---|
-| Typed canvas objects and stable IDs | 0 | `tests/core.test.mjs` | Pass |
-| Atomic transaction and rollback | 0 | `tests/core.test.mjs` | Pass |
+| Typed objects, atomic transactions and rollback | 0 | `tests/core.test.mjs` | Pass |
 | Append-only causal event ledger | 0 | `tests/ledger.test.mjs` | Pass |
-| Executable infinite SVG adapter | 1 | `tests/adapter.test.mjs` | Pass |
-| State-vector incremental synchronization | 2 | `tests/sync-core.test.mjs` | Pass |
-| WebSocket peer synchronization | 2 | `tests/websocket-sync.test.mjs` | Pass |
+| Executable SVG adapter | 1 | `tests/adapter.test.mjs` | Pass |
+| State-vector and WebSocket synchronization | 2 | sync tests | Pass |
 | MCP Resources and typed Canvas Tools | 3 | `tests/mcp.test.mjs` | Pass |
-| Resource subscription notifications | 3 | `tests/mcp.test.mjs` | Pass |
-| Autonomous NVCL closed loop | 4 | `tests/nvcl-runtime.test.mjs` | Pass |
-| Best-snapshot recovery | 4 | `tests/nvcl-runtime.test.mjs` | Pass |
-| Recursive parent-child NVCL | 5 | `tests/recursive-nvcl.test.mjs` | Pass |
-| Verified fold and lineage | 5 | `tests/recursive-nvcl.test.mjs` | Pass |
-| Complete workspace restart recovery | 6 | `tests/phase6-hardening.test.mjs` | Pass |
-| Persistent trajectory Resource | 6 | `tests/phase6-hardening.test.mjs` | Pass |
-| Synchronized state replacement | 6 | `tests/phase6-hardening.test.mjs` | Pass |
-| Independent per-canvas rooms | 6 | `tests/phase6-hardening.test.mjs` | Pass |
-| Pixel observation with no object leakage | 7 | `tests/multimodal-lab.test.mjs` | Pass |
-| Immutable freshness-bound frame | 7 | `tests/multimodal-lab.test.mjs` | Pass |
-| Mandatory Action ID and stale-frame guard | 7 | `tests/multimodal-lab.test.mjs` | Pass |
-| Before/after state and render evidence | 7 | `tests/multimodal-lab.test.mjs` | Pass |
-| Synchronized Undo and Redo | 7 | `tests/multimodal-lab.test.mjs` | Pass |
-| Deterministic visual benchmark | 7 | automated and browser acceptance | Pass |
-| MCP-native lab loop | 7 | MCP lab integration test | Pass |
-| Real browser drawing and manipulation | 7 | `docs/PHASE7_COMPLETION_REPORT.md` | Pass |
-
-## Overall result
+| Autonomous flat NVCL and recovery | 4 | NVCL tests | Pass |
+| Recursive subcanvas, fold and lineage | 5 | recursive tests | Pass |
+| Persistent restart recovery and per-canvas rooms | 6 | Phase 6 tests | Pass |
+| Pixel observation without object leakage | 7 | `tests/multimodal-lab.test.mjs` | Pass |
+| Fresh frame, Action ID and transition evidence | 7 | `tests/multimodal-lab.test.mjs` | Pass |
+| Undo/Redo and deterministic visual oracle | 7 | automated + browser evidence | Pass |
+| Full and cropped immutable PNG rasterization | 8 | multimodal lab tests + browser | Pass |
+| Pixel Gesture IR and runtime hit-test | 8 | lab + agent runtime tests | Pass |
+| Crop-to-full-frame coordinate projection | 8 | agent runtime tests | Pass |
+| Recursive zero-object-ID Provider boundary | 8 | agent runtime tests | Pass |
+| Token, latency, correction and freshness telemetry | 8 | runtime tests + real acceptance | Pass |
+| Real Codex Account PNG → gesture → guard → oracle loop | 8 | `artifacts/phase8-codex-acceptance.json` | Pass |
 
 ```text
-Automated tests: 43 / 43 passed
-Phase 7 acceptance capabilities: 24 / 24 passed
+Automated tests: 53 / 53 passed
+Browser console warnings: 0
 Browser console errors: 0
+Real Provider actions: 1 / 1 verified
 ```
 
-## Not claimed
-
-The result does not claim production readiness, official MCP conformance, Yjs compatibility, a trained general-purpose multimodal agent, policy learning, or successful transfer to uncontrolled game and desktop environments.
+Not claimed: broad visual-agent generalization, policy learning, deterministic cross-machine font rasterization, production security, official MCP conformance, MCP `2026-07-28` support, or transfer to uncontrolled games/desktops.
