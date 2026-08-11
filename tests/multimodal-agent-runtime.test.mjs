@@ -3,7 +3,9 @@ import assert from 'node:assert/strict'
 import { createPhase8Server } from '../dist/apps/web/src/server.js'
 import {
   MultimodalAgentRuntime,
+  ObservationGovernor,
   SequenceMultimodalProvider,
+  SustainedObservationBenchmarkRunner,
   projectGestureFromRaster,
   validateProviderResponse,
 } from '../dist/packages/multimodal-agent-runtime/src/index.js'
@@ -150,4 +152,153 @@ test('pixel crop projection supports frame-pixel coordinates without exposing ID
     { x: 100, y: 200, width: 300, height: 250 },
   )
   assert.deepEqual(gesture, { kind: 'delete', at: { x: 120, y: 230 } })
+})
+
+test('observation governor skips static frames, selects ROI for local change, and periodically resynchronizes', async () => {
+  await withLab(async app => {
+    const governor = new ObservationGovernor({
+      lab: app.lab,
+      differenceThreshold: 0.0001,
+      blockDifferenceThreshold: 0.02,
+      keyframeInterval: 4,
+      maxRoiFraction: 0.9,
+      roiPaddingPx: 24,
+    })
+    const initial = await app.lab.observe('pixel')
+    const reset = await app.lab.resetBenchmark('governor-reset', initial.frameId, 'pixel')
+    const first = await governor.observe(reset.observation.frameId)
+    assert.equal(first.disposition, 'keyframe')
+    assert.ok(first.raster)
+    assert.equal(first.raster.perceptualSignature.width, 32)
+    assert.equal(first.raster.perceptualSignature.samples.length, 32 * 32 * 3)
+
+    const staticObservation = await app.lab.observe('pixel')
+    const second = await governor.observe(staticObservation.frameId)
+    assert.equal(second.disposition, 'skip')
+    assert.equal(second.differenceScore, 0)
+    assert.equal(second.raster, undefined)
+
+    const moved = await app.lab.execute({
+      actionId: 'governor-local-move',
+      frameId: staticObservation.frameId,
+      canvasId: staticObservation.canvasId,
+      expectedCanvasRevision: staticObservation.canvasRevision,
+      type: 'gesture',
+      coordinateSpace: 'frame_pixel',
+      gesture: { kind: 'drag', from: { x: 145, y: 285 }, to: { x: 265, y: 285 } },
+    }, 'pixel')
+    const third = await governor.observe(moved.observation.frameId)
+    assert.equal(third.disposition, 'roi')
+    assert.ok(third.differenceScore > 0)
+    assert.ok(third.changedFraction > 0)
+    assert.ok(third.crop.width < moved.observation.width)
+    assert.deepEqual(third.raster.observation.crop, third.crop)
+
+    const fourthObservation = await app.lab.observe('pixel')
+    assert.equal((await governor.observe(fourthObservation.frameId)).disposition, 'skip')
+    const fifthObservation = await app.lab.observe('pixel')
+    const fifth = await governor.observe(fifthObservation.frameId)
+    assert.equal(fifth.disposition, 'keyframe')
+    assert.equal(fifth.reason, 'periodic_resynchronization')
+  })
+})
+
+test('stale Provider coordinates are recorded, rejected, and regenerated from a fresh keyframe', async () => {
+  let now = 0
+  const app = createPhase8Server({
+    port: 0,
+    databasePath: ':memory:',
+    syncDatabasePath: ':memory:',
+    labLeaseTtlMs: 50,
+    now: () => now,
+  })
+  const requests = []
+  const provider = {
+    name: 'stale-recovery-provider',
+    async generate(request) {
+      requests.push(structuredClone(request))
+      if (requests.length === 1) now = 100
+      return structuredClone(dragDecision)
+    },
+  }
+  try {
+    const governor = new ObservationGovernor({ lab: app.lab, keyframeInterval: 8 })
+    const runtime = new MultimodalAgentRuntime({ lab: app.lab, provider, governor, now: () => now })
+    const result = await runtime.run({
+      runId: 'stale-recovery',
+      goal: 'Move the red circle into the blue frame',
+      maxIterations: 2,
+      adaptiveObservation: true,
+    })
+    assert.equal(result.success, true)
+    assert.equal(result.metrics.providerCalls, 2)
+    assert.equal(result.metrics.actions, 1)
+    assert.equal(result.metrics.staleFrameRejections, 1)
+    assert.equal(result.metrics.corrections, 1)
+    assert.equal(result.steps[0].actionRejectedCode, 'STALE_FRAME')
+    assert.equal(result.steps[0].evidence, undefined)
+    assert.equal(result.steps[1].observationDisposition, 'keyframe')
+    assert.equal(result.steps[1].evidence.freshnessVerified, true)
+    assert.notEqual(requests[0].frame.frameId, requests[1].frame.frameId)
+  } finally {
+    app.mcp.close()
+    app.ledger.close()
+    app.syncLedger.close()
+  }
+})
+
+test('measured Token budget stops before a second Provider call', async () => {
+  await withLab(async app => {
+    const provider = new SequenceMultimodalProvider([{
+      usage: { inputTokens: 80, outputTokens: 20, totalTokens: 100 },
+      decision: {
+        type: 'gesture',
+        coordinateSpace: 'frame_pixel',
+        gesture: { kind: 'drag', from: { x: 145, y: 285 }, to: { x: 185, y: 285 } },
+        confidence: 1,
+        summary: 'A valid but insufficient move',
+      },
+    }])
+    const runtime = new MultimodalAgentRuntime({ lab: app.lab, provider })
+    const result = await runtime.run({
+      runId: 'token-budget',
+      goal: 'Move the red circle into the blue frame',
+      maxIterations: 3,
+      maxTotalTokens: 50,
+    })
+    assert.equal(result.status, 'stopped')
+    assert.equal(result.success, false)
+    assert.equal(result.metrics.providerCalls, 1)
+    assert.equal(result.metrics.actions, 1)
+    assert.equal(result.metrics.tokenBudgetStops, 1)
+    assert.equal(result.metrics.usage.totalTokens, 100)
+    assert.match(result.reason, /Token budget 50 exhausted/)
+  })
+})
+
+test('seeded sustained-observation benchmark reduces payload and preserves periodic keyframes', async () => {
+  await withLab(async app => {
+    const governor = new ObservationGovernor({
+      lab: app.lab,
+      differenceThreshold: 0.0001,
+      blockDifferenceThreshold: 0.02,
+      keyframeInterval: 8,
+      maxRoiFraction: 0.3,
+      roiPaddingPx: 24,
+    })
+    const runner = new SustainedObservationBenchmarkRunner({ lab: app.lab, governor })
+    const result = await runner.run({ runId: 'sustained-seed-42', seed: 42 })
+    assert.equal(result.steps.length, 9)
+    assert.equal(result.steps[0].disposition, 'keyframe')
+    assert.equal(result.steps.at(-1).disposition, 'keyframe')
+    assert.equal(result.steps.at(-1).reason, 'periodic_resynchronization')
+    assert.ok(result.counts.skip >= 4)
+    assert.equal(result.counts.roi, 2)
+    assert.ok(result.counts.full_frame >= 1)
+    assert.equal(result.providerCallsAvoided, result.counts.skip)
+    assert.ok(result.governedBytes < result.alwaysFullBytes)
+    assert.ok(result.savedBytes > 0)
+    assert.ok(result.savedPercent > 0)
+    assert.equal(JSON.stringify(result).includes('objectId'), false)
+  })
 })

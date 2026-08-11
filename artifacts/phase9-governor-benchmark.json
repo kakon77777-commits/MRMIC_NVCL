@@ -1,0 +1,56 @@
+{
+  "benchmark": "phase9-sustained-observation-governor",
+  "version": "0.10.0",
+  "date": "2026-08-10",
+  "policy": {
+    "signature": "32x32-rgb-nearest-sample",
+    "differenceThreshold": 0.0001,
+    "blockDifferenceThreshold": 0.02,
+    "keyframeInterval": 8,
+    "maxRoiFraction": 0.3,
+    "roiPaddingPx": 24
+  },
+  "seeds": [7, 42, 2026],
+  "runs": [
+    {
+      "seed": 7,
+      "counts": { "keyframe": 2, "full_frame": 1, "roi": 2, "skip": 4 },
+      "alwaysFullBytes": 501798,
+      "governedBytes": 176616,
+      "savedBytes": 325182,
+      "savedPercent": 64.80336709193739,
+      "providerCallsAvoided": 4
+    },
+    {
+      "seed": 42,
+      "counts": { "keyframe": 2, "full_frame": 1, "roi": 2, "skip": 4 },
+      "alwaysFullBytes": 501968,
+      "governedBytes": 176627,
+      "savedBytes": 325341,
+      "savedPercent": 64.81309565549995,
+      "providerCallsAvoided": 4
+    },
+    {
+      "seed": 2026,
+      "counts": { "keyframe": 2, "full_frame": 1, "roi": 2, "skip": 4 },
+      "alwaysFullBytes": 501892,
+      "governedBytes": 176473,
+      "savedBytes": 325419,
+      "savedPercent": 64.83845130027974,
+      "providerCallsAvoided": 4
+    }
+  ],
+  "aggregate": {
+    "observations": 27,
+    "keyframes": 6,
+    "fullFrames": 3,
+    "roiFrames": 6,
+    "skippedFrames": 12,
+    "providerCallsAvoided": 12,
+    "alwaysFullBytes": 1505658,
+    "governedBytes": 529716,
+    "savedBytes": 975942,
+    "savedPercent": 64.81830535221145
+  },
+  "boundary": "PNG payload reduction in a deterministic synthetic benchmark; this is not a measured Token reduction or a claim about arbitrary video."
+}

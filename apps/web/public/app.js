@@ -41,7 +41,7 @@ function svgElement(name, attributes = {}) {
 }
 
 function actionId(kind) {
-  return `phase8-${kind}-${crypto.randomUUID()}`
+  return `phase9-${kind}-${crypto.randomUUID()}`
 }
 
 function showToast(message, error = false) {
@@ -272,7 +272,7 @@ async function executeLabAction(action, frame, quiet = false) {
           frameId: frame.frameId,
           canvasId: frame.canvasId,
           expectedCanvasRevision: frame.canvasRevision,
-          actor: { actorType: 'user', actorId: clientId, instanceId: 'phase8-browser' },
+          actor: { actorType: 'user', actorId: clientId, instanceId: 'phase9-browser' },
           ...action,
         },
       }),
@@ -449,8 +449,11 @@ async function commitViewport() {
   }
   viewportCommitInFlight = true
   try {
+    const target = { ...viewport }
     const frame = await freshObservation()
-    await executeLabAction({ type: 'viewport', viewport: { ...viewport } }, frame, true)
+    const current = frame.viewport
+    if (target.x === current.x && target.y === current.y && target.width === current.width && target.height === current.height && target.zoom === current.zoom) return
+    await executeLabAction({ type: 'viewport', viewport: target }, frame, true)
   } catch {
     // executeLabAction already surfaced the error.
   } finally {
@@ -574,7 +577,7 @@ function sendPresence(cursor) {
       cursor,
       viewport,
       selectedObjectIds: selectedId ? [selectedId] : [],
-      task: `Phase 8 ${activeTool}`,
+      task: `Phase 9 ${activeTool}`,
       updatedAt: new Date().toISOString(),
     },
   }))

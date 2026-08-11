@@ -8,6 +8,20 @@ import {
   type PixelGesture,
   type RasterCrop,
 } from '../../multimodal-lab/src/index.js'
+import { ObservationGovernor, type ObservationDisposition } from './governor.js'
+
+export {
+  ObservationGovernor,
+  type GovernedObservation,
+  type ObservationDisposition,
+  type ObservationGovernorOptions,
+} from './governor.js'
+export {
+  SustainedObservationBenchmarkRunner,
+  type SustainedObservationBenchmarkOptions,
+  type SustainedObservationBenchmarkResult,
+  type SustainedObservationBenchmarkStep,
+} from './benchmark.js'
 
 export interface ProviderUsage {
   inputTokens?: number
@@ -31,6 +45,13 @@ export interface PixelProviderRequest {
     width: number
     height: number
     crop?: RasterCrop
+  }
+  observationPolicy?: {
+    disposition: ObservationDisposition
+    sequence: number
+    reason: string
+    differenceScore: number
+    changedFraction: number
   }
   previous?: PixelSafeFeedback
 }
@@ -81,6 +102,10 @@ export interface MultimodalEpisodeStep {
   observationLatencyMs: number
   providerLatencyMs: number
   actionLatencyMs: number
+  observationDisposition: ObservationDisposition
+  differenceScore: number
+  changedFraction: number
+  actionRejectedCode?: string
   evidence?: ActionEvidence
   benchmarkPassed: boolean
 }
@@ -91,6 +116,12 @@ export interface MultimodalEpisodeMetrics {
   actions: number
   corrections: number
   staleFrameRejections: number
+  keyframes: number
+  fullFrameObservations: number
+  roiObservations: number
+  skippedObservations: number
+  tokenBudgetStops: number
+  cumulativeDifferenceScore: number
   observationLatencyMs: number
   providerLatencyMs: number
   actionLatencyMs: number
@@ -117,11 +148,14 @@ export interface MultimodalEpisodeRequest {
   maxIterations?: number
   resetBenchmark?: boolean
   crop?: RasterCrop
+  adaptiveObservation?: boolean
+  maxTotalTokens?: number
 }
 
 export interface MultimodalAgentRuntimeOptions {
   lab: MultimodalCanvasLab
   provider: MultimodalProvider
+  governor?: ObservationGovernor
   now?: () => number
 }
 
@@ -290,17 +324,19 @@ export function projectGestureFromRaster(
 export class MultimodalAgentRuntime {
   readonly #lab: MultimodalCanvasLab
   readonly #provider: MultimodalProvider
+  readonly #governor?: ObservationGovernor
   readonly #now: () => number
 
   constructor(options: MultimodalAgentRuntimeOptions) {
     this.#lab = options.lab
     this.#provider = options.provider
+    this.#governor = options.governor
     this.#now = options.now ?? Date.now
   }
 
   async run(request: MultimodalEpisodeRequest): Promise<MultimodalEpisodeResult> {
     if (!request.goal.trim()) throw new Error('Multimodal episode goal is required')
-    const runId = request.runId?.trim() || `phase8-${randomUUID()}`
+    const runId = request.runId?.trim() || `phase9-${randomUUID()}`
     const maxIterations = Math.max(1, Math.min(50, Math.floor(request.maxIterations ?? 6)))
     const startedAtMs = this.#now()
     const startedAt = new Date(startedAtMs).toISOString()
@@ -311,6 +347,12 @@ export class MultimodalAgentRuntime {
       actions: 0,
       corrections: 0,
       staleFrameRejections: 0,
+      keyframes: 0,
+      fullFrameObservations: 0,
+      roiObservations: 0,
+      skippedObservations: 0,
+      tokenBudgetStops: 0,
+      cumulativeDifferenceScore: 0,
       observationLatencyMs: 0,
       providerLatencyMs: 0,
       actionLatencyMs: 0,
@@ -323,14 +365,37 @@ export class MultimodalAgentRuntime {
       const reset = await this.#lab.resetBenchmark(`${runId}:reset`, observation.frameId, 'pixel')
       observation = reset.observation
     }
+    const useGovernor = Boolean(this.#governor && request.adaptiveObservation !== false && !request.crop)
+    if (useGovernor) this.#governor?.reset()
+    const maxTotalTokens = request.maxTotalTokens === undefined
+      ? undefined
+      : Math.max(1, Math.floor(finite(request.maxTotalTokens, 'maxTotalTokens')))
     let previous: PixelSafeFeedback | undefined
 
     for (let iteration = 1; iteration <= maxIterations; iteration += 1) {
       const observationStarted = this.#now()
-      const raster = await this.#lab.rasterize(observation.frameId, request.crop)
+      const governed = useGovernor ? await this.#governor?.observe(observation.frameId) : undefined
+      const disposition: ObservationDisposition = governed?.disposition ?? (request.crop ? 'roi' : 'full_frame')
+      const differenceScore = governed?.differenceScore ?? 1
+      const changedFraction = governed?.changedFraction ?? 1
       metrics.observations += 1
       const observationLatencyMs = elapsed(this.#now, observationStarted)
       metrics.observationLatencyMs += observationLatencyMs
+      metrics.cumulativeDifferenceScore += differenceScore
+      if (disposition === 'keyframe') metrics.keyframes += 1
+      else if (disposition === 'full_frame') metrics.fullFrameObservations += 1
+      else if (disposition === 'roi') metrics.roiObservations += 1
+      else metrics.skippedObservations += 1
+      if (disposition === 'skip') {
+        observation = await this.#pixelObservation(metrics, false)
+        continue
+      }
+      const raster = governed?.raster ?? await this.#lab.rasterize(observation.frameId, request.crop)
+      if (maxTotalTokens !== undefined && metrics.usage.totalTokens >= maxTotalTokens) {
+        metrics.tokenBudgetStops += 1
+        metrics.totalLatencyMs = elapsed(this.#now, startedAtMs)
+        return this.#result(runId, request.goal, startedAt, steps, metrics, 'stopped', false, `Token budget ${maxTotalTokens} exhausted before another Provider call`)
+      }
       const providerRequest: PixelProviderRequest = {
         protocolVersion: 'mrmic-pixel-agent-v1',
         goal: request.goal,
@@ -345,6 +410,13 @@ export class MultimodalAgentRuntime {
           width: raster.observation.width,
           height: raster.observation.height,
           ...(raster.observation.crop ? { crop: raster.observation.crop } : {}),
+        },
+        observationPolicy: {
+          disposition,
+          sequence: governed?.sequence ?? iteration,
+          reason: governed?.reason ?? (request.crop ? 'static_crop' : 'always_full_frame'),
+          differenceScore,
+          changedFraction,
         },
         ...(previous ? { previous } : {}),
       }
@@ -370,6 +442,9 @@ export class MultimodalAgentRuntime {
           observationLatencyMs,
           providerLatencyMs,
           actionLatencyMs: 0,
+          observationDisposition: disposition,
+          differenceScore,
+          changedFraction,
           benchmarkPassed: response.decision.success,
         })
         metrics.totalLatencyMs = elapsed(this.#now, startedAtMs)
@@ -400,6 +475,29 @@ export class MultimodalAgentRuntime {
       } catch (error) {
         if (error instanceof MultimodalLabError && ['STALE_FRAME', 'FRAME_NOT_FOUND', 'REVISION_CONFLICT'].includes(error.code)) {
           metrics.staleFrameRejections += 1
+          metrics.corrections += 1
+          const actionLatencyMs = elapsed(this.#now, actionStarted)
+          metrics.actionLatencyMs += actionLatencyMs
+          steps.push({
+            iteration,
+            provider: this.#provider.name,
+            ...(response.model ? { model: response.model } : {}),
+            providerRequestSha256: requestHash(providerRequest),
+            imageSha256: raster.observation.sha256,
+            decision: response.decision,
+            usage,
+            observationLatencyMs,
+            providerLatencyMs,
+            actionLatencyMs,
+            observationDisposition: disposition,
+            differenceScore,
+            changedFraction,
+            actionRejectedCode: error.code,
+            benchmarkPassed: false,
+          })
+          this.#governor?.forceNextKeyframe('stale_frame_recovery')
+          observation = await this.#pixelObservation(metrics, false)
+          continue
         }
         throw error
       }
@@ -418,6 +516,9 @@ export class MultimodalAgentRuntime {
         observationLatencyMs,
         providerLatencyMs,
         actionLatencyMs,
+        observationDisposition: disposition,
+        differenceScore,
+        changedFraction,
         evidence: result.evidence,
         benchmarkPassed: verification.passed,
       }
@@ -443,10 +544,10 @@ export class MultimodalAgentRuntime {
     return this.#result(runId, request.goal, startedAt, steps, metrics, 'failed', false, `Iteration budget ${maxIterations} exhausted`)
   }
 
-  async #pixelObservation(metrics: MultimodalEpisodeMetrics): Promise<LabObservation> {
+  async #pixelObservation(metrics: MultimodalEpisodeMetrics, count = true): Promise<LabObservation> {
     const started = this.#now()
     const observation = await this.#lab.observe('pixel')
-    metrics.observations += 1
+    if (count) metrics.observations += 1
     metrics.observationLatencyMs += elapsed(this.#now, started)
     if (observation.objects !== undefined) throw new Error('Pixel observation leaked structured objects')
     return observation

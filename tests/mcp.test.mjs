@@ -36,10 +36,31 @@ test('MCP initialize, tool listing, resource listing, and resource reads work ov
   const app=createPhase3Server({port:0,databasePath:':memory:',syncDatabasePath:':memory:'}); const started=await app.start()
   try{
     const client=await createMcpClient(started.url)
-    const tools=await client.rpc('tools/list'); assert.equal(tools.result.tools.length,23); assert.ok(tools.result.tools.some(t=>t.name==='canvas.patch_objects')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe')); assert.ok(tools.result.tools.some(t=>t.name==='lab.act')); assert.ok(tools.result.tools.some(t=>t.name==='lab.rasterize'))
+    const tools=await client.rpc('tools/list'); assert.equal(tools.result.tools.length,24); assert.ok(tools.result.tools.some(t=>t.name==='canvas.patch_objects')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe_adaptive')); assert.ok(tools.result.tools.some(t=>t.name==='lab.act')); assert.ok(tools.result.tools.some(t=>t.name==='lab.rasterize'))
     const resources=await client.rpc('resources/list'); assert.equal(resources.result.resources.length,5)
     const uri=`canvas://workspace/${encodeURIComponent(app.workspace.id)}`
-    const read=await client.rpc('resources/read',{uri}); assert.equal(read.result.contents[0].mimeType,'application/json'); assert.match(read.result.contents[0].text,/MRMIC NVCL Phase 8/)
+    const read=await client.rpc('resources/read',{uri}); assert.equal(read.result.contents[0].mimeType,'application/json'); assert.match(read.result.contents[0].text,/MRMIC NVCL Phase 9/)
+  }finally{await app.close()}
+})
+
+test('adaptive MCP observations keep governor state isolated inside one session', async()=>{
+  const app=createPhase3Server({port:0,databasePath:':memory:',syncDatabasePath:':memory:'}); const started=await app.start()
+  try{
+    const client=await createMcpClient(started.url,'viewer','adaptive-viewer')
+    const first=await client.rpc('tools/call',{name:'lab.observe_adaptive',arguments:{governorId:'watch',keyframeInterval:8}})
+    assert.equal(first.result.isError,false)
+    assert.equal(first.result.structuredContent.data.governance.disposition,'keyframe')
+    assert.equal(first.result.structuredContent.data.observation.objects,undefined)
+    assert.equal(first.result.structuredContent.resourceLinks.length,1)
+    const second=await client.rpc('tools/call',{name:'lab.observe_adaptive',arguments:{governorId:'watch'}})
+    assert.equal(second.result.structuredContent.data.governance.disposition,'skip')
+    assert.equal(second.result.structuredContent.resourceLinks.length,0)
+    const independentClient=await createMcpClient(started.url,'viewer','independent-viewer')
+    const independent=await independentClient.rpc('tools/call',{name:'lab.observe_adaptive',arguments:{governorId:'watch'}})
+    assert.equal(independent.result.structuredContent.data.governance.disposition,'keyframe')
+    const reset=await client.rpc('tools/call',{name:'lab.observe_adaptive',arguments:{governorId:'watch',reset:true}})
+    assert.equal(reset.result.structuredContent.data.governance.disposition,'keyframe')
+    assert.equal(JSON.stringify(reset.result.structuredContent.data).includes('objectId'),false)
   }finally{await app.close()}
 })
 

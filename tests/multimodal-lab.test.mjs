@@ -113,6 +113,80 @@ test('a superseded frame fails closed before a second action', async () => {
   })
 })
 
+test('a viewport change invalidates old pixel coordinates before any action executes', async () => {
+  await withServer(async app => {
+    const frame = await app.lab.observe('pixel')
+    await app.adapter.setViewport({ ...frame.viewport, x: frame.viewport.x + 80 })
+
+    await assert.rejects(
+      () => app.lab.execute({
+        actionId: 'stale-viewport-action',
+        frameId: frame.frameId,
+        canvasId: frame.canvasId,
+        expectedCanvasRevision: frame.canvasRevision,
+        type: 'gesture',
+        gesture: 'click',
+        x: 100,
+        y: 100,
+        requestedAction: 'delete',
+      }, 'pixel'),
+      error => error?.code === 'STALE_FRAME' && /viewport/.test(error.message),
+    )
+    assert.equal(app.lab.trajectory.some(item => item.actionId === 'stale-viewport-action'), false)
+  })
+})
+
+test('viewport actions require a real visual transition and record changed render evidence', async () => {
+  await withServer(async app => {
+    const frame = await app.lab.observe('pixel')
+    await assert.rejects(
+      () => app.lab.execute({
+        actionId: 'no-op-viewport',
+        frameId: frame.frameId,
+        canvasId: frame.canvasId,
+        expectedCanvasRevision: frame.canvasRevision,
+        type: 'viewport',
+        viewport: frame.viewport,
+      }, 'pixel'),
+      error => error?.code === 'INVALID_ACTION' && /must change/.test(error.message),
+    )
+    assert.equal(app.lab.trajectory.some(item => item.actionId === 'no-op-viewport'), false)
+
+    const changed = await app.lab.execute({
+      actionId: 'changed-viewport',
+      frameId: frame.frameId,
+      canvasId: frame.canvasId,
+      expectedCanvasRevision: frame.canvasRevision,
+      type: 'viewport',
+      viewport: { ...frame.viewport, x: frame.viewport.x + 80 },
+    }, 'pixel')
+    assert.equal(changed.evidence.transitionGuard, 'passed')
+    assert.equal(changed.evidence.verifiedChange, true)
+    assert.notEqual(changed.evidence.beforeRenderSha256, changed.evidence.afterRenderSha256)
+  })
+})
+
+test('rapid sustained observation keeps immutable frame history bounded and fails closed on eviction', async () => {
+  await withServer(async app => {
+    const oldest = await app.lab.observe('pixel')
+    let newest = oldest
+    for (let index = 0; index < 201; index += 1) newest = await app.lab.observe('pixel')
+    assert.equal(app.lab.frame(oldest.frameId), undefined)
+    assert.equal(app.lab.frame(newest.frameId)?.observation.frameId, newest.frameId)
+    await assert.rejects(
+      () => app.lab.execute({
+        actionId: 'evicted-frame-action',
+        frameId: oldest.frameId,
+        canvasId: oldest.canvasId,
+        expectedCanvasRevision: oldest.canvasRevision,
+        type: 'viewport',
+        viewport: { ...oldest.viewport, x: oldest.viewport.x + 1 },
+      }, 'pixel'),
+      error => error?.code === 'FRAME_NOT_FOUND',
+    )
+  })
+})
+
 test('benchmark supports visual move, deterministic verification, undo and redo', async () => {
   await withServer(async app => {
     const initial = await app.lab.observe('hybrid')

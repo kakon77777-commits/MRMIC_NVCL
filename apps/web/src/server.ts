@@ -16,7 +16,7 @@ import { DirectoryRecursiveTraceSink, REFERENCE_DETAIL_CHECKS, RecursiveNvclRunt
 import { MultimodalCanvasLab, MultimodalLabError, type LabAction, type ObservationMode, type RasterCrop } from '../../../packages/multimodal-lab/src/index.js'
 import { agent, createWorkspace, object, transactionId } from '../../cli/src/fixtures.js'
 
-interface Phase6ServerOptions { port?: number; host?: string; databasePath?: string; syncDatabasePath?: string }
+interface Phase6ServerOptions { port?: number; host?: string; databasePath?: string; syncDatabasePath?: string; labLeaseTtlMs?: number; now?: () => number }
 function json(response:any,status:number,payload:unknown){response.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});response.end(JSON.stringify(payload,null,2))}
 function readBody(request:any):Promise<unknown>{return new Promise((resolveBody,reject)=>{const chunks:Uint8Array[]=[];request.on('data',(chunk:Uint8Array)=>chunks.push(chunk));request.on('end',()=>{try{const text=Buffer.concat(chunks).toString('utf8');resolveBody(text?JSON.parse(text):{})}catch(error){reject(error)}});request.on('error',reject)})}
 function contentType(pathname:string){switch(extname(pathname)){case'.html':return'text/html; charset=utf-8';case'.js':return'text/javascript; charset=utf-8';case'.css':return'text/css; charset=utf-8';case'.svg':return'image/svg+xml; charset=utf-8';case'.png':return'image/png';default:return'application/octet-stream'}}
@@ -41,10 +41,10 @@ export function createRepairTransaction(store:CanvasStore,canvasId:string):Canva
 }
 
 export function createPhase6Server(options:Phase6ServerOptions={}){
-  const {workspace,rootCanvas}=createWorkspace(); workspace.title='MRMIC NVCL Phase 8'; workspace.schemaVersion='0.9.0'; rootCanvas.title='Pixel-native multimodal MCP canvas agent laboratory'
+  const {workspace,rootCanvas}=createWorkspace(); workspace.title='MRMIC NVCL Phase 9'; workspace.schemaVersion='0.10.0'; rootCanvas.title='Adaptive multimodal MCP canvas agent laboratory'
   const ledger=new SqliteEventLedger(options.databasePath??':memory:'); const recovered=ledger.latestSnapshot(workspace.id); const store=new CanvasStore(workspace,rootCanvas,{eventSink:ledger},recovered?.state); const adapter=new SvgCanvasAdapter(store,{x:0,y:0,width:1200,height:800,zoom:1})
   const syncLedger=new SqliteSyncUpdateLog(options.syncDatabasePath??':memory:'); const registry=new CanvasSyncRegistry({workspaceId:workspace.id,store,adapter,persistence:syncLedger}); const room=registry.roomFor(rootCanvas.id); const hub=registry.hubFor(rootCanvas.id); const roomId=room.roomId
-  const lab=new MultimodalCanvasLab({store,adapter,canvasId:rootCanvas.id,applyTransaction:async tx=>(await registry.roomFor(tx.canvasId).apply(registry.roomFor(tx.canvasId).nextUpdate('phase8-lab',tx))).result,replaceState:input=>registry.replaceAll('phase8-history',input)})
+  const lab=new MultimodalCanvasLab({store,adapter,canvasId:rootCanvas.id,applyTransaction:async tx=>(await registry.roomFor(tx.canvasId).apply(registry.roomFor(tx.canvasId).nextUpdate('phase9-lab',tx))).result,replaceState:input=>registry.replaceAll('phase9-history',input),leaseTtlMs:options.labLeaseTtlMs,now:options.now})
   const mcp=new McpReferenceCanvasServer({store,adapter,room,roomForCanvas:id=>registry.roomFor(id),syncHandleForCanvas:id=>registry.syncHandle(id),replaceState:(clientId,input)=>registry.replaceAll(clientId,input),ledger,workspaceId:workspace.id,rootCanvasId:rootCanvas.id,lab})
   let checkpointCounter=0; adapter.subscribe(delta=>{checkpointCounter+=1; ledger.saveSnapshot({snapshotId:`checkpoint-${Date.now()}-${checkpointCounter}`,workspaceId:workspace.id,canvasId:delta.canvasId,revision:delta.revision,state:store.snapshot()})})
   const nvclRuns=new Map<string,unknown>()
@@ -90,4 +90,5 @@ export const createPhase2Server=createPhase6Server
 export const createPhase1Server=createPhase6Server
 export const createPhase7Server=createPhase6Server
 export const createPhase8Server=createPhase6Server
-if(process.argv[1]?.endsWith('server.js')){const app=createPhase8Server({port:Number(process.env.PORT??4173),host:process.env.HOST??'127.0.0.1',databasePath:process.env.MRMIC_DB??':memory:',syncDatabasePath:process.env.MRMIC_SYNC_DB??':memory:'});app.start().then(({url})=>console.log(`MRMIC/NVCL Phase 8 pixel-native multimodal canvas lab running at ${url}`)).catch(error=>{console.error(error);process.exitCode=1})}
+export const createPhase9Server=createPhase6Server
+if(process.argv[1]?.endsWith('server.js')){const app=createPhase9Server({port:Number(process.env.PORT??4173),host:process.env.HOST??'127.0.0.1',databasePath:process.env.MRMIC_DB??':memory:',syncDatabasePath:process.env.MRMIC_SYNC_DB??':memory:'});app.start().then(({url})=>console.log(`MRMIC/NVCL Phase 9 adaptive multimodal canvas lab running at ${url}`)).catch(error=>{console.error(error);process.exitCode=1})}
