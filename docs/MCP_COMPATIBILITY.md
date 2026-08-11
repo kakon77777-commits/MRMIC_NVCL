@@ -1,17 +1,17 @@
 # MCP Compatibility
 
-Server version: `0.11.0`
+Server version: `0.12.0`
 
 ## Protocol boundary
 
-The current server implements a handwritten, stateful reference subset based on protocol revision `2025-11-25`. The finalized MCP `2026-07-28` specification uses a stateless core and is not implemented by this endpoint. Version `0.11.0` therefore does not claim latest-spec or formal conformance.
+The current server implements a handwritten, stateful reference subset based on protocol revision `2025-11-25`. The finalized MCP `2026-07-28` specification uses a stateless core and is not implemented by this endpoint. Version `0.12.0` therefore does not claim latest-spec or formal conformance.
 
 | Capability | Status | Notes |
 |---|---|---|
 | `initialize` | Implemented | Negotiates the legacy `2025-11-25` baseline |
 | Stateful session ID | Implemented | One runtime session per client |
 | `ping` | Implemented | Empty result |
-| `tools/list` | Implemented | 25 Canvas and Lab tools |
+| `tools/list` | Implemented | 26 Canvas and Lab tools |
 | `tools/call` | Implemented | Typed transaction, raster and lab-action bridge |
 | `resources/list` | Implemented | Stable canvas resources |
 | `resources/templates/list` | Implemented | Canvas, viewport, render, object, snapshot, SVG frame, PNG frame and raster templates |
@@ -29,12 +29,13 @@ The current server implements a handwritten, stateful reference subset based on 
 
 ## Application extensions
 
-Phase 10 exposes ten `lab.*` tools:
+Phase 11 exposes eleven `lab.*` tools:
 
 ```text
 lab.observe
 lab.observe_adaptive
 lab.observe_passive
+lab.rank_observation_policies
 lab.rasterize
 lab.act
 lab.undo
@@ -57,3 +58,5 @@ These are MRMIC application semantics carried over MCP; they do not modify the M
 `lab.observe_adaptive` keeps perceptual history inside one MCP session and one `governorId`. It is read-only with respect to canvas state, but it may create immutable frame/raster cache entries. Governor state is not shared across sessions and is discarded when the session closes.
 
 `lab.observe_passive` keeps a Passive Scene Timeline inside one MCP session and one `timelineId`. It supports sample, flush and reset. Returned events contain pixel/raster metadata and resource links but no object identifiers. Scheduler state is in-memory, session-local and discarded when the session closes.
+
+`lab.rank_observation_policies` is a pure application-level evaluator. It ranks one to four caller-supplied metric summaries with fixed documented weights. It does not inspect Lab state, create observations, call a Provider, mutate the canvas or grant action authority.

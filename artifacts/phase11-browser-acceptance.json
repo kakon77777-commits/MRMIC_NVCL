@@ -1,0 +1,28 @@
+{
+  "acceptance": "phase11-local-browser",
+  "date": "2026-08-11",
+  "browser": "Codex in-app browser",
+  "url": "http://127.0.0.1:4173/",
+  "title": "MRMIC／NVCL Phase 11 觀察策略 A/B 實驗室",
+  "result": "PASS",
+  "checks": {
+    "phaseIdentityVisible": true,
+    "pixelModeVisible": true,
+    "benchmarkReset": "PASS",
+    "realCanvasDrag": "PASS：目標完全位於框內",
+    "undo": "FAIL：中心距離 420",
+    "redo": "PASS：目標完全位於框內",
+    "freshnessAndTransitionGuard": "PASS",
+    "browserWarnings": 0,
+    "browserErrors": 0
+  },
+  "finalEvidence": {
+    "actionId": "phase11-redo-dbf0eae0-82d2-4d28-9f30-ac262371567a",
+    "freshness": "7 ms · fresh",
+    "beforeAfterFramePrefix": "ab43074b → e87b93fa",
+    "beforeAfterStateHashPrefix": "9902fdb9 → 99357156",
+    "revision": 2,
+    "status": "REDO 已完成"
+  },
+  "boundary": "This validates the local interactive canvas, guarded drag and reversible UI. It does not call a real multimodal Provider or validate arbitrary desktop/game input."
+}

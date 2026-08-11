@@ -40,6 +40,18 @@ export {
   type PassiveSceneBenchmarkRunnerOptions,
   type PassiveSceneBenchmarkStep,
 } from './passive-benchmark.js'
+export {
+  ObservationPolicyBenchmarkRunner,
+  rankObservationPolicies,
+  type ObservationPolicyActionStep,
+  type ObservationPolicyBenchmarkOptions,
+  type ObservationPolicyBenchmarkResult,
+  type ObservationPolicyDelivery,
+  type ObservationPolicyKind,
+  type ObservationPolicyRanking,
+  type ObservationPolicyScoreCard,
+  type ObservationPolicyScoreInput,
+} from './policy-benchmark.js'
 
 export interface ProviderUsage {
   inputTokens?: number
