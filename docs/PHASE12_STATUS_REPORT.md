@@ -2,7 +2,7 @@
 
 Date: 2026-08-12
 Version: `0.13.0`
-Status: `IMPLEMENTED_AND_LOCALLY_ACCEPTED`
+Status: `COMPLETED_AND_MERGED`
 
 ## Delivered
 
@@ -45,9 +45,13 @@ Governor reduced the fixture from 5 to 3 Provider calls, 104,313 to 58,010 total
 
 The first 50,000-threshold attempt safely stopped but revealed missing partial evidence. That defect was corrected before the completed run. The completed run also confirms `max-total-tokens` is a pre-call continuation threshold, not a strict post-call total cap.
 
-## Remaining release work
+## Release disposition
 
-- commit, push, PR/CI review and merge.
+- Source commit: `4ffcd92670befc0f79dc950f5ff699150350122d`
+- Pull request: `#5`
+- CI: two GitHub Actions `test` runs passed
+- Merge commit: `e6ec7fbd82ce553a46a3a57e0074eca0d10ecd3e`
+- Remote branch: `main`
 
 ## Evidence
 
