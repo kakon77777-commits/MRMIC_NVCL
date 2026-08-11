@@ -1,6 +1,6 @@
 # Multimodal Canvas Lab Contract
 
-Version: 0.12.0
+Version: 0.13.0
 
 ## 1. Observation modes
 

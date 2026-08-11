@@ -1,0 +1,48 @@
+{
+  "acceptance": "phase12-opt-in-real-provider-ab-readiness",
+  "date": "2026-08-12",
+  "status": "SUPERSEDED_BY_COMPLETED_RUN",
+  "inferenceCalls": 0,
+  "capabilityProbe": {
+    "provider": "openai_codex_account",
+    "appServer": "available",
+    "imageModels": [
+      "gpt-5.6-sol",
+      "gpt-5.6-terra",
+      "gpt-5.6-luna",
+      "gpt-5.5",
+      "gpt-5.4",
+      "gpt-5.4-mini"
+    ],
+    "selectedModel": "gpt-5.6-sol",
+    "credentialFilesAccessed": false
+  },
+  "offlineShapeValidation": {
+    "sourceTraceIdentical": true,
+    "actionPlanIdentical": true,
+    "samplesPerArm": 5,
+    "alwaysFullCalls": 5,
+    "governorRoiCalls": 3,
+    "callsSavedByGovernor": 2,
+    "semanticFixtureAccuracy": "8/8",
+    "freshnessPerArm": "2/2",
+    "transitionGuardsPerArm": "2/2",
+    "perCallUsageRequired": true,
+    "budgetStopsBeforeNextCall": true
+  },
+  "authorizationGate": {
+    "environmentAcknowledgementRequired": true,
+    "commandFlagRequired": true,
+    "exactProviderCallBudget": 8,
+    "positiveTokenBudgetRequired": true,
+    "unconfirmedInvocation": "DENIED",
+    "unconfirmedInferenceCalls": 0
+  },
+  "supersededBy": "artifacts/phase12-real-provider-ab.json",
+  "notYetEvidence": [
+    "real input/output/cached/reasoning Token counts",
+    "real Provider latency",
+    "real semantic classification accuracy",
+    "real Token savings between policy arms"
+  ]
+}

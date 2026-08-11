@@ -1,7 +1,7 @@
 # Codex Account Provider
 
 Status: Experimental local adapter  
-Version: 0.9.0
+Version: 0.13.0
 
 ## Purpose
 
@@ -16,8 +16,10 @@ The adapter:
 5. creates an ephemeral thread with `approvalPolicy: never`, read-only sandbox, no dynamic tools and no environments;
 6. sends one temporary PNG through `localImage`;
 7. requires a strict, flat Structured Output schema;
-8. normalizes the response into Pixel Gesture IR;
+8. normalizes action-planning responses into Pixel Gesture IR or observation responses into a strict visual-classification record;
 9. records only last-turn Token counts and removes the temporary image.
+
+Phase 12 adds `observeVisual`. It accepts a PNG-only `VisualObservationRequest`, emits color enum/visibility/confidence/summary, and has no route to `LabAction`. The expected evaluation label and policy-specific answer are not included in its prompt.
 
 ## Why the output schema is flat
 
@@ -28,8 +30,8 @@ The account endpoint rejected JSON Schema `oneOf` with `invalid_json_schema`. Th
 - The probe does not read credential files.
 - Reports do not contain image bytes, prompts, thread IDs, credentials or account identifiers.
 - The adapter uses the user's already authenticated local Codex installation.
-- Real inference is opt-in through `npm run phase8:codex`; it is excluded from normal automated tests.
+- Real inference is excluded from normal automated tests. Phase 8 retains its historical single-action command; Phase 12 multi-call A/B additionally requires exact environment acknowledgement, confirmation flag, eight-call cap and a positive Token continuation threshold.
 
 ## Compatibility boundary
 
-The App Server is an experimental local interface. The exact schema is generated from the installed CLI, not assumed to be a stable public API. The tested local build was `codex-cli 0.147.0-alpha.6.5`; a later CLI may require adapter changes.
+The App Server is an experimental local interface. The exact schema is generated from the installed CLI, not assumed to be a stable public API. Phase 12 therefore probes local account models and availability before a run instead of hardcoding the model list. A later CLI may require adapter changes.

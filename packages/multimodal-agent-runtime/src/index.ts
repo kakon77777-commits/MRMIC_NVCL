@@ -52,6 +52,24 @@ export {
   type ObservationPolicyScoreCard,
   type ObservationPolicyScoreInput,
 } from './policy-benchmark.js'
+export {
+  RealProviderABRunner,
+  authorizeRealProviderAB,
+  REAL_PROVIDER_AB_ACKNOWLEDGEMENT,
+  validateVisualObservationResponse,
+  type ProviderABLabSession,
+  type RealProviderABArmResult,
+  type RealProviderABAuthorization,
+  type RealProviderABAuthorizationInput,
+  type RealProviderABPolicy,
+  type RealProviderABResult,
+  type RealProviderABRunnerOptions,
+  type RealProviderABStep,
+  type VisualCircleState,
+  type VisualObservationProvider,
+  type VisualObservationRequest,
+  type VisualObservationResponse,
+} from './provider-ab.js'
 
 export interface ProviderUsage {
   inputTokens?: number

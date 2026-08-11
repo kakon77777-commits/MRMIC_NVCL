@@ -1,6 +1,6 @@
 {
   "name": "mrmic-nvcl-mvp",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "private": true,
   "type": "module",
   "packageManager": "npm@10.9.2",
@@ -37,6 +37,9 @@
     "phase9:demo": "npm run build && node --no-warnings dist/apps/phase9-demo/src/index.js",
     "phase10:demo": "npm run build && node --no-warnings dist/apps/phase10-demo/src/index.js",
     "phase11:demo": "npm run build && node --no-warnings dist/apps/phase11-demo/src/index.js",
+    "phase12:demo": "npm run build && node --no-warnings dist/apps/phase12-demo/src/index.js",
+    "phase12:probe": "npm run build && node --no-warnings dist/apps/phase12-demo/src/codex-ab.js --probe-only",
+    "phase12:codex-ab": "npm run build && node --no-warnings dist/apps/phase12-demo/src/codex-ab.js",
     "release:manifest": "node scripts/release-manifest.mjs",
     "release:verify": "node scripts/verify-release.mjs"
   },

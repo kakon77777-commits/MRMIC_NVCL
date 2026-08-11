@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import {
   CodexAccountMultimodalProvider,
   codexGestureOutputSchema,
+  codexVisualObservationOutputSchema,
   normalizeCodexUsage,
   resolveCodexExecutable,
 } from '../dist/packages/provider-codex-account/src/index.js'
@@ -32,6 +33,13 @@ test('Codex provider resolves only a versioned user-local executable and exposes
   assert.equal(JSON.stringify(schema).includes('oneOf'), false)
   assert.equal(JSON.stringify(schema).includes('objectId'), false)
   assert.match(JSON.stringify(schema), /normalized_frame/)
+
+  const observationSchema = codexVisualObservationOutputSchema()
+  assert.equal(observationSchema.type, 'object')
+  assert.equal(observationSchema.additionalProperties, false)
+  assert.deepEqual(observationSchema.properties.circleColor.enum, ['red', 'amber', 'other', 'not_visible'])
+  assert.equal(observationSchema.required.length, Object.keys(observationSchema.properties).length)
+  assert.equal(JSON.stringify(observationSchema).includes('objectId'), false)
 })
 
 test('Codex token telemetry is normalized without exposing thread totals', () => {

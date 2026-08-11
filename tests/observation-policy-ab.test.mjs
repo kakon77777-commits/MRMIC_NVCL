@@ -1,15 +1,15 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createPhase11Server } from '../dist/apps/web/src/server.js'
+import { createPhase12Server } from '../dist/apps/web/src/server.js'
 import {
   ObservationPolicyBenchmarkRunner,
 } from '../dist/packages/multimodal-agent-runtime/src/index.js'
 
-const policies = ['always_full', 'static_crop', 'governor_roi', 'passive_timeline']
+const policies = ['always_full', 'static_crop', 'governor_roi', 'passive_timeline', 'hybrid_transient']
 
 async function runPolicy(policy, seed = 42) {
   let clock = 2_000_000 + seed
-  const app = createPhase11Server({
+  const app = createPhase12Server({
     port: 0,
     databasePath: ':memory:',
     syncDatabasePath: ':memory:',
@@ -19,11 +19,11 @@ async function runPolicy(policy, seed = 42) {
     const runner = new ObservationPolicyBenchmarkRunner({
       lab: app.lab,
       policy,
-      timelineId: `phase11-${policy}-${seed}`,
+      timelineId: `phase12-${policy}-${seed}`,
       now: () => clock,
       advanceTime: milliseconds => { clock += milliseconds },
     })
-    return await runner.run({ runId: `phase11-${policy}-${seed}`, seed, seedClass: 'fixed' })
+    return await runner.run({ runId: `phase12-${policy}-${seed}`, seed, seedClass: 'fixed' })
   } finally {
     app.mcp.close()
     app.ledger.close()
@@ -31,7 +31,7 @@ async function runPolicy(policy, seed = 42) {
   }
 }
 
-test('four observation policies run an identical guarded trace with explicit cost and retention tradeoffs', async () => {
+test('five observation policies run an identical guarded trace with explicit cost and retention tradeoffs', async () => {
   const results = []
   for (const policy of policies) results.push(await runPolicy(policy))
   const comparison = JSON.stringify(results.map(result => ({
@@ -63,7 +63,8 @@ test('four observation policies run an identical guarded trace with explicit cos
   const staticCrop = results.find(result => result.policy === 'static_crop')
   const governor = results.find(result => result.policy === 'governor_roi')
   const passive = results.find(result => result.policy === 'passive_timeline')
-  assert.ok(always && staticCrop && governor && passive)
+  const hybrid = results.find(result => result.policy === 'hybrid_transient')
+  assert.ok(always && staticCrop && governor && passive && hybrid)
 
   assert.equal(always.deliveries, always.samples)
   assert.equal(always.deliveredBytes, always.alwaysFullBytes)
@@ -84,4 +85,10 @@ test('four observation policies run an identical guarded trace with explicit cos
   assert.ok(passive.deliveredBytes < governor.deliveredBytes, comparison)
   assert.equal(passive.transientStateRetained, false, comparison)
   assert.ok(passive.exactPostStatesRetained < governor.exactPostStatesRetained, comparison)
+
+  assert.ok(hybrid.deliveries < always.deliveries, comparison)
+  assert.ok(hybrid.deliveredBytes < always.deliveredBytes, comparison)
+  assert.equal(hybrid.transientStateRetained, true, comparison)
+  assert.ok(hybrid.exactPostStatesRetained >= passive.exactPostStatesRetained, comparison)
+  assert.ok(hybrid.deliveryTrace.some(delivery => delivery.reason === 'return_to_recent_visual_state'), comparison)
 })

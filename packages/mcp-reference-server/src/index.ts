@@ -26,7 +26,7 @@ import {
 
 export const MCP_PROTOCOL_VERSION = '2025-11-25'
 export const MCP_SERVER_NAME = 'mrmic-nvcl-canvas'
-export const MCP_SERVER_VERSION = '0.12.0'
+export const MCP_SERVER_VERSION = '0.13.0'
 
 type JsonRpcId = string | number | null
 interface JsonRpcRequest { jsonrpc: '2.0'; id?: JsonRpcId; method: string; params?: Record<string, unknown> }
@@ -225,6 +225,10 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         blockDifferenceThreshold: { type: 'number' }, keyframeInterval: { type: 'integer' },
         maxRoiFraction: { type: 'number' }, roiPaddingPx: { type: 'integer' },
         minimumRoiSize: { type: 'integer' },
+        boundaryMode: { type: 'string', enum: ['coalesce_only', 'transient_preserving'] },
+        transientReturnDifferenceThreshold: { type: 'number' },
+        transientPulseDifferenceThreshold: { type: 'number' },
+        transientReversalRatio: { type: 'number' },
       },
       additionalProperties: false,
     },
@@ -236,7 +240,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
       type: 'object', required: ['policies'],
       properties: {
         policies: {
-          type: 'array', minItems: 1, maxItems: 4,
+          type: 'array', minItems: 1, maxItems: 5,
           items: {
             type: 'object',
             required: [
@@ -245,7 +249,7 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
               'transientStateRetained', 'alwaysFullBytes', 'deliveredBytes',
             ],
             properties: {
-              policy: { type: 'string', enum: ['always_full', 'static_crop', 'governor_roi', 'passive_timeline'] },
+              policy: { type: 'string', enum: ['always_full', 'static_crop', 'governor_roi', 'passive_timeline', 'hybrid_transient'] },
               actions: { type: 'integer', minimum: 0 },
               transitionGuardsPassed: { type: 'integer', minimum: 0 },
               perceptualActions: { type: 'integer', minimum: 0 },
@@ -784,6 +788,10 @@ export class McpReferenceCanvasServer {
             coalesceWindowMs: asFinite(args.coalesceWindowMs, 'coalesceWindowMs', 250),
             maxCoalescedSamples: asInteger(args.maxCoalescedSamples, 'maxCoalescedSamples', 8),
             maxCoalescedRoiFraction: asFinite(args.maxCoalescedRoiFraction, 'maxCoalescedRoiFraction', 0.55),
+            boundaryMode: args.boundaryMode === 'transient_preserving' ? 'transient_preserving' : 'coalesce_only',
+            transientReturnDifferenceThreshold: asFinite(args.transientReturnDifferenceThreshold, 'transientReturnDifferenceThreshold', 0.0005),
+            transientPulseDifferenceThreshold: asFinite(args.transientPulseDifferenceThreshold, 'transientPulseDifferenceThreshold', 0.00005),
+            transientReversalRatio: asFinite(args.transientReversalRatio, 'transientReversalRatio', 0.2),
           })
           session.passiveSchedulers.set(timelineId, scheduler)
         }
@@ -798,10 +806,10 @@ export class McpReferenceCanvasServer {
       }
       case 'lab.rank_observation_policies': {
         const values = Array.isArray(args.policies) ? args.policies : []
-        if (!values.length || values.length > 4) {
-          return errorResult('INVALID_ARGUMENT', 'policies must contain between one and four results')
+        if (!values.length || values.length > 5) {
+          return errorResult('INVALID_ARGUMENT', 'policies must contain between one and five results')
         }
-        const allowed = new Set<ObservationPolicyKind>(['always_full', 'static_crop', 'governor_roi', 'passive_timeline'])
+        const allowed = new Set<ObservationPolicyKind>(['always_full', 'static_crop', 'governor_roi', 'passive_timeline', 'hybrid_transient'])
         const policies: ObservationPolicyScoreInput[] = values.map((value, index) => {
           const input = asRecord(value, `policies[${index}]`)
           const policy = asString(input.policy, `policies[${index}].policy`) as ObservationPolicyKind

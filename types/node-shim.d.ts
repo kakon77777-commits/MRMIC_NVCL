@@ -37,8 +37,10 @@ declare module 'node:fs' {
   export function existsSync(path: string): boolean
   export function readFileSync(path: string): Uint8Array
   export function writeFileSync(path: string, data: string | Uint8Array): void
+  export function writeFileSync(path: string, data: string | Uint8Array, encoding: string): void
   export function appendFileSync(path: string, data: string | Uint8Array): void
   export function unlinkSync(path: string): void
+  export function renameSync(oldPath: string, newPath: string): void
   export function readdirSync(path: string, options: { withFileTypes: true }): Array<{ name: string; isDirectory(): boolean }>
   export function statSync(path: string): { isFile(): boolean; mtimeMs: number }
 }
@@ -67,4 +69,5 @@ declare const process: {
   argv: string[]
   env: Record<string, string | undefined>
   exitCode?: number
+  exit(code?: number): never
 }

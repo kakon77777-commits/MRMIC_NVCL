@@ -1,0 +1,25 @@
+MRMIC/NVCL Phase 12 v0.13 local validation
+Date: 2026-08-12
+
+npm run check
+PASS
+
+npm test
+tests 75
+pass 75
+fail 0
+cancelled 0
+skipped 0
+todo 0
+duration_ms 61342.8766
+
+Additional acceptance:
+- five-policy MCP ranking: PASS
+- Phase 12 browser drag/undo/redo: PASS
+- browser warnings/errors: 0/0
+- real Codex Account Provider A/B: COMPLETED (8 calls)
+
+Canonical structured evidence:
+- artifacts/phase12-hybrid-benchmark.json
+- artifacts/phase12-browser-acceptance.json
+- artifacts/phase12-real-provider-ab.json

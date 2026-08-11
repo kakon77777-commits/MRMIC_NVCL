@@ -1,10 +1,10 @@
 # MCP Compatibility
 
-Server version: `0.12.0`
+Server version: `0.13.0`
 
 ## Protocol boundary
 
-The current server implements a handwritten, stateful reference subset based on protocol revision `2025-11-25`. The finalized MCP `2026-07-28` specification uses a stateless core and is not implemented by this endpoint. Version `0.12.0` therefore does not claim latest-spec or formal conformance.
+The current server implements a handwritten, stateful reference subset based on protocol revision `2025-11-25`. The finalized MCP `2026-07-28` specification uses a stateless core and is not implemented by this endpoint. Version `0.13.0` therefore does not claim latest-spec or formal conformance.
 
 | Capability | Status | Notes |
 |---|---|---|
@@ -29,7 +29,7 @@ The current server implements a handwritten, stateful reference subset based on 
 
 ## Application extensions
 
-Phase 11 exposes eleven `lab.*` tools:
+Phase 12 exposes eleven `lab.*` tools:
 
 ```text
 lab.observe
@@ -57,6 +57,8 @@ These are MRMIC application semantics carried over MCP; they do not modify the M
 
 `lab.observe_adaptive` keeps perceptual history inside one MCP session and one `governorId`. It is read-only with respect to canvas state, but it may create immutable frame/raster cache entries. Governor state is not shared across sessions and is discarded when the session closes.
 
-`lab.observe_passive` keeps a Passive Scene Timeline inside one MCP session and one `timelineId`. It supports sample, flush and reset. Returned events contain pixel/raster metadata and resource links but no object identifiers. Scheduler state is in-memory, session-local and discarded when the session closes.
+`lab.observe_passive` keeps a Passive Scene Timeline inside one MCP session and one `timelineId`. It supports sample, flush and reset. Phase 12 callers may opt into `boundaryMode: transient_preserving` plus bounded reversal thresholds. Returned events contain pixel/raster metadata, optional `return_to_recent_visual_state` boundary evidence and resource links but no object identifiers. Scheduler state is in-memory, session-local and discarded when the session closes.
 
-`lab.rank_observation_policies` is a pure application-level evaluator. It ranks one to four caller-supplied metric summaries with fixed documented weights. It does not inspect Lab state, create observations, call a Provider, mutate the canvas or grant action authority.
+`lab.rank_observation_policies` is a pure application-level evaluator. It ranks one to five caller-supplied metric summaries with fixed documented weights. It does not inspect Lab state, create observations, call a Provider, mutate the canvas or grant action authority.
+
+The real Provider A/B runner is deliberately not an MCP tool. Account-backed inference remains behind an explicit local CLI acknowledgement, confirmation flag, call cap and Token continuation threshold.

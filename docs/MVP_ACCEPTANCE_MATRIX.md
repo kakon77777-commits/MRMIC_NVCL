@@ -35,9 +35,14 @@
 | Tiny-motion and transient-event retention metrics | 11 | policy A/B test + benchmark artifact | Pass |
 | Cost, coverage and exact post-state metrics | 11 | `artifacts/phase11-observation-policy-ab.json` | Pass |
 | Read-only transparent MCP policy ranking | 11 | `tests/mcp.test.mjs` | Pass |
+| Transient-preserving A→B→A boundary | 12 | passive + MCP tests | Pass |
+| Five-policy identical source trace | 12 | `artifacts/phase12-hybrid-benchmark.json` | Pass |
+| Dual opt-in real Provider budget gate | 12 | `tests/provider-ab.test.mjs` | Pass |
+| Real Provider A/B source and semantic verification | 12 | `artifacts/phase12-real-provider-ab.json` | Pass |
+| Atomic partial evidence on real-run interruption | 12 | CLI checkpoint + attempt artifact | Pass |
 
 ```text
-Automated tests: 69 / 69 passed
+Automated tests: 75 / 75 passed
 Seeded Phase 9 observations: 27 / 27 classified
 Phase 9 Provider calls avoided: 12
 Phase 9 browser warnings/errors: 0 / 0
@@ -49,7 +54,14 @@ Phase 11 controlled runs: 8 / 8 completed
 Phase 11 action Freshness and Transition Guard: 22 / 22 per policy
 Phase 11 Governor ROI perceptual / exact retention: 21 / 21 and 21 / 21
 Phase 11 Passive Timeline exact retention: 6 / 21; transient not retained
+Phase 12 controlled runs: 10 / 10 completed
+Phase 12 Hybrid exact retention: 6 / 21; tested transient retained
+Phase 12 Hybrid deliveries / avoided: 8 / 20
+Phase 12 real Provider calls: 8 / 8 completed
+Phase 12 real semantic classifications: 8 / 8 correct
+Phase 12 real Freshness / Transition Guard: 4 / 4 and 4 / 4
+Phase 12 real total Tokens: always-full 104313; Governor ROI 58010
 Inherited real Provider actions: 1 / 1 verified
 ```
 
-Not claimed: real multi-call Token reduction, broad visual-agent generalization, arbitrary video/audio understanding, semantic narration, policy learning, deterministic cross-machine font rasterization, production security, official MCP conformance, MCP `2026-07-28` support, or transfer to uncontrolled games/desktops.
+Not claimed: broad visual-agent generalization, arbitrary video/audio understanding, semantic narration, policy learning, deterministic cross-machine font rasterization, production security, official MCP conformance, MCP `2026-07-28` support, or transfer to uncontrolled games/desktops.

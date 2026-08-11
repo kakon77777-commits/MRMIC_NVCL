@@ -1,0 +1,86 @@
+{
+  "benchmark": "phase12-transient-preserving-hybrid",
+  "protocolVersion": "mrmic-observation-policy-ab-v1",
+  "date": "2026-08-12",
+  "environment": "controlled synthetic canvas with isolated Lab per policy and injected deterministic clock",
+  "fixtures": [
+    {
+      "seed": 42,
+      "seedClass": "fixed",
+      "planSha256": "c1e9708490f083ef290869beaa26a700ad29c512ee649fbebbe9db1a410d17db",
+      "sourceTraceSha256": "b62020670a40f8f9f791bbb35d04da16d6927d9c98570089cd7152f4357f4322"
+    },
+    {
+      "seed": 9001,
+      "seedClass": "held_out",
+      "planSha256": "1e28c41699e79b4aca5c37d641c35f5dd9c730a87b39005437a48a7f76c8b9f3",
+      "sourceTraceSha256": "dcce4a8176aab72fa28ef1c26b55153c094528829c941e4f3637bf17764daf2c"
+    }
+  ],
+  "traceIdentity": {
+    "fivePoliciesMatchWithinEachFixture": true,
+    "fullPngAuditTraceUsed": true,
+    "actionsPerPolicy": 22,
+    "freshnessPassedPerPolicy": 22,
+    "transitionGuardsPassedPerPolicy": 22
+  },
+  "aggregate": {
+    "samplesPerPolicy": 28,
+    "alwaysFullBytesPerPolicy": 1489288,
+    "policies": [
+      {
+        "policy": "always_full",
+        "deliveries": 28,
+        "deliveredBytes": 1489288,
+        "savedPercent": 0,
+        "exactPostStatesRetained": 21,
+        "transientStateRetained": true
+      },
+      {
+        "policy": "static_crop",
+        "deliveries": 28,
+        "deliveredBytes": 376942,
+        "savedPercent": 74.68978464877176,
+        "exactPostStatesRetained": 16,
+        "transientStateRetained": true
+      },
+      {
+        "policy": "governor_roi",
+        "deliveries": 25,
+        "deliveredBytes": 491840,
+        "savedPercent": 66.97482286837737,
+        "exactPostStatesRetained": 21,
+        "transientStateRetained": true
+      },
+      {
+        "policy": "passive_timeline",
+        "deliveries": 8,
+        "deliveredBytes": 378922,
+        "savedPercent": 74.55683521253108,
+        "exactPostStatesRetained": 6,
+        "transientStateRetained": false,
+        "transientBoundaries": 0
+      },
+      {
+        "policy": "hybrid_transient",
+        "deliveries": 8,
+        "providerDeliveriesAvoided": 20,
+        "deliveredBytes": 301745,
+        "savedPercent": 79.73897594018081,
+        "exactPostStatesRetained": 6,
+        "transientStateRetained": true,
+        "transientBoundaries": 2,
+        "score": 0.7675292580322701,
+        "paretoOptimal": true
+      }
+    ],
+    "recommendedPolicy": "governor_roi"
+  },
+  "finding": "Hybrid preserves the A-B-A transient with the same delivery count as passive, but does not increase the total number of exact intermediate states retained.",
+  "boundary": {
+    "realProviderCalled": false,
+    "realTokenReductionMeasured": false,
+    "rankingAuthorizesActions": false,
+    "arbitraryVideoGameOrDesktopGeneralization": false
+  }
+}
