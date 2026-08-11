@@ -269,3 +269,25 @@ injectable clock / bounded sample loop
 The scheduler combines nearby local changes, but falls back to the latest full frame when any sample requires full delivery or the ROI union exceeds its area budget. Periodic keyframes resynchronize visual state without advancing scene epoch when the scene is static.
 
 `lab.observe_passive` stores one scheduler per MCP session and `timelineId`. The tool can sample, flush or reset, and remains read-only with respect to canvas state. Actions continue through the separate guarded action path with Action ID, frame freshness and Transition Guard.
+
+## Phase 11: Controlled Observation Policy A/B
+
+Phase 11 adds an evaluation layer around the existing Lab without changing canvas truth or input authority:
+
+```text
+seeded coordinate action plan
+        ├─ isolated always-full world
+        ├─ isolated static-crop world
+        ├─ isolated Governor-ROI world
+        └─ isolated Passive-Timeline world
+                    ↓
+        independent full-PNG audit per sample
+                    ↓
+ source identity + cost + coverage + retention
+                    ↓
+       pure, transparent policy ranking
+```
+
+Every world executes the same guarded action plan. The audit raster is always full-frame and is not controlled by the policy under test. This separates source identity from delivery selection and makes spatial omissions or burst coalescing visible.
+
+`lab.rank_observation_policies` evaluates only summaries supplied by the caller. It has no reference to `MultimodalCanvasLab`, creates no frame, changes no revision, invokes no Provider and cannot authorize an action.

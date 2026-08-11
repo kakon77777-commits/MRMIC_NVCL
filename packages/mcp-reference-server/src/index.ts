@@ -18,10 +18,15 @@ import { verifyCount, verifyInsideBounds, verifyMaxOverlap, type VerificationIss
 import type { LabAction, MultimodalCanvasLab, ObservationMode } from '../../multimodal-lab/src/index.js'
 import { ObservationGovernor } from '../../multimodal-agent-runtime/src/governor.js'
 import { PassiveObservationScheduler } from '../../multimodal-agent-runtime/src/passive.js'
+import {
+  rankObservationPolicies,
+  type ObservationPolicyKind,
+  type ObservationPolicyScoreInput,
+} from '../../multimodal-agent-runtime/src/policy-benchmark.js'
 
 export const MCP_PROTOCOL_VERSION = '2025-11-25'
 export const MCP_SERVER_NAME = 'mrmic-nvcl-canvas'
-export const MCP_SERVER_VERSION = '0.11.0'
+export const MCP_SERVER_VERSION = '0.12.0'
 
 type JsonRpcId = string | number | null
 interface JsonRpcRequest { jsonrpc: '2.0'; id?: JsonRpcId; method: string; params?: Record<string, unknown> }
@@ -220,6 +225,39 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
         blockDifferenceThreshold: { type: 'number' }, keyframeInterval: { type: 'integer' },
         maxRoiFraction: { type: 'number' }, roiPaddingPx: { type: 'integer' },
         minimumRoiSize: { type: 'integer' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'lab.rank_observation_policies', title: 'Rank controlled observation policies', readOnly: true,
+    description: 'Apply a transparent heuristic and Pareto check to supplied controlled-benchmark metrics. This pure comparison does not observe the canvas, call a Provider, or authorize actions.',
+    inputSchema: {
+      type: 'object', required: ['policies'],
+      properties: {
+        policies: {
+          type: 'array', minItems: 1, maxItems: 4,
+          items: {
+            type: 'object',
+            required: [
+              'policy', 'actions', 'transitionGuardsPassed', 'perceptualActions',
+              'perceptuallyDeliveredActions', 'exactPostStatesRetained',
+              'transientStateRetained', 'alwaysFullBytes', 'deliveredBytes',
+            ],
+            properties: {
+              policy: { type: 'string', enum: ['always_full', 'static_crop', 'governor_roi', 'passive_timeline'] },
+              actions: { type: 'integer', minimum: 0 },
+              transitionGuardsPassed: { type: 'integer', minimum: 0 },
+              perceptualActions: { type: 'integer', minimum: 0 },
+              perceptuallyDeliveredActions: { type: 'integer', minimum: 0 },
+              exactPostStatesRetained: { type: 'integer', minimum: 0 },
+              transientStateRetained: { type: 'boolean' },
+              alwaysFullBytes: { type: 'number', minimum: 0 },
+              deliveredBytes: { type: 'number', minimum: 0 },
+            },
+            additionalProperties: false,
+          },
+        },
       },
       additionalProperties: false,
     },
@@ -757,6 +795,33 @@ export class McpReferenceCanvasServer {
         const result = await scheduler.sample()
         const links = result.emitted.map(event => `lab://raster/${encodeURIComponent(event.raster.rasterId)}`)
         return okResult({ timelineId, ...result }, links)
+      }
+      case 'lab.rank_observation_policies': {
+        const values = Array.isArray(args.policies) ? args.policies : []
+        if (!values.length || values.length > 4) {
+          return errorResult('INVALID_ARGUMENT', 'policies must contain between one and four results')
+        }
+        const allowed = new Set<ObservationPolicyKind>(['always_full', 'static_crop', 'governor_roi', 'passive_timeline'])
+        const policies: ObservationPolicyScoreInput[] = values.map((value, index) => {
+          const input = asRecord(value, `policies[${index}]`)
+          const policy = asString(input.policy, `policies[${index}].policy`) as ObservationPolicyKind
+          if (!allowed.has(policy)) throw new Error(`policies[${index}].policy is unsupported`)
+          if (typeof input.transientStateRetained !== 'boolean') {
+            throw new Error(`policies[${index}].transientStateRetained must be boolean`)
+          }
+          return {
+            policy,
+            actions: Number(asInteger(input.actions, `policies[${index}].actions`)),
+            transitionGuardsPassed: Number(asInteger(input.transitionGuardsPassed, `policies[${index}].transitionGuardsPassed`)),
+            perceptualActions: Number(asInteger(input.perceptualActions, `policies[${index}].perceptualActions`)),
+            perceptuallyDeliveredActions: Number(asInteger(input.perceptuallyDeliveredActions, `policies[${index}].perceptuallyDeliveredActions`)),
+            exactPostStatesRetained: Number(asInteger(input.exactPostStatesRetained, `policies[${index}].exactPostStatesRetained`)),
+            transientStateRetained: input.transientStateRetained,
+            alwaysFullBytes: asFinite(input.alwaysFullBytes, `policies[${index}].alwaysFullBytes`, 0),
+            deliveredBytes: asFinite(input.deliveredBytes, `policies[${index}].deliveredBytes`, 0),
+          }
+        })
+        return okResult({ ranking: rankObservationPolicies(policies) })
       }
       case 'lab.rasterize': {
         const lab = this.#runtime.lab

@@ -36,10 +36,10 @@ test('MCP initialize, tool listing, resource listing, and resource reads work ov
   const app=createPhase3Server({port:0,databasePath:':memory:',syncDatabasePath:':memory:'}); const started=await app.start()
   try{
     const client=await createMcpClient(started.url)
-    const tools=await client.rpc('tools/list'); assert.equal(tools.result.tools.length,25); assert.ok(tools.result.tools.some(t=>t.name==='canvas.patch_objects')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe_adaptive')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe_passive')); assert.ok(tools.result.tools.some(t=>t.name==='lab.act')); assert.ok(tools.result.tools.some(t=>t.name==='lab.rasterize'))
+    const tools=await client.rpc('tools/list'); assert.equal(tools.result.tools.length,26); assert.ok(tools.result.tools.some(t=>t.name==='canvas.patch_objects')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe_adaptive')); assert.ok(tools.result.tools.some(t=>t.name==='lab.observe_passive')); assert.ok(tools.result.tools.some(t=>t.name==='lab.rank_observation_policies')); assert.ok(tools.result.tools.some(t=>t.name==='lab.act')); assert.ok(tools.result.tools.some(t=>t.name==='lab.rasterize'))
     const resources=await client.rpc('resources/list'); assert.equal(resources.result.resources.length,5)
     const uri=`canvas://workspace/${encodeURIComponent(app.workspace.id)}`
-    const read=await client.rpc('resources/read',{uri}); assert.equal(read.result.contents[0].mimeType,'application/json'); assert.match(read.result.contents[0].text,/MRMIC NVCL Phase 10/)
+    const read=await client.rpc('resources/read',{uri}); assert.equal(read.result.contents[0].mimeType,'application/json'); assert.match(read.result.contents[0].text,/MRMIC NVCL Phase 11/)
   }finally{await app.close()}
 })
 
@@ -99,6 +99,27 @@ test('passive MCP timelines remain pixel-only and isolated by session and reset'
     const flushed=await client.rpc('tools/call',{name:'lab.observe_passive',arguments:{timelineId:'watch',flush:true}})
     assert.deepEqual(flushed.result.structuredContent.data.emitted,[])
     assert.equal(flushed.result.structuredContent.data.stats.samples,1)
+  }finally{await app.close()}
+})
+
+test('viewer can rank supplied policy evidence without observing or mutating canvas state', async()=>{
+  const app=createPhase3Server({port:0,databasePath:':memory:',syncDatabasePath:':memory:'}); const started=await app.start()
+  try{
+    const client=await createMcpClient(started.url,'viewer','policy-ranker')
+    const beforeRevision=app.store.getCanvas(app.rootCanvas.id).revision
+    const call=await client.rpc('tools/call',{name:'lab.rank_observation_policies',arguments:{policies:[
+      {policy:'always_full',actions:10,transitionGuardsPassed:10,perceptualActions:10,perceptuallyDeliveredActions:10,exactPostStatesRetained:10,transientStateRetained:true,alwaysFullBytes:1000,deliveredBytes:1000},
+      {policy:'passive_timeline',actions:10,transitionGuardsPassed:10,perceptualActions:10,perceptuallyDeliveredActions:10,exactPostStatesRetained:7,transientStateRetained:false,alwaysFullBytes:1000,deliveredBytes:200},
+    ]}})
+    const ranking=call.result.structuredContent.data.ranking
+    assert.equal(call.result.isError,false)
+    assert.equal(ranking.protocolVersion,'mrmic-observation-policy-ranking-v1')
+    assert.equal(ranking.recommendedPolicy,'passive_timeline')
+    assert.equal(ranking.cards.length,2)
+    assert.equal(ranking.cards[0].score>ranking.cards[1].score,true)
+    assert.match(ranking.boundary,/does not authorize actions/)
+    assert.equal(app.store.getCanvas(app.rootCanvas.id).revision,beforeRevision)
+    assert.equal(app.lab.trajectory.length,0)
   }finally{await app.close()}
 })
 

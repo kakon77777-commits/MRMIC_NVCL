@@ -1,30 +1,32 @@
-# MRMIC／NVCL Phase 10 v0.11
+# MRMIC／NVCL Phase 11 v0.12
 
-Phase 10 把 Phase 9 的單次自適應觀察擴展成可持續運行的「被動場景時間線」（Passive Scene Timeline）。Runtime 可以在使用者沒有逐次提問時持續取樣畫布，將短時間內的視覺變化合併為 bounded event，維護 scene epoch，並以週期性完整 keyframe 限制漂移。
+Phase 11 把持續觀察從單一策略，提升成可重現的四策略 A/B 實驗。每個策略都在隔離畫布中重播相同 seed、相同座標動作與相同時間軸；獨立 audit lane 以完整 PNG SHA-256 證明來源畫面序列一致，再比較傳輸成本、可感知動作覆蓋、精確動作後狀態與瞬態事件保留。
 
 ```text
-fresh immutable pixel frame
-  → session-local Observation Governor
-  → keyframe / full frame / ROI / skip
-  → scene epoch + burst coalescing
-  → pixel-only Passive Scene Event
-  → Provider delivery only when an event is emitted
-  → guarded coordinate action
-  → freshness + before/after render hash + Transition Guard
+deterministic guarded action plan
+  → isolated world per policy
+  → independent full-PNG audit trace
+  ├─ always_full
+  ├─ static_crop
+  ├─ governor_roi
+  └─ passive_timeline
+       ↓
+cost + coverage + exact retention + transient retention
+       ↓
+transparent read-only ranking (never action authorization)
 ```
 
-## Phase 10 新增
+## Phase 11 新增
 
-- `PassiveObservationScheduler`：可注入 clock/sleep、可中止的持續取樣、手動 flush 與完整 reset。
-- Scene Epoch：只有達到治理門檻的初始畫面或可見變化才推進；純週期重新同步不偽造場景變化。
-- Burst Coalescing：短時間 ROI／full-frame 變化合併為一個事件，超出 ROI 面積預算時 fail-safe 回退到完整影格。
-- Pixel-only Event：Provider-safe 結果只含 frame/raster metadata、統計與資源 URI，不含 canvas object ID 或影像 base64。
-- `lab.observe_passive`：每個 MCP session／timeline 各自維護 scheduler；支援 sample、flush、reset。
-- 固定與 held-out 生成序列：drag、restyle、resize、type text、draw path、delete、pan、zoom。
-- Benchmark 每次動作都保存 action ID、freshness、Transition Guard 與前後 render SHA-256。
-- 修正 freehand SVG 重複 `fill` 屬性，使嚴格 PNG rasterizer 可穩定處理手繪路徑。
+- `ObservationPolicyBenchmarkRunner`：以相同的 11 動作序列比較四種觀察策略。
+- Audit lane：每次 sample 都保存完整 PNG hash，策略輸出無法改寫來源一致性證據。
+- Tiny motion 與 transient-on/transient-restore fixture：直接量測微小變化和短暫狀態是否被保留。
+- 明確成本／保留指標：delivery 次數、PNG bytes、perceptual coverage、exact post-state retention 與 transient retention。
+- `rankObservationPolicies`：公開固定權重和 Pareto 標記；只排名使用者提供的摘要，不讀畫布、不呼叫 Provider、不授權動作。
+- MCP `lab.rank_observation_policies`：viewer 可呼叫的唯讀純函式工具。
+- 兩個 seed、八個隔離 world 的可重播 Demo 與 JSON evidence。
 
-Phase 0–9 仍完整保留：typed canvas、SQLite recovery、同步、MCP Resources/Tools、flat/recursive NVCL、互動畫布、Undo/Redo、immutable PNG、pixel Gesture IR、Codex Account Provider、stale recovery、Observation Governor 與 Token budget。
+Phase 0–10 仍完整保留，包括 typed canvas、同步、MCP、NVCL、Undo/Redo、immutable PNG、pixel Gesture IR、Codex Account Provider、Observation Governor 與 Passive Scene Timeline。
 
 ## 執行
 
@@ -34,66 +36,46 @@ Phase 0–9 仍完整保留：typed canvas、SQLite recovery、同步、MCP Reso
 npm install
 npm run check
 npm test
-npm run phase10:demo
+npm run phase11:demo
 npm run lab
 ```
 
-互動畫布預設位於 `http://127.0.0.1:4173`。
-
-Phase 8 的真實 Codex Account 單動作驗收仍為 opt-in，因為會消耗帳戶容量：
+互動畫布預設位於 `http://127.0.0.1:4173`。Phase 8 真實 Codex Account 單動作驗收仍為會消耗帳戶容量的 opt-in：
 
 ```bash
 npm run phase8:codex
 ```
 
-## MCP 與 HTTP
+## MCP
 
-目前 reference server 提供 25 個工具：15 個 `canvas.*` 與 10 個 `lab.*`。Phase 10 新工具：
-
-```text
-lab.observe_passive
-  sample: 建立 pixel observation 並回傳本次 emitted events
-  flush: 只送出尚未結束的 burst
-  reset: 清除指定 session-local timeline 與 governor history
-```
-
-既有 Lab API：
+Reference server 現有 26 個工具：15 個 `canvas.*` 與 11 個 `lab.*`。Phase 11 新工具：
 
 ```text
-GET  /api/lab/observe?mode=pixel|hybrid|structured
-GET  /api/lab/frame/{frameId}.svg
-GET  /api/lab/frame/{frameId}.png
-GET  /api/lab/raster/{rasterId}.png
-POST /api/lab/action
-POST /api/lab/undo
-POST /api/lab/redo
-POST /api/lab/benchmark/reset
-GET  /api/lab/benchmark/verify
-GET  /api/lab/trajectory
-POST /mcp
-GET  /mcp
-WS   /sync?canvasId=<canvasId>
+lab.rank_observation_policies
+  input: 1–4 個已量測的 policy summary
+  output: 固定權重分數、Pareto 標記與 recommendation
+  side effects: 無畫布觀察、無狀態修改、無 Provider 呼叫、無動作授權
 ```
 
-## Phase 10 驗收摘要
+## Phase 11 驗收摘要
 
-- 固定 seeds：`7, 42, 2026`；held-out seeds：`9001, 65537`。
-- 5/5 runs PASS；40/40 freshness、40/40 Transition Guard。
-- 55 次取樣產生 20 個事件，合併 27 個樣本，避免 35 次 Provider 投遞。
-- PNG delivery：929,788 bytes；always-full baseline：2,914,396 bytes；減少 68.0967%。
-- 自動測試與真實瀏覽器驗收結果見 Phase 10 completion report 與 `artifacts/`。
+- 自動測試：69/69。
+- 2 個 seeds × 4 policies = 8 個隔離 runs；每個策略 22/22 Freshness、22/22 Transition Guard。
+- 所有策略的 action-plan SHA 與 full-PNG source-trace SHA 在各 seed 內一致。
+- `governor_roi`：25 次投遞、491,840 bytes、21/21 可感知動作、21/21 精確動作後狀態、瞬態保留；相較 always-full 省 66.9748%。
+- `passive_timeline`：8 次投遞、378,922 bytes、避免 20 次投遞；但只保留 6/21 精確動作後狀態，且瞬態狀態未保留。
+- 固定透明評分推薦 `governor_roi`；這是受控 fixture 的工程決策，不是普遍最優定理。
 
 ## 誠實邊界
 
-- 這是受控的合成畫布，不是任意影片、遊戲或桌面環境。
-- `skip` 表示低於目前 32×32 perceptual signature 的門檻，不表示世界絕對沒有變化；週期 keyframe 只能限制而不能消除漏失。
-- Draw-path 在部分 seeds 會被 perceptual governor 視為低於門檻，但其 action Transition Guard 仍可通過；這個差異被保留為證據，不包裝成全知偵測。
-- PNG byte reduction 不等於實測 Token reduction；Phase 10 沒有宣稱完成真實 multi-call Provider A/B。
-- 被動時間線目前沒有音訊、旁白、語義事件分類或策略學習。
-- MCP endpoint 仍是手寫的 stateful `2025-11-25` subset；尚未實作 finalized stateless `2026-07-28` core，也不宣稱正式 conformance。
-- 字型造成的 raster 差異仍可能跨機器變動。
+- 比較的是合成畫布與 PNG bytes，不是真實 Provider Token、快取計費或任意影音語義理解。
+- 所有策略雖共享同一 deterministic plan，但因物件 UUID 不同，跨 run 一致性使用完整 PNG SHA，而不是含 ID 的 SVG hash。
+- `static_crop` 的低 bytes 伴隨空間漏失；`passive_timeline` 的低投遞次數伴隨瞬態與精確中間狀態漏失。
+- 排名工具只評估已提供的數據，不能成為 SCL、Freshness Gate 或 action authorization 的輸入捷徑。
+- 目前仍沒有真實 multi-call Provider A/B、音訊、旁白、策略學習或非受控遊戲／桌面遷移證據。
+- MCP endpoint 仍是手寫 stateful `2025-11-25` subset；不宣稱 finalized stateless `2026-07-28` conformance。
 
-詳見 `docs/PASSIVE_SCENE_TIMELINE.md`、`docs/PHASE10_COMPLETION_REPORT.md`、`docs/ADR-010_PASSIVE_SCENE_TIMELINE.md` 與 `artifacts/phase10-passive-timeline-benchmark.json`。
+詳見 `docs/OBSERVATION_POLICY_AB.md`、`docs/PHASE11_COMPLETION_REPORT.md`、`docs/ADR-011_CONTROLLED_POLICY_AB.md` 與 `artifacts/phase11-observation-policy-ab.json`。
 
 ## License
 

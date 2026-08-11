@@ -31,9 +31,13 @@
 | Session-local pixel-only passive MCP timeline | 10 | MCP tests | Pass |
 | Fixed and held-out guarded multi-action timelines | 10 | `artifacts/phase10-passive-timeline-benchmark.json` | Pass |
 | Strict freehand SVG rasterization | 10 | adapter + generated benchmark tests | Pass |
+| Four policies replay an identical full-PNG source trace | 11 | `tests/observation-policy-ab.test.mjs` | Pass |
+| Tiny-motion and transient-event retention metrics | 11 | policy A/B test + benchmark artifact | Pass |
+| Cost, coverage and exact post-state metrics | 11 | `artifacts/phase11-observation-policy-ab.json` | Pass |
+| Read-only transparent MCP policy ranking | 11 | `tests/mcp.test.mjs` | Pass |
 
 ```text
-Automated tests: 67 / 67 passed
+Automated tests: 69 / 69 passed
 Seeded Phase 9 observations: 27 / 27 classified
 Phase 9 Provider calls avoided: 12
 Phase 9 browser warnings/errors: 0 / 0
@@ -41,6 +45,10 @@ Phase 10 generated runs: 5 / 5 passed
 Phase 10 actions with Freshness and Transition Guard: 40 / 40
 Phase 10 samples / emitted events: 55 / 20
 Phase 10 Provider deliveries avoided: 35
+Phase 11 controlled runs: 8 / 8 completed
+Phase 11 action Freshness and Transition Guard: 22 / 22 per policy
+Phase 11 Governor ROI perceptual / exact retention: 21 / 21 and 21 / 21
+Phase 11 Passive Timeline exact retention: 6 / 21; transient not retained
 Inherited real Provider actions: 1 / 1 verified
 ```
 

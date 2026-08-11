@@ -41,10 +41,10 @@ export function createRepairTransaction(store:CanvasStore,canvasId:string):Canva
 }
 
 export function createPhase6Server(options:Phase6ServerOptions={}){
-  const {workspace,rootCanvas}=createWorkspace(); workspace.title='MRMIC NVCL Phase 10'; workspace.schemaVersion='0.11.0'; rootCanvas.title='Passive scene timeline multimodal canvas laboratory'
+  const {workspace,rootCanvas}=createWorkspace(); workspace.title='MRMIC NVCL Phase 11'; workspace.schemaVersion='0.12.0'; rootCanvas.title='Controlled observation policy A/B multimodal canvas laboratory'
   const ledger=new SqliteEventLedger(options.databasePath??':memory:'); const recovered=ledger.latestSnapshot(workspace.id); const store=new CanvasStore(workspace,rootCanvas,{eventSink:ledger},recovered?.state); const adapter=new SvgCanvasAdapter(store,{x:0,y:0,width:1200,height:800,zoom:1})
   const syncLedger=new SqliteSyncUpdateLog(options.syncDatabasePath??':memory:'); const registry=new CanvasSyncRegistry({workspaceId:workspace.id,store,adapter,persistence:syncLedger}); const room=registry.roomFor(rootCanvas.id); const hub=registry.hubFor(rootCanvas.id); const roomId=room.roomId
-  const lab=new MultimodalCanvasLab({store,adapter,canvasId:rootCanvas.id,applyTransaction:async tx=>(await registry.roomFor(tx.canvasId).apply(registry.roomFor(tx.canvasId).nextUpdate('phase10-lab',tx))).result,replaceState:input=>registry.replaceAll('phase10-history',input),leaseTtlMs:options.labLeaseTtlMs,now:options.now})
+  const lab=new MultimodalCanvasLab({store,adapter,canvasId:rootCanvas.id,applyTransaction:async tx=>(await registry.roomFor(tx.canvasId).apply(registry.roomFor(tx.canvasId).nextUpdate('phase11-lab',tx))).result,replaceState:input=>registry.replaceAll('phase11-history',input),leaseTtlMs:options.labLeaseTtlMs,now:options.now})
   const mcp=new McpReferenceCanvasServer({store,adapter,room,roomForCanvas:id=>registry.roomFor(id),syncHandleForCanvas:id=>registry.syncHandle(id),replaceState:(clientId,input)=>registry.replaceAll(clientId,input),ledger,workspaceId:workspace.id,rootCanvasId:rootCanvas.id,lab})
   let checkpointCounter=0; adapter.subscribe(delta=>{checkpointCounter+=1; ledger.saveSnapshot({snapshotId:`checkpoint-${Date.now()}-${checkpointCounter}`,workspaceId:workspace.id,canvasId:delta.canvasId,revision:delta.revision,state:store.snapshot()})})
   const nvclRuns=new Map<string,unknown>()
@@ -92,4 +92,5 @@ export const createPhase7Server=createPhase6Server
 export const createPhase8Server=createPhase6Server
 export const createPhase9Server=createPhase6Server
 export const createPhase10Server=createPhase6Server
-if(process.argv[1]?.endsWith('server.js')){const app=createPhase10Server({port:Number(process.env.PORT??4173),host:process.env.HOST??'127.0.0.1',databasePath:process.env.MRMIC_DB??':memory:',syncDatabasePath:process.env.MRMIC_SYNC_DB??':memory:'});app.start().then(({url})=>console.log(`MRMIC/NVCL Phase 10 passive scene timeline lab running at ${url}`)).catch(error=>{console.error(error);process.exitCode=1})}
+export const createPhase11Server=createPhase6Server
+if(process.argv[1]?.endsWith('server.js')){const app=createPhase11Server({port:Number(process.env.PORT??4173),host:process.env.HOST??'127.0.0.1',databasePath:process.env.MRMIC_DB??':memory:',syncDatabasePath:process.env.MRMIC_SYNC_DB??':memory:'});app.start().then(({url})=>console.log(`MRMIC/NVCL Phase 11 observation policy A/B lab running at ${url}`)).catch(error=>{console.error(error);process.exitCode=1})}

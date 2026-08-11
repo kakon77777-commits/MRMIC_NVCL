@@ -1,17 +1,17 @@
 # Next Phase
 
-Phase 10 v0.11 establishes persistent pixel sampling, scene epochs, bounded burst coalescing, periodic resynchronization, generated held-out multi-action timelines and a session-local MCP control surface. Phase 11 should test semantic usefulness and real Provider cost without expanding to uncontrolled desktops or games yet.
+Phase 11 v0.12 establishes a pixel-identical four-policy A/B harness and shows the central tradeoff directly: Passive Timeline minimizes delivery count but loses transient and exact intermediate states, while Governor ROI preserves the tested transitions at higher delivery cost.
 
-Recommended order:
+Recommended Phase 12 order:
 
-1. Build identical multi-step tasks for always-full, static crop, Governor ROI and Passive Timeline policies.
-2. Run an opt-in real Provider A/B with measured input/output Token, latency, cache behavior and verified task outcome.
-3. Add tiny-motion and transient-event fixtures, then compare denser signatures, image pyramids and motion-aware sampling.
-4. Introduce a separate semantic event classifier that consumes Passive Scene Events but cannot authorize actions.
-5. Add timestamped synthetic audio observations and optional narration scheduling; retain opt-in audio and copyright-safe evidence boundaries.
-6. Persist bounded timeline metadata with explicit retention and deletion controls; do not persist raw copyrighted frames by default.
-7. Calibrate Provider confidence separately from SCL/action authorization.
+1. Add an opt-in real Provider A/B for `always_full` versus `governor_roi`, measuring input/output Token, latency, cache behavior, semantic answer quality and verified outcome.
+2. Prototype a transient-preserving hybrid: immediately emit high-salience or direction-reversing changes while still coalescing ordinary bursts.
+3. Compare denser signatures, multiscale pyramids and motion-aware sampling on the existing tiny-motion fixture before changing defaults.
+4. Add a separate semantic event classifier that consumes immutable observation events but cannot authorize actions.
+5. Calibrate Provider confidence, semantic salience and SCL/action authorization as separate signals.
+6. Add timestamped synthetic audio and opt-in narration scheduling only after visual event retention is explicit; preserve copyright-safe evidence defaults.
+7. Persist bounded timeline metadata with retention/deletion controls and no raw copyrighted frames by default.
 8. Implement a separate MCP `2026-07-28` stateless adapter and conformance suite while retaining the legacy endpoint.
-9. Only after the controlled canvas A/B is stable, reuse the same event contract in MSSP game/desktop experiments.
+9. Reuse the contract in MSSP game/desktop experiments only after controlled Provider A/B and transient-preserving policy tests pass.
 
 Productization remains separate: authentication, rate limits, multi-tenant isolation, deterministic fonts, data retention policy, official SDK integration and independent security review.

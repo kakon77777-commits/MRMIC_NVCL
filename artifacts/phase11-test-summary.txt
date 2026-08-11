@@ -1,0 +1,14 @@
+MRMIC/NVCL Phase 11 v0.12.0 automated verification
+Command: npm test
+Result: PASS
+Tests: 69
+Passed: 69
+Failed: 0
+Skipped: 0
+Duration: 45178.0863 ms
+
+Phase 11 policy A/B test:
+- Four policies replayed an identical guarded full-PNG source trace.
+- Duration: 44720.663 ms
+
+Recorded on: 2026-08-11 Asia/Taipei
