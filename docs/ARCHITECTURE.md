@@ -249,3 +249,23 @@ The signature and changed-block map never cross the Provider boundary. A Provide
 Freshness now includes the exact viewport tuple. If an action is rejected because its frame is stale, the Runtime stores the rejection, obtains a new pixel frame, forces a keyframe and asks the Provider to regenerate. It never replays coordinates from the rejected frame.
 
 MCP exposes the same policy through `lab.observe_adaptive`. Governor state is isolated per MCP session and `governorId`; it is not global canvas truth.
+
+## Phase 10: Passive Scene Timeline
+
+Phase 10 adds a wall-clock observation scheduler above the Governor without coupling observation to action authority:
+
+```text
+injectable clock / bounded sample loop
+        → pixel observation
+        → Observation Governor
+        ├─ skip → retain no Provider delivery
+        └─ ROI / full / keyframe
+              → scene epoch accounting
+              → bounded burst coalescing
+              → Passive Scene Event metadata
+              → lab://raster resource on demand
+```
+
+The scheduler combines nearby local changes, but falls back to the latest full frame when any sample requires full delivery or the ROI union exceeds its area budget. Periodic keyframes resynchronize visual state without advancing scene epoch when the scene is static.
+
+`lab.observe_passive` stores one scheduler per MCP session and `timelineId`. The tool can sample, flush or reset, and remains read-only with respect to canvas state. Actions continue through the separate guarded action path with Action ID, frame freshness and Transition Guard.

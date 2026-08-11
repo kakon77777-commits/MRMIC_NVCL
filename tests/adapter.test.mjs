@@ -60,3 +60,22 @@ test('adapter supports local query and viewport state', async () => {
   await adapter.setViewport({ x: -100, y: -50, width: 900, height: 600, zoom: 1.5 })
   assert.deepEqual(await adapter.getViewport(), { x: -100, y: -50, width: 900, height: 600, zoom: 1.5 })
 })
+
+test('freehand SVG emits each style attribute once for strict rasterizers', async () => {
+  const { adapter } = setup()
+  const object = {
+    ...rectangle('path-1'),
+    type: 'freehand',
+    style: { fill: 'none', stroke: '#0f766e', strokeWidth: 6 },
+    content: { pathData: 'M 20 30 L 80 90 L 140 40' },
+  }
+  await adapter.applyTransaction({
+    id: 'tx-freehand', canvasId: 'root', actor, intent: 'strict raster SVG', preconditions: [],
+    operations: [{ op: 'create_object', object }], mode: 'direct', createdAt: now,
+  })
+  const result = await adapter.render({ canvasId: 'root', includeGrid: false })
+  const path = result.svg.match(/<path data-object-id="path-1"[^>]+\/>/)?.[0]
+  assert.ok(path)
+  assert.equal(path.match(/ fill=/g)?.length, 1)
+  assert.equal(path.match(/ stroke=/g)?.length, 1)
+})

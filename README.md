@@ -1,61 +1,68 @@
-# MRMIC／NVCL Phase 9 v0.10
+# MRMIC／NVCL Phase 10 v0.11
 
-Phase 9 turns the pixel-native loop into an adaptive sustained-observation Runtime.
+Phase 10 把 Phase 9 的單次自適應觀察擴展成可持續運行的「被動場景時間線」（Passive Scene Timeline）。Runtime 可以在使用者沒有逐次提問時持續取樣畫布，將短時間內的視覺變化合併為 bounded event，維護 scene epoch，並以週期性完整 keyframe 限制漂移。
 
 ```text
 fresh immutable pixel frame
-  → keyframe / full frame / ROI / skip governor
-  → provider-neutral pixel request when pixels are needed (no object IDs)
-  → normalized or pixel Gesture IR
-  → viewport-bound coordinate projection and runtime hit-test
-  → guarded transaction
-  → stale rejection and fresh keyframe regeneration
-  → before/after render evidence
-  → structured oracle verification
-  → Token budget, latency, correction and observation-policy metrics
+  → session-local Observation Governor
+  → keyframe / full frame / ROI / skip
+  → scene epoch + burst coalescing
+  → pixel-only Passive Scene Event
+  → Provider delivery only when an event is emitted
+  → guarded coordinate action
+  → freshness + before/after render hash + Transition Guard
 ```
 
-## Phase 9 additions
+## Phase 10 新增
 
-- Trusted 32×32 RGB perceptual signatures without exposing object structure.
-- Observation Governor with static-frame skip, localized ROI, full-frame fallback and periodic keyframes.
-- Session-local adaptive observation through the read-only MCP tool `lab.observe_adaptive`.
-- Token-budget stop before a subsequent Provider call.
-- Stale decisions are recorded, rejected and regenerated from a fresh forced keyframe; old coordinates are never replayed.
-- Freshness now binds lease, canvas, revision, state hash and the complete viewport tuple.
-- Seeded sustained-observation benchmark with release-safe aggregate evidence.
+- `PassiveObservationScheduler`：可注入 clock/sleep、可中止的持續取樣、手動 flush 與完整 reset。
+- Scene Epoch：只有達到治理門檻的初始畫面或可見變化才推進；純週期重新同步不偽造場景變化。
+- Burst Coalescing：短時間 ROI／full-frame 變化合併為一個事件，超出 ROI 面積預算時 fail-safe 回退到完整影格。
+- Pixel-only Event：Provider-safe 結果只含 frame/raster metadata、統計與資源 URI，不含 canvas object ID 或影像 base64。
+- `lab.observe_passive`：每個 MCP session／timeline 各自維護 scheduler；支援 sample、flush、reset。
+- 固定與 held-out 生成序列：drag、restyle、resize、type text、draw path、delete、pan、zoom。
+- Benchmark 每次動作都保存 action ID、freshness、Transition Guard 與前後 render SHA-256。
+- 修正 freehand SVG 重複 `fill` 屬性，使嚴格 PNG rasterizer 可穩定處理手繪路徑。
 
-Phases 0–8 remain available: typed canvas state, SQLite recovery, synchronization, MCP Resources/Tools, flat and recursive NVCL, browser drawing, freshness guards, Undo/Redo, immutable PNG rasterization, pixel Gesture IR and the real Codex Account one-action loop.
+Phase 0–9 仍完整保留：typed canvas、SQLite recovery、同步、MCP Resources/Tools、flat/recursive NVCL、互動畫布、Undo/Redo、immutable PNG、pixel Gesture IR、Codex Account Provider、stale recovery、Observation Governor 與 Token budget。
 
-## Run
+## 執行
 
-Requirements: Node.js 22.5+ and npm 10+.
+需求：Node.js 22.5+、npm 10+。
 
 ```bash
 npm install
 npm run check
 npm test
-npm run phase9:demo
+npm run phase10:demo
 npm run lab
 ```
 
-Open `http://127.0.0.1:4173` for the interactive laboratory.
+互動畫布預設位於 `http://127.0.0.1:4173`。
 
-The inherited Phase 8 real account-backed acceptance remains opt-in because it consumes account capacity:
+Phase 8 的真實 Codex Account 單動作驗收仍為 opt-in，因為會消耗帳戶容量：
 
 ```bash
 npm run phase8:codex
 ```
 
-The Provider uses an ephemeral read-only Codex thread, enables no dynamic tools, writes one bounded temporary PNG, and removes it in `finally`.
+## MCP 與 HTTP
 
-## Phase 9 endpoints
+目前 reference server 提供 25 個工具：15 個 `canvas.*` 與 10 個 `lab.*`。Phase 10 新工具：
+
+```text
+lab.observe_passive
+  sample: 建立 pixel observation 並回傳本次 emitted events
+  flush: 只送出尚未結束的 burst
+  reset: 清除指定 session-local timeline 與 governor history
+```
+
+既有 Lab API：
 
 ```text
 GET  /api/lab/observe?mode=pixel|hybrid|structured
 GET  /api/lab/frame/{frameId}.svg
 GET  /api/lab/frame/{frameId}.png
-GET  /api/lab/frame/{frameId}.png?x=40&y=140&width=700&height=300
 GET  /api/lab/raster/{rasterId}.png
 POST /api/lab/action
 POST /api/lab/undo
@@ -68,29 +75,26 @@ GET  /mcp
 WS   /sync?canvasId=<canvasId>
 ```
 
-The MCP reference server exposes 24 tools: 15 `canvas.*` tools and nine `lab.*` tools, including `lab.rasterize` and session-local `lab.observe_adaptive`.
+## Phase 10 驗收摘要
 
-## Validation
+- 固定 seeds：`7, 42, 2026`；held-out seeds：`9001, 65537`。
+- 5/5 runs PASS；40/40 freshness、40/40 Transition Guard。
+- 55 次取樣產生 20 個事件，合併 27 個樣本，避免 35 次 Provider 投遞。
+- PNG delivery：929,788 bytes；always-full baseline：2,914,396 bytes；減少 68.0967%。
+- 自動測試與真實瀏覽器驗收結果見 Phase 10 completion report 與 `artifacts/`。
 
-- TypeScript strict build: PASS.
-- Automated tests: 61/61 PASS.
-- Three seeded sustained runs: 27 observations, 12 Provider calls avoided.
-- Governed PNG payload: 529,716 bytes versus 1,505,658 always-full bytes, a 64.8183% reduction in this synthetic sequence.
-- Real Phase 9 browser reset and viewport transition: Freshness/Transition Guard PASS; console 0 warnings and 0 errors.
-- Phase 8 real Codex Account one-action evidence remains inherited PASS evidence.
+## 誠實邊界
 
-See `docs/PHASE9_COMPLETION_REPORT.md`, `docs/OBSERVATION_GOVERNOR.md`, `docs/ADR-009_ADAPTIVE_OBSERVATION_GOVERNOR.md`, and `artifacts/phase9-governor-benchmark.json`.
+- 這是受控的合成畫布，不是任意影片、遊戲或桌面環境。
+- `skip` 表示低於目前 32×32 perceptual signature 的門檻，不表示世界絕對沒有變化；週期 keyframe 只能限制而不能消除漏失。
+- Draw-path 在部分 seeds 會被 perceptual governor 視為低於門檻，但其 action Transition Guard 仍可通過；這個差異被保留為證據，不包裝成全知偵測。
+- PNG byte reduction 不等於實測 Token reduction；Phase 10 沒有宣稱完成真實 multi-call Provider A/B。
+- 被動時間線目前沒有音訊、旁白、語義事件分類或策略學習。
+- MCP endpoint 仍是手寫的 stateful `2025-11-25` subset；尚未實作 finalized stateless `2026-07-28` core，也不宣稱正式 conformance。
+- 字型造成的 raster 差異仍可能跨機器變動。
 
-## Honest boundary
-
-- The benchmark is a controlled synthetic sequence, not arbitrary video, a game or a desktop benchmark.
-- The structured oracle verifies results but is never sent to the pixel Provider.
-- PNG payload reduction is not a measured Token reduction; no real multi-call Provider A/B was run in Phase 9.
-- The 32×32 nearest-sampled signature may miss tiny or transient changes; periodic keyframes only bound this risk.
-- Raster output can vary across machines when system fonts differ.
-- The MCP server remains a handwritten `2025-11-25` stateful subset. It has not migrated to the finalized stateless `2026-07-28` core and does not claim formal conformance.
-- Recorded trajectories are evidence, not policy learning.
+詳見 `docs/PASSIVE_SCENE_TIMELINE.md`、`docs/PHASE10_COMPLETION_REPORT.md`、`docs/ADR-010_PASSIVE_SCENE_TIMELINE.md` 與 `artifacts/phase10-passive-timeline-benchmark.json`。
 
 ## License
 
-See `LICENSE`, `NOTICE.md`, and `THIRD_PARTY_NOTICES.md`.
+見 `LICENSE`、`NOTICE.md` 與 `THIRD_PARTY_NOTICES.md`。
