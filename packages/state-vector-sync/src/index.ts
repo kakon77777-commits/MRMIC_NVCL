@@ -3,6 +3,7 @@ import type { SerializedCanvasState } from '../../canvas-core/src/index.js'
 import type { CanvasTransaction, TransactionResult } from '../../canvas-schema/src/index.js'
 
 export type StateVector = Record<string, number>
+export type PresenceIdentityStatus = 'legacy' | 'local_ui' | 'verified'
 
 export interface PresenceState {
   clientId: string
@@ -14,6 +15,9 @@ export interface PresenceState {
   viewport?: { x: number; y: number; width: number; height: number; zoom: number }
   selectedObjectIds?: string[]
   task?: string
+  identityStatus?: PresenceIdentityStatus
+  principalId?: string
+  semanticAgentId?: string
   updatedAt: string
 }
 
@@ -160,7 +164,10 @@ export class StateVectorSyncRoom {
   }
 
   setPresence(state: PresenceState): void {
-    if (state.clientId.length === 0) throw new Error('presence clientId is required')
+    if (typeof state.clientId !== 'string' || state.clientId.length === 0) throw new Error('presence clientId is required')
+    if (!['user', 'agent', 'system'].includes(state.actorType)) throw new Error('presence actorType is invalid')
+    if (typeof state.actorId !== 'string' || state.actorId.length === 0) throw new Error('presence actorId is required')
+    if (typeof state.label !== 'string' || state.label.length === 0) throw new Error('presence label is required')
     const normalized = { ...structuredClone(state), updatedAt: new Date().toISOString() }
     this.#presence.set(state.clientId, normalized)
     this.#emit({ type: 'presence', presence: normalized })
