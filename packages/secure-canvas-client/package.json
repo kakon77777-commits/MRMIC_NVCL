@@ -1,0 +1,6 @@
+{
+  "name": "@mrmic/secure-canvas-client",
+  "version": "0.13.5",
+  "private": true,
+  "type": "module"
+}
