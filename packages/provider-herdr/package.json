@@ -1,0 +1,6 @@
+{
+  "name": "@mrmic/provider-herdr",
+  "version": "0.13.3",
+  "private": true,
+  "type": "module"
+}
