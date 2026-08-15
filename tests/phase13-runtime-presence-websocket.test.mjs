@@ -42,14 +42,22 @@ async function createRuntimeServer(){
   const resolver=new StaticBearerIdentityResolver(bindings)
   const hub=new CanvasWebSocketHub(room,{identityResolver:resolver,allowAnonymousUserPresence:false,runtimePresenceRegistry:runtimePresence})
   const server=createServer((_request,response)=>{response.statusCode=404;response.end()})
-  server.on('upgrade',(request,socket,head)=>hub.handleUpgrade(request,socket,head))
+  const upgradedSockets=new Set()
+  server.on('upgrade',(request,socket,head)=>{
+    upgradedSockets.add(socket)
+    socket.on('close',()=>upgradedSockets.delete(socket))
+    hub.handleUpgrade(request,socket,head)
+  })
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve)})
   const address=server.address()
   if(!address||typeof address==='string')throw new Error('test server did not expose a TCP address')
   return {
     store,room,hub,runtimePresence,server,
     url:`ws://127.0.0.1:${address.port}/sync`,
-    close:()=>new Promise(resolve=>server.close(()=>resolve())),
+    close:async()=>{
+      for(const socket of upgradedSockets){try{socket.destroy()}catch{}}
+      await new Promise(resolve=>server.close(()=>resolve()))
+    },
   }
 }
 
