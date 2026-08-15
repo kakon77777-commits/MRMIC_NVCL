@@ -151,7 +151,10 @@ export class CanvasWebSocketHub {
         peer.principal=resolved
       }
       const vector=(message.stateVector??{}) as StateVector
-      if(message.presence) this.#room.setPresence(bindPresenceToPrincipal(message.presence,peer.clientId,peer.principal,this.#allowAnonymousUserPresence))
+      if(message.presence) {
+        if(this.#identityResolver) this.#room.setPresence(bindPresenceToPrincipal(message.presence,peer.clientId,peer.principal,this.#allowAnonymousUserPresence))
+        else this.#room.setPresence(message.presence as PresenceState)
+      }
       this.send(peer,{type:'hello_ack',roomId:this.#room.roomId,stateVector:this.#room.stateVector(),missingUpdates:this.#room.diff(vector),presence:this.#room.presenceSnapshot(),identity:peer.principal?{verified:true,principalId:peer.principal.principalId,semanticAgentId:peer.principal.semanticAgentId??null}:{verified:false}}); return
     }
     if(message.type==='update'){
@@ -168,7 +171,9 @@ export class CanvasWebSocketHub {
     }
     if(message.type==='presence'){
       if(!peer.clientId) throw new Error('hello is required before presence updates')
-      this.#room.setPresence(bindPresenceToPrincipal(message.presence,peer.clientId,peer.principal,this.#allowAnonymousUserPresence)); return
+      if(this.#identityResolver) this.#room.setPresence(bindPresenceToPrincipal(message.presence,peer.clientId,peer.principal,this.#allowAnonymousUserPresence))
+      else this.#room.setPresence(message.presence as PresenceState)
+      return
     }
     if(message.type==='ping'){ this.send(peer,{type:'pong',at:new Date().toISOString()}); return }
     throw new Error(`Unknown sync message type: ${String(message.type)}`)
