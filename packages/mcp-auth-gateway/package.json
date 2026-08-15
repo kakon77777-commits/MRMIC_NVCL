@@ -1,0 +1,6 @@
+{
+  "name": "@mrmic/mcp-auth-gateway",
+  "version": "0.13.1",
+  "private": true,
+  "type": "module"
+}
