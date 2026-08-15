@@ -36,9 +36,10 @@ test('CTCL registered instant becomes an optional stable temporal Canvas portal'
   assert.equal(object.content.resourceUri.startsWith('ctcl://instant/'), true)
   assert.deepEqual(resourcePortalDescriptor(object), {
     portalId: 'instant-decision', pmwWorkspaceId: 'pmw-ws', pmwTaskId: 'pmw-task',
-    provider: 'ctcl', resourceKind: 'temporal_instant',
+    provider: 'ctcl', resourceKind: 'external_generic',
     providerResourceId: instant().id, displayMode: 'summary', interactionMode: 'inspect',
   })
+  assert.equal(object.metadata.providerRef.kind, 'ctcl_instant')
   assert.equal(object.metadata.providerRef.unixNs, '1786784400000000000')
 })
 
