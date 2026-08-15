@@ -5,6 +5,11 @@ import {
   type AuthenticatedPrincipal,
   type IdentityResolver,
 } from '../../identity-auth/src/index.js'
+import {
+  RuntimePresenceRegistry,
+  type RuntimePresenceInput,
+  type RuntimePresenceState,
+} from '../../runtime-presence/src/index.js'
 
 interface SocketLike { write(data: string | Uint8Array): void; end(): void; destroy(): void; on(event: string, listener: (...args: any[]) => void): void }
 interface Peer { clientId?: string; socket: SocketLike; buffer: Uint8Array; principal?: AuthenticatedPrincipal }
@@ -12,6 +17,7 @@ interface Peer { clientId?: string; socket: SocketLike; buffer: Uint8Array; prin
 export interface CanvasWebSocketHubOptions {
   identityResolver?: IdentityResolver
   allowAnonymousUserPresence?: boolean
+  runtimePresenceRegistry?: RuntimePresenceRegistry
 }
 
 function acceptKey(key: string): string {
@@ -109,11 +115,13 @@ export class CanvasWebSocketHub {
   readonly #peers = new Set<Peer>()
   readonly #identityResolver?: IdentityResolver
   readonly #allowAnonymousUserPresence: boolean
+  readonly #runtimePresence: RuntimePresenceRegistry
 
   constructor(room: StateVectorSyncRoom, options: CanvasWebSocketHubOptions = {}) {
     this.#room=room
     this.#identityResolver=options.identityResolver
     this.#allowAnonymousUserPresence=options.allowAnonymousUserPresence ?? true
+    this.#runtimePresence=options.runtimePresenceRegistry ?? new RuntimePresenceRegistry()
     room.subscribe(event=>{
       if(event.type==='update') this.broadcast({type:'update',update:event.update,stateVector:room.stateVector()})
       else if(event.type==='presence') this.broadcast({type:'presence',presence:event.presence})
@@ -138,6 +146,7 @@ export class CanvasWebSocketHub {
   broadcast(payload:unknown, except?:Peer):void { for(const peer of this.#peers) if(peer!==except) this.send(peer,payload) }
   send(peer:Peer,payload:unknown):void { peer.socket.write(frameText(JSON.stringify(payload))) }
   peerCount():number{return this.#peers.size}
+  runtimePresenceSnapshot():RuntimePresenceState[]{return this.#runtimePresence.snapshot()}
 
   async #onMessage(peer:Peer,text:string):Promise<void>{
     const message=JSON.parse(text) as any
@@ -155,7 +164,7 @@ export class CanvasWebSocketHub {
         if(this.#identityResolver) this.#room.setPresence(bindPresenceToPrincipal(message.presence,peer.clientId,peer.principal,this.#allowAnonymousUserPresence))
         else this.#room.setPresence(message.presence as PresenceState)
       }
-      this.send(peer,{type:'hello_ack',roomId:this.#room.roomId,stateVector:this.#room.stateVector(),missingUpdates:this.#room.diff(vector),presence:this.#room.presenceSnapshot(),identity:peer.principal?{verified:true,principalId:peer.principal.principalId,semanticAgentId:peer.principal.semanticAgentId??null}:{verified:false}}); return
+      this.send(peer,{type:'hello_ack',roomId:this.#room.roomId,stateVector:this.#room.stateVector(),missingUpdates:this.#room.diff(vector),presence:this.#room.presenceSnapshot(),runtimePresence:this.#runtimePresence.snapshot(),identity:peer.principal?{verified:true,principalId:peer.principal.principalId,semanticAgentId:peer.principal.semanticAgentId??null}:{verified:false}}); return
     }
     if(message.type==='update'){
       const update=message.update as SyncUpdate
@@ -175,8 +184,31 @@ export class CanvasWebSocketHub {
       else this.#room.setPresence(message.presence as PresenceState)
       return
     }
+    if(message.type==='runtime_presence'){
+      if(!peer.clientId) throw new Error('hello is required before runtime presence updates')
+      if(!peer.principal) throw new Error('authenticated principal required for runtime presence')
+      const result=this.#runtimePresence.apply(message.runtime as RuntimePresenceInput,peer.principal,peer.clientId)
+      if(!result.accepted){this.send(peer,{type:'runtime_presence_rejected',reason:result.reason,runtimePresence:result.state});return}
+      this.broadcast({type:'runtime_presence',runtimePresence:result.state}); return
+    }
+    if(message.type==='runtime_presence_remove'){
+      if(!peer.clientId) throw new Error('hello is required before runtime presence removal')
+      if(!peer.principal||peer.principal.role==='viewer') throw new Error('authenticated mutating principal required for runtime presence removal')
+      const provider=nonEmpty(message.provider); const providerResourceId=nonEmpty(message.providerResourceId)
+      if(!provider||!providerResourceId) throw new Error('runtime presence provider and providerResourceId are required')
+      const removed=this.#runtimePresence.removeResource(peer.principal.principalId,provider,providerResourceId)
+      if(removed)this.broadcast({type:'runtime_presence_removed',runtimePresence:removed}); return
+    }
     if(message.type==='ping'){ this.send(peer,{type:'pong',at:new Date().toISOString()}); return }
     throw new Error(`Unknown sync message type: ${String(message.type)}`)
   }
-  #remove(peer:Peer):void { if(!this.#peers.delete(peer))return; if(peer.clientId)this.#room.removePresence(peer.clientId); try{peer.socket.end()}catch{} }
+  #remove(peer:Peer):void {
+    if(!this.#peers.delete(peer))return
+    if(peer.clientId){
+      this.#room.removePresence(peer.clientId)
+      const removed=this.#runtimePresence.removeClient(peer.clientId)
+      for(const runtimePresence of removed)this.broadcast({type:'runtime_presence_removed',runtimePresence})
+    }
+    try{peer.socket.end()}catch{}
+  }
 }
