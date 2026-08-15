@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from 'node:crypto'
+import { createHash } from 'node:crypto'
 import type { ActorRef, ActorType } from '../../canvas-schema/src/index.js'
 
 export type PrincipalRole = 'viewer' | 'agent-direct' | 'owner'
@@ -24,7 +24,7 @@ export interface IdentityResolver {
 }
 
 interface HashedBinding {
-  digest: Uint8Array
+  digest: string
   principal: AuthenticatedPrincipal
 }
 
@@ -45,12 +45,17 @@ function normalizeActorType(value: unknown): ActorType {
   throw new Error('actorType must be user, agent or system')
 }
 
-function digestToken(token: string): Uint8Array {
-  return createHash('sha256').update(token, 'utf8').digest()
+function digestToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex')
 }
 
-function sameDigest(left: Uint8Array, right: Uint8Array): boolean {
-  return left.byteLength === right.byteLength && timingSafeEqual(left, right)
+function sameDigest(left: string, right: string): boolean {
+  if (left.length !== right.length) return false
+  let mismatch = 0
+  for (let index = 0; index < left.length; index += 1) {
+    mismatch |= left.charCodeAt(index) ^ right.charCodeAt(index)
+  }
+  return mismatch === 0
 }
 
 function clonePrincipal(principal: AuthenticatedPrincipal): AuthenticatedPrincipal {
