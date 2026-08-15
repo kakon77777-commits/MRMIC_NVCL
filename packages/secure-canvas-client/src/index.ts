@@ -4,6 +4,11 @@ import type {
   StateVector,
   SyncUpdate,
 } from '../../state-vector-sync/src/index.js'
+import {
+  sanitizeRuntimePresenceInput,
+  type RuntimePresenceInput,
+  type RuntimePresenceState,
+} from '../../runtime-presence/src/index.js'
 
 export interface SecurePresenceInput {
   label?: string
@@ -26,6 +31,7 @@ export interface CanvasHelloAck {
   stateVector: StateVector
   missingUpdates: AnyAppliedSyncUpdate[]
   presence: PresenceState[]
+  runtimePresence: RuntimePresenceState[]
   identity: CanvasHelloIdentity
 }
 
@@ -34,6 +40,9 @@ export type SecureCanvasServerMessage =
   | { type: 'update'; update: AnyAppliedSyncUpdate; stateVector?: StateVector }
   | { type: 'presence'; presence: PresenceState }
   | { type: 'presence_removed'; clientId: string }
+  | { type: 'runtime_presence'; runtimePresence: RuntimePresenceState }
+  | { type: 'runtime_presence_rejected'; reason: 'stale_revision' | 'stale_sequence'; runtimePresence: RuntimePresenceState }
+  | { type: 'runtime_presence_removed'; runtimePresence: RuntimePresenceState }
   | { type: 'pong'; at: string }
   | { type: 'error'; message: string }
 
@@ -42,6 +51,9 @@ export type SecureCanvasClientEvent =
   | { type: 'update'; update: AnyAppliedSyncUpdate; stateVector: StateVector }
   | { type: 'presence'; presence: PresenceState }
   | { type: 'presence_removed'; clientId: string }
+  | { type: 'runtime_presence'; runtimePresence: RuntimePresenceState }
+  | { type: 'runtime_presence_rejected'; reason: 'stale_revision' | 'stale_sequence'; runtimePresence: RuntimePresenceState }
+  | { type: 'runtime_presence_removed'; runtimePresence: RuntimePresenceState }
   | { type: 'pong'; at: string }
   | { type: 'server_error'; message: string }
   | { type: 'disconnected'; code?: number; reason?: string }
@@ -148,12 +160,14 @@ function assertHelloAck(value: unknown): CanvasHelloAck {
   const vector = validateVector(ack.stateVector)
   if (!Array.isArray(ack.missingUpdates)) throw new Error('hello_ack.missingUpdates must be an array')
   if (!Array.isArray(ack.presence)) throw new Error('hello_ack.presence must be an array')
+  const runtimePresence = Array.isArray(ack.runtimePresence) ? ack.runtimePresence : []
   if (!ack.identity || ack.identity.verified !== true) throw new Error('Canvas server did not verify PMW identity')
   const principalId = required(ack.identity.principalId, 'hello_ack.identity.principalId')
   const semanticAgentId = ack.identity.semanticAgentId == null ? null : required(ack.identity.semanticAgentId, 'hello_ack.identity.semanticAgentId')
   return {
     ...structuredClone(ack),
     stateVector: vector,
+    runtimePresence: structuredClone(runtimePresence),
     identity: { verified: true, principalId, ...(semanticAgentId !== null ? { semanticAgentId } : { semanticAgentId: null }) },
   }
 }
@@ -161,9 +175,11 @@ function assertHelloAck(value: unknown): CanvasHelloAck {
 /**
  * Secure client for MRMIC's authenticated state-vector WebSocket protocol.
  *
- * Identity can only originate from the bearer binding token. Presence methods
- * expose no actorId/actorType fields. The client keeps the last state vector so
- * reconnects request only missing updates from the Canvas room.
+ * Identity can only originate from the bearer binding token. Presence and
+ * runtime-presence methods expose no principal/semantic identity fields. The
+ * client keeps the last state vector so reconnects request only missing Canvas
+ * updates; runtime presence remains ephemeral and is re-published by the
+ * external runtime provider when appropriate.
  */
 export class SecureCanvasSyncClient {
   readonly #url: string
@@ -285,6 +301,18 @@ export class SecureCanvasSyncClient {
     this.#send({ type: 'presence', presence: sanitizeSecurePresence(presence) })
   }
 
+  sendRuntimePresence(runtime: RuntimePresenceInput | Record<string, unknown>): void {
+    this.#send({ type: 'runtime_presence', runtime: sanitizeRuntimePresenceInput(runtime) })
+  }
+
+  removeRuntimePresence(provider: string, providerResourceId: string): void {
+    this.#send({
+      type: 'runtime_presence_remove',
+      provider: required(provider, 'runtime provider'),
+      providerResourceId: required(providerResourceId, 'runtime providerResourceId'),
+    })
+  }
+
   sendUpdate(update: SyncUpdate): void {
     if (update.clientId !== this.#clientId) throw new Error('SyncUpdate.clientId must match secure Canvas clientId')
     this.#send({ type: 'update', update: structuredClone(update) })
@@ -324,6 +352,19 @@ export class SecureCanvasSyncClient {
     }
     if (value.type === 'presence_removed') {
       this.#emit({ type: 'presence_removed', clientId: String(value.clientId ?? '') })
+      return
+    }
+    if (value.type === 'runtime_presence') {
+      this.#emit({ type: 'runtime_presence', runtimePresence: structuredClone(value.runtimePresence) })
+      return
+    }
+    if (value.type === 'runtime_presence_rejected') {
+      const reason = value.reason === 'stale_sequence' ? 'stale_sequence' : 'stale_revision'
+      this.#emit({ type: 'runtime_presence_rejected', reason, runtimePresence: structuredClone(value.runtimePresence) })
+      return
+    }
+    if (value.type === 'runtime_presence_removed') {
+      this.#emit({ type: 'runtime_presence_removed', runtimePresence: structuredClone(value.runtimePresence) })
       return
     }
     if (value.type === 'pong') {
