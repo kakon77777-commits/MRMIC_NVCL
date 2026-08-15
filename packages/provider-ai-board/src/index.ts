@@ -279,7 +279,7 @@ export function createAiBoardThreadPortal(input: CreateAiBoardThreadPortalInput)
         pmwWorkspaceId,
         ...(input.pmwTaskId ? { pmwTaskId: input.pmwTaskId } : {}),
         provider: 'ai_board',
-        resourceKind: 'thread',
+        resourceKind: 'ai_board_thread',
         providerResourceId: input.thread.id,
         displayMode: 'summary',
         interactionMode: 'inspect',
