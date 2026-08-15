@@ -49,6 +49,7 @@ async function createRuntimeServer(){
     hub.handleUpgrade(request,socket,head)
   })
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve)})
+  server.unref()
   const address=server.address()
   if(!address||typeof address==='string')throw new Error('test server did not expose a TCP address')
   return {
@@ -56,7 +57,12 @@ async function createRuntimeServer(){
     url:`ws://127.0.0.1:${address.port}/sync`,
     close:async()=>{
       for(const socket of upgradedSockets){try{socket.destroy()}catch{}}
-      await new Promise(resolve=>server.close(()=>resolve()))
+      try{server.closeAllConnections?.()}catch{}
+      try{server.closeIdleConnections?.()}catch{}
+      await Promise.race([
+        new Promise(resolve=>{try{server.close(()=>resolve())}catch{resolve()}}),
+        new Promise(resolve=>setTimeout(resolve,300)),
+      ])
     },
   }
 }
