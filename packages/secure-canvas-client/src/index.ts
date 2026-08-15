@@ -120,7 +120,7 @@ export function sanitizeSecurePresence(value: SecurePresenceInput | Record<strin
     const viewport = input.viewport as Record<string, unknown>
     const values = [viewport.x, viewport.y, viewport.width, viewport.height, viewport.zoom]
     if (values.every(value => typeof value === 'number' && Number.isFinite(value))) {
-      const [x, y, width, height, zoom] = values as number[]
+      const [x = Number.NaN, y = Number.NaN, width = Number.NaN, height = Number.NaN, zoom = Number.NaN] = values as number[]
       if (width > 0 && height > 0 && zoom > 0) result.viewport = { x, y, width, height, zoom }
     }
   }
