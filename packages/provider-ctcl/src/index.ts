@@ -173,7 +173,13 @@ export interface CreateCtclInstantPortalInput {
   createdAt?: string
 }
 
-/** Optional visual projection of a CTCL shared instant. */
+/**
+ * Optional visual projection of a CTCL shared instant.
+ *
+ * CTCL is primarily a temporal/provenance provider, not a general visual
+ * resource family, so the canonical Canvas kind remains `external_generic`.
+ * The provider-specific subtype is retained in providerRef.kind.
+ */
 export function createCtclInstantPortal(input: CreateCtclInstantPortalInput): CanvasObject {
   assertInstant(input.record)
   const portalId = required(input.portalId, 'portalId')
@@ -212,12 +218,13 @@ export function createCtclInstantPortal(input: CreateCtclInstantPortalInput): Ca
         pmwWorkspaceId,
         ...(input.pmwTaskId ? { pmwTaskId: input.pmwTaskId } : {}),
         provider: 'ctcl',
-        resourceKind: 'temporal_instant',
+        resourceKind: 'external_generic',
         providerResourceId: input.record.id,
         displayMode: 'summary',
         interactionMode: 'inspect',
       },
       providerRef: {
+        kind: 'ctcl_instant',
         resourceUri: ctclResourceUri(input.record.id),
         unixNs: input.record.unix_ns,
         referenceTimescale: input.record.reference_timescale,
