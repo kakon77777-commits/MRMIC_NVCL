@@ -6,6 +6,7 @@ const bindings=[
   {token:'phase13-6-codex-observer-token',principalId:'principal:codex-observer',role:'viewer',actorType:'agent',actorId:'mrmic:codex-observer',semanticAgentId:'agent:codex-reviewer'},
 ]
 
+function trace(step){console.error(`[phase13.6-e2e] ${step}`)}
 function runtime(overrides={}){return{
   provider:'herdr',providerResourceId:'terminal-claude',runtimeEpochId:'epoch-1',status:'working',
   revision:10,sequence:20,kind:'claude',focused:false,interactiveReady:true,launchPending:false,
@@ -24,7 +25,7 @@ function opened(ws,timeout=2000){return new Promise((resolve,reject)=>{
   ws.addEventListener('open',onOpen,{once:true});ws.addEventListener('error',onError,{once:true});ws.addEventListener('close',onClose,{once:true})
 })}
 
-function message(ws,predicate,timeout=2500){return new Promise((resolve,reject)=>{
+function message(ws,predicate,timeout=2000){return new Promise((resolve,reject)=>{
   const timer=setTimeout(()=>{ws.removeEventListener('message',listener);reject(new Error('message timeout'))},timeout)
   function listener(event){
     const value=JSON.parse(String(event.data))
@@ -36,7 +37,7 @@ function message(ws,predicate,timeout=2500){return new Promise((resolve,reject)=
 async function closeSocket(ws){
   if(!ws||ws.readyState===WebSocket.CLOSED)return
   await new Promise(resolve=>{
-    const timer=setTimeout(resolve,300)
+    const timer=setTimeout(resolve,250)
     ws.addEventListener('close',()=>{clearTimeout(timer);resolve()},{once:true})
     try{ws.close()}catch{clearTimeout(timer);resolve()}
   })
@@ -48,105 +49,92 @@ async function hello(ws,input){
   return await pending
 }
 
-async function startApp(){
+async function main(){
   process.env.MRMIC_PMW_BINDINGS_JSON=JSON.stringify(bindings)
+  trace('starting real Phase2 host')
   const app=createPhase2Server({port:0,databasePath:':memory:',syncDatabasePath:':memory:'})
   const started=await app.start()
-  return {app,url:started.url.replace('http','ws')+'/sync'}
-}
+  const url=started.url.replace('http','ws')+'/sync'
+  trace(`host started ${url}`)
 
-async function stopApp(app){
-  await Promise.race([
-    Promise.resolve().then(()=>app.close()),
-    new Promise(resolve=>setTimeout(resolve,500)),
-  ]).catch(()=>{})
-}
-
-async function scenarioBroadcastAndRemoval(){
-  const {app,url}=await startApp();const claude=new WebSocket(url),codex=new WebSocket(url)
+  const claude=new WebSocket(url)
+  const codex=new WebSocket(url)
+  let late
   try{
     await Promise.all([opened(claude),opened(codex)])
+    trace('Claude and Codex sockets open')
     const [claudeAck,codexAck]=await Promise.all([
-      hello(claude,{clientId:'bridge-claude',authToken:bindings[0].token,presence:{label:'Claude'}}),
-      hello(codex,{clientId:'observer-codex',authToken:bindings[1].token,presence:{label:'Codex'}}),
+      hello(claude,{clientId:'bridge-claude',authToken:bindings[0].token,presence:{label:'Claude',task:'Research'}}),
+      hello(codex,{clientId:'observer-codex',authToken:bindings[1].token,presence:{label:'Codex',task:'Observe'}}),
     ])
     assert.equal(claudeAck.identity.semanticAgentId,'agent:claude-main')
     assert.equal(codexAck.identity.semanticAgentId,'agent:codex-reviewer')
     assert.ok(Array.isArray(codexAck.runtimePresence))
+    trace('verified hello complete')
 
     const revisionBefore=app.store.getCanvas(app.rootCanvas.id).revision
-    const accepted=message(codex,m=>m.type==='runtime_presence'&&m.runtimePresence?.status==='working')
-    claude.send(JSON.stringify({type:'runtime_presence',runtime:{...runtime(),principalId:'forged',semanticAgentId:'user:neo',secret:'drop'}}))
+    const accepted=message(codex,m=>m.type==='runtime_presence'&&m.runtimePresence?.providerResourceId==='terminal-claude'&&m.runtimePresence?.status==='working')
+    claude.send(JSON.stringify({type:'runtime_presence',runtime:{...runtime(),principalId:'principal:forged',semanticAgentId:'user:neo',actorId:'user:neo',secret:'drop-me'}}))
     const seen=await accepted
     assert.equal(seen.runtimePresence.principalId,'principal:claude-runtime')
     assert.equal(seen.runtimePresence.semanticAgentId,'agent:claude-main')
     assert.equal(seen.runtimePresence.clientId,'bridge-claude')
+    assert.equal(seen.runtimePresence.identityStatus,'verified')
+    assert.equal('actorId' in seen.runtimePresence,false)
     assert.equal('secret' in seen.runtimePresence,false)
     assert.equal(app.store.getCanvas(app.rootCanvas.id).revision,revisionBefore)
+    trace('runtime broadcast and identity binding verified')
 
+    late=new WebSocket(url)
+    await opened(late)
+    const lateAck=await hello(late,{clientId:'late-codex',authToken:bindings[1].token,presence:{label:'Late Codex'}})
+    const snapshot=lateAck.runtimePresence.find(item=>item.providerResourceId==='terminal-claude')
+    assert.equal(snapshot.status,'working')
+    assert.equal(snapshot.semanticAgentId,'agent:claude-main')
+    trace('late-peer runtime snapshot verified')
+
+    const viewerRejected=message(codex,m=>m.type==='error'&&String(m.message).includes('viewer principal cannot publish runtime presence'))
+    codex.send(JSON.stringify({type:'runtime_presence',runtime:{...runtime(),providerResourceId:'terminal-codex',kind:'codex'}}))
+    await viewerRejected
+    trace('viewer runtime publication rejected')
+
+    let staleBroadcast=false
+    const staleListener=event=>{
+      const value=JSON.parse(String(event.data))
+      if(value.type==='runtime_presence'&&value.runtimePresence?.providerResourceId==='terminal-claude'&&value.runtimePresence?.status==='done')staleBroadcast=true
+    }
+    codex.addEventListener('message',staleListener)
     const staleRejected=message(claude,m=>m.type==='runtime_presence_rejected'&&m.reason==='stale_revision')
     claude.send(JSON.stringify({type:'runtime_presence',runtime:runtime({status:'done',revision:9,sequence:99})}))
     const stale=await staleRejected
     assert.equal(stale.runtimePresence.status,'working')
+    await new Promise(resolve=>setTimeout(resolve,80))
+    codex.removeEventListener('message',staleListener)
+    assert.equal(staleBroadcast,false)
+    trace('stale runtime update rejected without broadcast')
 
-    const restartedSeen=message(codex,m=>m.type==='runtime_presence'&&m.runtimePresence?.runtimeEpochId==='epoch-2')
+    const restartedSeen=message(codex,m=>m.type==='runtime_presence'&&m.runtimePresence?.runtimeEpochId==='epoch-2'&&m.runtimePresence?.status==='idle')
     claude.send(JSON.stringify({type:'runtime_presence',runtime:runtime({runtimeEpochId:'epoch-2',status:'idle',revision:1,sequence:1})}))
     const restarted=await restartedSeen
-    assert.equal(restarted.runtimePresence.status,'idle')
     assert.equal(restarted.runtimePresence.revision,1)
     assert.equal(app.store.getCanvas(app.rootCanvas.id).revision,revisionBefore)
+    trace('runtime epoch reset verified')
 
     const removed=message(codex,m=>m.type==='runtime_presence_removed'&&m.runtimePresence?.providerResourceId==='terminal-claude')
     await closeSocket(claude)
     const removedState=await removed
     assert.equal(removedState.runtimePresence.semanticAgentId,'agent:claude-main')
     assert.equal(app.store.getCanvas(app.rootCanvas.id).revision,revisionBefore)
+    trace('disconnect removal verified')
+
+    console.log('phase13.6 runtime-presence real WebSocket E2E PASS')
   }finally{
-    await closeSocket(claude);await closeSocket(codex);await stopApp(app)
+    await closeSocket(claude);await closeSocket(codex);await closeSocket(late)
+    trace('forcing child exit after verified shared session')
   }
 }
 
-async function scenarioHelloSnapshot(){
-  const {app,url}=await startApp();const claude=new WebSocket(url),codex=new WebSocket(url)
-  try{
-    await opened(claude)
-    await hello(claude,{clientId:'bridge-claude',authToken:bindings[0].token})
-    const own=message(claude,m=>m.type==='runtime_presence'&&m.runtimePresence?.status==='working')
-    claude.send(JSON.stringify({type:'runtime_presence',runtime:runtime()}))
-    await own
-
-    await opened(codex)
-    const ack=await hello(codex,{clientId:'observer-codex',authToken:bindings[1].token})
-    const state=ack.runtimePresence.find(item=>item.providerResourceId==='terminal-claude')
-    assert.equal(state.status,'working')
-    assert.equal(state.semanticAgentId,'agent:claude-main')
-  }finally{
-    await closeSocket(claude);await closeSocket(codex);await stopApp(app)
-  }
-}
-
-async function scenarioViewerRejected(){
-  const {app,url}=await startApp();const ws=new WebSocket(url)
-  try{
-    await opened(ws)
-    await hello(ws,{clientId:'viewer-codex',authToken:bindings[1].token})
-    const rejected=message(ws,m=>m.type==='error')
-    ws.send(JSON.stringify({type:'runtime_presence',runtime:{...runtime(),providerResourceId:'terminal-codex',kind:'codex'}}))
-    const error=await rejected
-    assert.match(error.message,/viewer principal cannot publish runtime presence/)
-    assert.equal(app.store.getCanvas(app.rootCanvas.id).revision,0)
-  }finally{
-    await closeSocket(ws);await stopApp(app)
-  }
-}
-
-try{
-  await scenarioBroadcastAndRemoval()
-  await scenarioHelloSnapshot()
-  await scenarioViewerRejected()
-  console.log('phase13.6 runtime-presence real WebSocket E2E PASS')
-  process.exit(0)
-}catch(error){
+main().then(()=>process.exit(0)).catch(error=>{
   console.error(error?.stack??String(error))
   process.exit(1)
-}
+})
