@@ -41,7 +41,7 @@ test('AI Board thread projects into one stable Canvas resource portal', () => {
   assert.equal(object.content.previewUri, 'http://127.0.0.1:8787/api/thread?id=msg-root')
   assert.deepEqual(resourcePortalDescriptor(object), {
     portalId: 'board-thread-1', pmwWorkspaceId: 'pmw-ws', pmwTaskId: 'pmw-task',
-    provider: 'ai_board', resourceKind: 'thread', providerResourceId: 'msg-root',
+    provider: 'ai_board', resourceKind: 'ai_board_thread', providerResourceId: 'msg-root',
     displayMode: 'summary', interactionMode: 'inspect',
   })
 })
