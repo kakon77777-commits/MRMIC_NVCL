@@ -1156,6 +1156,7 @@ export class McpReferenceCanvasServer {
     response.end(JSON.stringify(payload))
   }
   #sendRpc(response: any, status: number, payload: JsonRpcResponse, sessionId?: string): void {
+    if (sessionId && typeof response.setHeader === 'function') response.setHeader('mcp-session-id', sessionId)
     response.writeHead(status, {
       'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store',
       ...(sessionId ? { 'mcp-session-id': sessionId } : {}),

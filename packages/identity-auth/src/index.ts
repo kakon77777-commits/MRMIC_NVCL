@@ -137,3 +137,16 @@ export function createIdentityResolverFromEnv(env: Record<string, string | undef
   if (!source || !source.trim()) return undefined
   return new StaticBearerIdentityResolver(parsePrincipalBindings(source))
 }
+
+export function principalFromAuthorization(
+  headers: Record<string, unknown>,
+  resolver: IdentityResolver,
+): AuthenticatedPrincipal | null {
+  const value = headers.authorization ?? headers.Authorization
+  const token = bearerTokenFromAuthorization(value)
+  return token ? resolver.resolveToken(token) : null
+}
+
+export function principalCanMutate(principal: AuthenticatedPrincipal): boolean {
+  return principal.role === 'agent-direct' || principal.role === 'owner'
+}

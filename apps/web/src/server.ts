@@ -15,6 +15,13 @@ import { DirectoryNvclTraceSink, LocalMcpCanvasClient, NvclRuntime, ReferenceSce
 import { DirectoryRecursiveTraceSink, REFERENCE_DETAIL_CHECKS, RecursiveNvclRuntime, ReferenceDetailNvclAgent } from '../../../packages/recursive-nvcl-runtime/src/index.js'
 import { MultimodalCanvasLab, MultimodalLabError, type LabAction, type ObservationMode, type RasterCrop } from '../../../packages/multimodal-lab/src/index.js'
 import { capabilityDocument } from '../../../packages/capability-contract/src/index.js'
+import {
+  createIdentityResolverFromEnv,
+  principalCanMutate,
+  principalFromAuthorization,
+  type AuthenticatedPrincipal,
+} from '../../../packages/identity-auth/src/index.js'
+import { AuthenticatedMcpGateway } from '../../../packages/mcp-auth-gateway/src/index.js'
 import { agent, createWorkspace, object, transactionId } from '../../cli/src/fixtures.js'
 
 interface Phase6ServerOptions { port?: number; host?: string; databasePath?: string; syncDatabasePath?: string; labLeaseTtlMs?: number; now?: () => number }
@@ -22,6 +29,14 @@ function json(response:any,status:number,payload:unknown){response.writeHead(sta
 function readBody(request:any):Promise<unknown>{return new Promise((resolveBody,reject)=>{const chunks:Uint8Array[]=[];request.on('data',(chunk:Uint8Array)=>chunks.push(chunk));request.on('end',()=>{try{const text=Buffer.concat(chunks).toString('utf8');resolveBody(text?JSON.parse(text):{})}catch(error){reject(error)}});request.on('error',reject)})}
 function contentType(pathname:string){switch(extname(pathname)){case'.html':return'text/html; charset=utf-8';case'.js':return'text/javascript; charset=utf-8';case'.css':return'text/css; charset=utf-8';case'.svg':return'image/svg+xml; charset=utf-8';case'.png':return'image/png';default:return'application/octet-stream'}}
 function labMode(value:unknown):ObservationMode{return value==='structured'||value==='hybrid'?value:'pixel'}
+function bindPrincipalActor<T extends { transaction: CanvasTransaction }>(value:T,principal:AuthenticatedPrincipal):T{const bound=structuredClone(value);bound.transaction.actor=structuredClone(principal.actor);return bound}
+function mutationPrincipal(request:any,response:any,resolver:ReturnType<typeof createIdentityResolverFromEnv>):AuthenticatedPrincipal|undefined|null{
+  if(!resolver)return undefined
+  const principal=principalFromAuthorization(request.headers??{},resolver)
+  if(!principal){json(response,401,{error:'Valid PMW bearer principal required'});return null}
+  if(!principalCanMutate(principal)){json(response,403,{error:'Authenticated principal is read-only'});return null}
+  return principal
+}
 
 export function createSeedTransaction(canvasId:string):CanvasTransaction{
   const now=new Date().toISOString(); const objects=[
@@ -44,15 +59,19 @@ export function createRepairTransaction(store:CanvasStore,canvasId:string):Canva
 export function createPhase6Server(options:Phase6ServerOptions={}){
   const {workspace,rootCanvas}=createWorkspace(); workspace.title='MRMIC NVCL Phase 13'; workspace.schemaVersion='0.14.0'; rootCanvas.title='Canvas-first PMW visual world and multimodal laboratory'
   const ledger=new SqliteEventLedger(options.databasePath??':memory:'); const recovered=ledger.latestSnapshot(workspace.id); const store=new CanvasStore(workspace,rootCanvas,{eventSink:ledger},recovered?.state); const adapter=new SvgCanvasAdapter(store,{x:0,y:0,width:1200,height:800,zoom:1})
-  const syncLedger=new SqliteSyncUpdateLog(options.syncDatabasePath??':memory:'); const registry=new CanvasSyncRegistry({workspaceId:workspace.id,store,adapter,persistence:syncLedger}); const room=registry.roomFor(rootCanvas.id); const hub=registry.hubFor(rootCanvas.id); const roomId=room.roomId
+  const identityResolver=createIdentityResolverFromEnv()
+  const syncLedger=new SqliteSyncUpdateLog(options.syncDatabasePath??':memory:'); const registry=new CanvasSyncRegistry({workspaceId:workspace.id,store,adapter,persistence:syncLedger,identityResolver}); const room=registry.roomFor(rootCanvas.id); const hub=registry.hubFor(rootCanvas.id); const roomId=room.roomId
   const lab=new MultimodalCanvasLab({store,adapter,canvasId:rootCanvas.id,applyTransaction:async tx=>(await registry.roomFor(tx.canvasId).apply(registry.roomFor(tx.canvasId).nextUpdate('phase12-lab',tx))).result,replaceState:input=>registry.replaceAll('phase12-history',input),leaseTtlMs:options.labLeaseTtlMs,now:options.now})
   const mcp=new McpReferenceCanvasServer({store,adapter,room,roomForCanvas:id=>registry.roomFor(id),syncHandleForCanvas:id=>registry.syncHandle(id),replaceState:(clientId,input)=>registry.replaceAll(clientId,input),ledger,workspaceId:workspace.id,rootCanvasId:rootCanvas.id,lab})
+  const mcpHttp=identityResolver?new AuthenticatedMcpGateway({inner:mcp,identityResolver}):mcp
   let checkpointCounter=0; adapter.subscribe(delta=>{checkpointCounter+=1; ledger.saveSnapshot({snapshotId:`checkpoint-${Date.now()}-${checkpointCounter}`,workspaceId:workspace.id,canvasId:delta.canvasId,revision:delta.revision,state:store.snapshot()})})
   const nvclRuns=new Map<string,unknown>()
   const recursiveRuns=new Map<string,unknown>()
   const sseClients=new Set<any>(); adapter.subscribe(delta=>{const message=`event: canvas_delta\ndata: ${JSON.stringify(delta)}\n\n`;for(const client of sseClients)client.write(message)})
   const publicRoot=resolve(process.cwd(),'apps/web/public')
-  const server=createServer(async(request:any,response:any)=>{try{if(await mcp.handleHttp(request,response))return;const url=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`);const pathname=url.pathname
+  const server=createServer(async(request:any,response:any)=>{try{if(await mcpHttp.handleHttp(request,response))return;const url=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`);const pathname=url.pathname
+    const principal=request.method==='POST'?mutationPrincipal(request,response,identityResolver):undefined
+    if(request.method==='POST'&&identityResolver&&!principal)return
     if(request.method==='GET'&&pathname==='/api/capabilities'){json(response,200,capabilityDocument());return}
     if(request.method==='GET'&&pathname==='/api/state'){const canvasId=url.searchParams.get('canvasId')??rootCanvas.id;json(response,200,{workspace:store.workspace,canvas:store.getCanvas(canvasId),viewport:await adapter.getViewport(),objects:await adapter.listObjects(canvasId),eventCount:ledger.count(),sync:{roomId:registry.roomFor(canvasId).roomId,stateVector:registry.roomFor(canvasId).stateVector(),updates:registry.roomFor(canvasId).updateCount(),presence:registry.roomFor(canvasId).presenceSnapshot(),peers:registry.hubFor(canvasId).peerCount(),handle:registry.syncHandle(canvasId)},renderUri:`/api/render.svg?canvasId=${encodeURIComponent(canvasId)}`,lab:{history:lab.historyStatus,trajectoryLength:lab.trajectory.length}});return}
     if(request.method==='GET'&&pathname==='/api/lab/observe'){json(response,200,{observation:await lab.observe(labMode(url.searchParams.get('mode'))),history:lab.historyStatus});return}
@@ -70,8 +89,8 @@ export function createPhase6Server(options:Phase6ServerOptions={}){
     if(request.method==='GET'&&pathname==='/api/sync/status'){const canvasId=url.searchParams.get('canvasId')??rootCanvas.id;const currentRoom=registry.roomFor(canvasId),currentHub=registry.hubFor(canvasId);json(response,200,{canvasId,roomId:currentRoom.roomId,stateVector:currentRoom.stateVector(),updates:currentRoom.updateCount(),presence:currentRoom.presenceSnapshot(),peers:currentHub.peerCount(),persisted:syncLedger.count(currentRoom.roomId),handle:registry.syncHandle(canvasId)});return}
     if(request.method==='GET'&&pathname==='/api/nvcl/runs'){json(response,200,{runs:[...nvclRuns.values()],recursiveRuns:[...recursiveRuns.values()]});return}
     if(request.method==='GET'&&pathname==='/events'){response.writeHead(200,{'content-type':'text/event-stream','cache-control':'no-cache',connection:'keep-alive'});response.write(': connected\n\n');sseClients.add(response);request.on('close',()=>sseClients.delete(response));return}
-    if(request.method==='POST'&&pathname==='/api/sync/update'){const update=await readBody(request) as SyncUpdate;const canvasId=url.searchParams.get('canvasId')??update.transaction.canvasId;json(response,200,await registry.roomFor(canvasId).apply(update));return}
-    if(request.method==='POST'&&pathname==='/api/transaction'){const tx=await readBody(request) as CanvasTransaction;const targetRoom=registry.roomFor(tx.canvasId);const update=targetRoom.nextUpdate('http-api',tx);json(response,200,await targetRoom.apply(update));return}
+    if(request.method==='POST'&&pathname==='/api/sync/update'){const update=await readBody(request) as SyncUpdate;const bound=principal?bindPrincipalActor(update,principal):update;const canvasId=url.searchParams.get('canvasId')??bound.transaction.canvasId;json(response,200,await registry.roomFor(canvasId).apply(bound));return}
+    if(request.method==='POST'&&pathname==='/api/transaction'){const tx=await readBody(request) as CanvasTransaction;const bound=principal?{...structuredClone(tx),actor:structuredClone(principal.actor)}:tx;const targetRoom=registry.roomFor(bound.canvasId);const update=targetRoom.nextUpdate('http-api',bound);json(response,200,await targetRoom.apply(update));return}
     if(request.method==='POST'&&pathname==='/api/viewport'){const body=await readBody(request) as Partial<Viewport>;const current=await adapter.getViewport();await adapter.setViewport({...current,...body});json(response,200,{ok:true,viewport:await adapter.getViewport()});return}
     if(request.method==='POST'&&pathname==='/api/nvcl/reference'){const runId=`web-nvcl-${Date.now()}`;const trace=new DirectoryNvclTraceSink(resolve(process.cwd(),'artifacts','nvcl-runs'),runId);const runtime=new NvclRuntime({client:new LocalMcpCanvasClient(mcp,{actorId:'web-nvcl-agent',role:'owner'}),agent:new ReferenceSceneNvclAgent(),trace});const result=await runtime.run({runId,goal:'Create a title, character, moon, ground, and exactly three stars. Keep the title from obscuring the character and repair only the failing region.',canvasId:rootCanvas.id,maxIterations:6,checks:[{type:'count',role:'star',expected:3,rule:'three_stars'},{type:'max_overlap',foregroundId:'title',backgroundId:'character',maximum:0.10},{type:'inside_bounds',objectId:'title',bounds:{x:0,y:0,width:1200,height:800}}]});const uri=mcp.registerTrajectory(result.runId,result);const record={...result,trajectoryUri:uri};nvclRuns.set(result.runId,record);json(response,200,record);return}
     if(request.method==='POST'&&pathname==='/api/nvcl/recursive'){const runId=`web-recursive-${Date.now()}`;const recursiveTrace=new DirectoryRecursiveTraceSink(resolve(process.cwd(),'artifacts','recursive-runs'),runId);const childTrace=new DirectoryNvclTraceSink(resolve(process.cwd(),'artifacts','recursive-runs',runId,'child-runs'),`${runId}:child`);const client=new LocalMcpCanvasClient(mcp,{actorId:'web-recursive-agent',role:'owner'});const runtime=new RecursiveNvclRuntime({client,trace:recursiveTrace});const result=await runtime.run({runId,goal:'Delegate a character-detail study to a recursive child canvas, verify it, fold it, and write the result back to the parent portal.',parentCanvasId:rootCanvas.id,portal:{objectId:'character-detail-portal',childCanvasId:'canvas-character-detail',title:'Character Detail',transform:{x:820,y:560,width:320,height:160,zIndex:20},style:{fill:'#faf5ff',stroke:'#7c3aed',strokeWidth:3}},childGoal:'Create a face detail with exactly two eyes, a mouth, and a label that does not obscure the face.',childChecks:REFERENCE_DETAIL_CHECKS,childAgent:new ReferenceDetailNvclAgent(),childMaxIterations:6,childTrace});if(result.childResult)mcp.registerTrajectory(result.childResult.runId,result.childResult);const trajectoryUri=mcp.registerTrajectory(result.runId,result);const record={...result,trajectoryUri};recursiveRuns.set(result.runId,record);json(response,200,record);return}
