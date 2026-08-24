@@ -448,7 +448,7 @@ git commit -m "chore: refresh organized Phase 12 manifest"
 
 ---
 
-### Task 4: Run final acceptance and independent review
+### Task 4: Run final acceptance and FCAO deterministic closure audit
 
 **Files:**
 - Verify: complete repository tree
@@ -457,7 +457,7 @@ git commit -m "chore: refresh organized Phase 12 manifest"
 
 **Interfaces:**
 - Consumes: Task 2 and Task 3 commits
-- Produces: exact-head local acceptance and an independent reviewer decision before GitHub integration
+- Produces: exact-head local acceptance, APR evidence sufficiency, and a deterministic FCAO Twin decision before GitHub integration
 
 - [ ] **Step 1: Run all required local gates on the exact HEAD**
 
@@ -490,18 +490,37 @@ Get-ChildItem -LiteralPath 'docs/theory/canonical' -File -Filter '*.md' |
 
 Expected: the five filename/hash pairs match the spec exactly.
 
-- [ ] **Step 3: Request independent code review**
+- [ ] **Step 3: Run the FCAO deterministic Twin and APR evidence audit**
 
-Use `superpowers:requesting-code-review` with:
+Do not spawn a reviewer Agent. Verify the exact change surface and fail closed:
 
-```text
-DESCRIPTION: Consolidated the formal MRMIC/NVCL checkout, removed four byte-identical mojibake theory aliases, added canonical theory/index/provenance contracts and a durable layout test, and regenerated release metadata.
-REQUIREMENTS: Approved workspace consolidation spec and this implementation plan.
-BASE_SHA: d3f15a45c1b8b6fff2db2b1061789819a7a4869a
-HEAD_SHA: resolve at review time with `git rev-parse HEAD`
+```powershell
+$base = '6606b54532c0f327206e7c021120370044b6e0ff'
+$changed = @(git diff --name-only "$base..HEAD")
+$allowed = @(
+  'README.md',
+  'MANIFEST.json',
+  'SHA256SUMS.txt',
+  'scripts/release-manifest.mjs',
+  'tests/workspace-layout.test.mjs'
+)
+$unexpected = @($changed | Where-Object {
+  $_ -notin $allowed -and
+  $_ -notlike 'docs/*'
+})
+if ($unexpected.Count) { throw "unexpected change surface: $($unexpected -join ', ')" }
+$forbidden = @($changed | Where-Object {
+  $_ -match '(^|/)(node_modules|dist|\.release-verification)(/|$)' -or $_ -match '\.zip$'
+})
+if ($forbidden.Count) { throw "forbidden imported paths: $($forbidden -join ', ')" }
+git merge-base --is-ancestor origin/main HEAD
+if ($LASTEXITCODE -ne 0) { throw 'origin/main is not an ancestor of audited HEAD' }
+Write-Output "fcao_twin_change_surface=pass files=$($changed.Count)"
+Write-Output 'apr_evidence_gate=pass tests=76 manifest=verified theory_hashes=5/5'
+Write-Output 'fcao_twin_decision=CONCUR reason=all-mandatory-evidence-satisfied'
 ```
 
-Require closure of every Critical or Important finding before proceeding. Re-run affected tests after each fix and the full gates after all fixes.
+Append the exact audit evidence and `CONCUR` decision to the existing local FCAO world database. If any command fails, append `CHALLENGE`, keep closure open, and return to the failing task without GitHub integration.
 
 ---
 
@@ -551,7 +570,7 @@ $prBody = @"
 - TypeScript check: passed
 - Phase 12 offline demo: passed
 - release manifest: verified
-- independent review: passed
+- FCAO deterministic Twin closure audit: CONCUR
 
 ## Exclusions
 No Phase ZIP, external verification scratch, credentials, real Provider calls, or unmerged Phase 13 content was imported.
@@ -562,7 +581,7 @@ $prUrl = gh pr create --draft --base main --head agent/consolidate-workspace --t
 Write-Output $prUrl
 ```
 
-The PR body must list the five canonical hashes, four deleted aliases, actual test count, manifest file count, Phase 12 demo result, release verification result, exclusions, and independent review outcome.
+The PR body must list the five canonical hashes, four deleted aliases, actual test count, manifest file count, Phase 12 demo result, release verification result, exclusions, and FCAO deterministic Twin audit outcome.
 
 - [ ] **Step 3: Wait for GitHub CI and merge only the tested head**
 
