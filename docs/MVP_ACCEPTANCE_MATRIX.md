@@ -48,7 +48,7 @@
 | Explicit live portal host focus/control ownership | 13 | portal runtime + host contract tests | Pass |
 
 ```text
-Automated tests: 174 / 174 passed
+Automated tests: 175 / 175 passed
 Seeded Phase 9 observations: 27 / 27 classified
 Phase 9 Provider calls avoided: 12
 Phase 9 browser warnings/errors: 0 / 0

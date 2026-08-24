@@ -16,7 +16,7 @@ The candidate now exposes machine-readable capability negotiation, native resour
 
 ```text
 TypeScript check: passed
-Automated tests: 174 / 174 passed
+Automated tests: 175 / 175 passed
 Phase 12 offline deterministic demo: passed
 Real Provider calls in this convergence: 0
 ```

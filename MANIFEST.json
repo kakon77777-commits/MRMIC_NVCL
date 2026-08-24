@@ -2,12 +2,12 @@
   "name": "MRMIC_NVCL_MVP_Phase13_v0.14",
   "version": "0.14.0",
   "phase": 13,
-  "generatedAt": "2026-08-24T13:14:38.234Z",
+  "generatedAt": "2026-08-24T13:20:08.733Z",
   "sourceBaseline": "git main da1ec4f (organized Phase 12 v0.13)",
   "phase13PortSource": "07da8848314d5e0ca50e3e956c6b7af1883d0d83 (audited path-level source, not merged)",
   "automatedTests": {
-    "total": 174,
-    "passed": 174,
+    "total": 175,
+    "passed": 175,
     "failed": 0
   },
   "mcpTools": {
@@ -32,7 +32,7 @@
   },
   "localAcceptance": {
     "typescriptCheck": "passed",
-    "automatedTests": "174/174 passed",
+    "automatedTests": "175/175 passed",
     "phase12OfflineDemo": "passed",
     "realProviderRun": "not_run"
   },
@@ -1194,7 +1194,7 @@
     {
       "path": "docs/MVP_ACCEPTANCE_MATRIX.md",
       "size": 5556,
-      "sha256": "3b638cf48900fcf2873fd53c71ade457943a41580e0e2188936f16be5a011f61",
+      "sha256": "ea537360bff7985ab721cf1e6fa9f42b135fad5bf37f6aa905b7205310531872",
       "normalization": "lf"
     },
     {
@@ -1259,8 +1259,8 @@
     },
     {
       "path": "docs/PHASE13_CANVAS_FIRST_PMW.md",
-      "size": 5609,
-      "sha256": "65d287e1ebe72a418857600d41c221a6d42f3a1cc8880b83f1cb570e4ad375bb",
+      "size": 5607,
+      "sha256": "549cbd5f5d20ec1c9a3c3de18dfeeac0bb24587aa470bec9048580969ff05a9c",
       "normalization": "lf"
     },
     {
@@ -1271,8 +1271,8 @@
     },
     {
       "path": "docs/PHASE13_PMW_COVERAGE_MATRIX.md",
-      "size": 4661,
-      "sha256": "88406cd9061ed0bdd1b7ccdd0b4fb308b45271308cbb6f848860dbeea684a979",
+      "size": 4657,
+      "sha256": "1b64d802fc4fdee3bd2633eb54f0eaf854defc1b17d0c2441d1995be3b219203",
       "normalization": "lf"
     },
     {
@@ -1284,7 +1284,7 @@
     {
       "path": "docs/PHASE13_STATUS_REPORT.md",
       "size": 2098,
-      "sha256": "6aefc9dd9bd6eeb6899a1b1b0c6e6dc48c6ecbfc805a7f7a30f7cb609fca4653",
+      "sha256": "88718504458529463b942d1955201654a2509932c61f5e0df99db026329e3bfb",
       "normalization": "lf"
     },
     {
@@ -1367,8 +1367,8 @@
     },
     {
       "path": "docs/superpowers/plans/2026-08-24-phase13-current-main-convergence.md",
-      "size": 6068,
-      "sha256": "d94298bc7046a2080555a8659653103885934e8842878f8591987ad9f7ad43ee",
+      "size": 6067,
+      "sha256": "cc2ff028f032e6301c29fe845c772ce975a7a9b9dc4c8c2a5d6b1d2561ca5990",
       "normalization": "lf"
     },
     {
@@ -1379,8 +1379,8 @@
     },
     {
       "path": "docs/superpowers/specs/2026-08-24-phase13-current-main-convergence-design.md",
-      "size": 4923,
-      "sha256": "e859d9973c64433421800dd142a27adbc4e66dbe840bf2f9e8363e2f38835fb6",
+      "size": 4920,
+      "sha256": "627108cdbe6685a4f00f310f4bfb1559a69f0e9ba8672257b67d6e3c4ce982cc",
       "normalization": "lf"
     },
     {
@@ -1661,8 +1661,8 @@
     },
     {
       "path": "packages/portal-overlay/src/runtime.ts",
-      "size": 9766,
-      "sha256": "8be627eedf151304390e1ea437cf446653673da312c58641e8379820e16895ed",
+      "size": 11518,
+      "sha256": "061340061858cbaee81c4051f5ceb36a0018ec0da83b4943f9d1510a84c86d4c",
       "normalization": "lf"
     },
     {
@@ -1860,7 +1860,7 @@
     {
       "path": "README.md",
       "size": 5407,
-      "sha256": "6a0e57a61d06cd6e92b7b71654a6165596f43eae6a2685dad6f3207d7b41ddb1",
+      "sha256": "e1ca0e74efc6f3ff2eb2bc1912aab4e34f6e670dc6113483fea7fc21f61bb016",
       "normalization": "lf"
     },
     {
@@ -1872,7 +1872,7 @@
     {
       "path": "scripts/release-manifest.mjs",
       "size": 4986,
-      "sha256": "552802dc03801282d1554ab623bd7dd1e5f9847bb5a1674743b8f7b801f48dd7",
+      "sha256": "360f95ee96c99c1d61ed88a52de078d1f0cf48f454cb2ac4bbe447b0ba5109c6",
       "normalization": "lf"
     },
     {
@@ -2027,8 +2027,8 @@
     },
     {
       "path": "tests/portal-runtime.test.mjs",
-      "size": 10157,
-      "sha256": "d56c06fd41cb6dd62765ceac3b6f51622a7c44bcf0db40fdc59576a3da2170eb",
+      "size": 11301,
+      "sha256": "df62f01a700acbc69bcdd16234244cb99f9ad63a5a96bf91c520ec6c3057041b",
       "normalization": "lf"
     },
     {

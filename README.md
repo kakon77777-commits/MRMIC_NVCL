@@ -81,7 +81,7 @@ npm run phase12:probe
 
 ## 驗收摘要
 
-- 自動測試：174/174；TypeScript check 與 Phase 12 離線 demo 通過。
+- 自動測試：175/175；TypeScript check 與 Phase 12 離線 demo 通過。
 - Phase 13 negative controls 覆蓋 invalid portal、forged identity、unauthenticated agent/system presence、cross-principal MCP session、stale runtime revision/sequence 與 duplicate idempotency。
 - capability HTTP/MCP document、migration fixture、secure client JSON、ephemeral runtime presence 與 live host control contract 均有離線測試。
 - Phase 12 既有 Provider 證據仍是 8/8 schema-valid/semantic-correct；本輪沒有外部 Provider、Electron/WebView 或 PMW Python adapter E2E，因此不把契約測試宣稱為跨程序整合完成。

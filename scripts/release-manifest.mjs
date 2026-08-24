@@ -36,7 +36,7 @@ const manifest = {
   generatedAt: new Date().toISOString(),
   sourceBaseline: 'git main da1ec4f (organized Phase 12 v0.13)',
   phase13PortSource: '07da8848314d5e0ca50e3e956c6b7af1883d0d83 (audited path-level source, not merged)',
-  automatedTests: { total: 174, passed: 174, failed: 0 },
+  automatedTests: { total: 175, passed: 175, failed: 0 },
   mcpTools: { total: 26, lab: 11 },
   phase13Integration: {
     capabilitySchema: 'mrmic-capabilities/v1',
@@ -51,7 +51,7 @@ const manifest = {
   },
   localAcceptance: {
     typescriptCheck: 'passed',
-    automatedTests: '174/174 passed',
+    automatedTests: '175/175 passed',
     phase12OfflineDemo: 'passed',
     realProviderRun: 'not_run',
   },

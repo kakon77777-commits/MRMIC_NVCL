@@ -235,6 +235,35 @@ test('provider resource identity change cannot silently reuse an existing live h
   assert.equal(tandem.events.at(-1).handle.providerResourceId, 'tab-b')
 })
 
+test('failed provider replacement mount revokes interaction state and releases the live budget', async () => {
+  const tandem = fakeHost()
+  const originalMount = tandem.host.mount
+  tandem.host.mount = async (handle, rect) => {
+    if (handle.providerResourceId === 'tab-b') throw new Error('provider mount failed')
+    return originalMount(handle, rect)
+  }
+  const hosts = new LivePortalHostRegistry()
+  hosts.register('tandem', tandem.host)
+  const coordinator = new CanvasLivePortalCoordinator(hosts, new LiveSurfaceBudget(1))
+  await coordinator.activate(portal('portal-a', 'tab-a'), viewport, clientRect)
+  coordinator.setFocused('portal-a', true)
+  coordinator.acquireControl('portal-a', 'principal:neo.k')
+
+  await assert.rejects(
+    coordinator.activate(portal('portal-a', 'tab-b'), viewport, clientRect),
+    /provider mount failed/,
+  )
+  assert.deepEqual(coordinator.state('portal-a'), {
+    portalObjectId: 'portal-a',
+    mounted: false,
+    visible: false,
+    focused: false,
+    controlOwner: null,
+  })
+  assert.equal(coordinator.isMounted('portal-a'), false)
+  assert.deepEqual(coordinator.activePortalObjectIds(), [])
+})
+
 test('missing provider host fails closed', async () => {
   const coordinator = new CanvasLivePortalCoordinator(new LivePortalHostRegistry())
   await assert.rejects(

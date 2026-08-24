@@ -162,17 +162,53 @@ export class CanvasLivePortalCoordinator {
     let preserveInteractionState = true
     if (existing) {
       if (existing.handle.provider !== handle.provider || existing.handle.providerResourceId !== handle.providerResourceId) {
-        await existing.host.unmount(existing.handle)
+        this.#writeState({
+          portalObjectId: object.id,
+          mounted: true,
+          visible: true,
+          focused: false,
+          controlOwner: null,
+        })
+        try {
+          await existing.host.unmount(existing.handle)
+        } catch (error) {
+          this.#budget.deactivate(object.id)
+          this.#writeState({
+            portalObjectId: object.id,
+            mounted: true,
+            visible: false,
+            focused: false,
+            controlOwner: null,
+          })
+          throw error
+        }
         this.#mounted.delete(object.id)
+        this.#writeState({
+          portalObjectId: object.id,
+          mounted: false,
+          visible: false,
+          focused: false,
+          controlOwner: null,
+        })
         preserveInteractionState = false
-        await host.mount(handle, rect)
-        this.#mounted.set(object.id, { handle, host })
+        await this.#mountSurface(handle, host, rect)
       } else {
-        await host.update(handle, rect)
+        try {
+          await host.update(handle, rect)
+        } catch (error) {
+          this.#budget.deactivate(object.id)
+          this.#writeState({
+            portalObjectId: object.id,
+            mounted: true,
+            visible: false,
+            focused: false,
+            controlOwner: null,
+          })
+          throw error
+        }
       }
     } else {
-      await host.mount(handle, rect)
-      this.#mounted.set(object.id, { handle, host })
+      await this.#mountSurface(handle, host, rect)
     }
 
     const previous = preserveInteractionState ? this.#states.get(object.id) : undefined
@@ -226,7 +262,19 @@ export class CanvasLivePortalCoordinator {
         continue
       }
       const rect = worldTransformToOverlayRect(object.transform, viewport, canvasClientRect)
-      await mounted.host.update(mounted.handle, rect)
+      try {
+        await mounted.host.update(mounted.handle, rect)
+      } catch (error) {
+        this.#budget.deactivate(portalObjectId)
+        this.#writeState({
+          portalObjectId,
+          mounted: true,
+          visible: false,
+          focused: false,
+          controlOwner: null,
+        })
+        throw error
+      }
       if (!rect.visible) {
         this.#budget.deactivate(portalObjectId)
         this.#writeState({
@@ -263,6 +311,24 @@ export class CanvasLivePortalCoordinator {
 
   async deactivateAll(): Promise<void> {
     for (const portalObjectId of [...this.#mounted.keys()]) await this.deactivate(portalObjectId)
+  }
+
+  async #mountSurface(handle: LivePortalHandle, host: LivePortalHost, rect: OverlayRect): Promise<void> {
+    try {
+      await host.mount(handle, rect)
+      this.#mounted.set(handle.portalObjectId, { handle, host })
+    } catch (error) {
+      this.#budget.deactivate(handle.portalObjectId)
+      this.#mounted.delete(handle.portalObjectId)
+      this.#writeState({
+        portalObjectId: handle.portalObjectId,
+        mounted: false,
+        visible: false,
+        focused: false,
+        controlOwner: null,
+      })
+      throw error
+    }
   }
 
   async #unmount(portalObjectId: string): Promise<void> {

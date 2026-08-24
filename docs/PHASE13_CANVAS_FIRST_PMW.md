@@ -1,6 +1,6 @@
 # Phase 13 — Canvas-First PMW Visual World
 
-Date: 2026-08-15  
+Date: 2026-08-15
 Status: current-main convergence release candidate
 
 Baseline: `main@da1ec4fcc32e9c2e01ff727492e1a9fd35a174a9`

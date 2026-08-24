@@ -10,14 +10,14 @@ This matrix answers the PMW Fabric minimum integration request. “Met” means 
 
 | Requirement | Status | Implementation | Verification |
 |---|---|---|---|
-| 1. Converge historical Phase 13 onto current main | Met | `docs/PHASE13_CONVERGENCE_PROVENANCE.md`; audited path-level port from `07da8848314d5e0ca50e3e956c6b7af1883d0d83`; current canonical theory/index preserved | `tests/workspace-layout.test.mjs`; full 174-test suite |
+| 1. Converge historical Phase 13 onto current main | Met | `docs/PHASE13_CONVERGENCE_PROVENANCE.md`; audited path-level port from `07da8848314d5e0ca50e3e956c6b7af1883d0d83`; current canonical theory/index preserved | `tests/workspace-layout.test.mjs`; full 175-test suite |
 | 2. Versioned capability negotiation | Met | `packages/capability-contract`; HTTP `GET /api/capabilities`; MCP `mrmic://capabilities`; `contracts/phase13/mrmic-capabilities-v1.schema.json` | `tests/phase13-capability-contract.test.mjs` |
 | 3. Native `resource_portal` v1 and migration | Met | `packages/resource-portal`; `contracts/phase13/native-resource-portal-v1.schema.json`; compat/native fixtures; `docs/PHASE13_PORTAL_MIGRATION.md` | `tests/resource-portal.test.mjs`; `tests/phase13-portal-migration.test.mjs`; invalid and identity-owning legacy frames rejected |
 | 4. Identity verification on every mutation surface | Met in secure mode | One `IdentityResolver` feeds HTTP transaction/sync, WebSocket and `AuthenticatedMcpGateway`; server overwrites claimed actor; viewer/agent-direct/owner permissions are mechanical | `tests/phase13-http-auth-integration.test.mjs`; `tests/phase13-mcp-auth-integration.test.mjs`; `tests/websocket-auth.test.mjs`; `tests/mcp-auth-gateway.test.mjs` |
 | 5. Provider-neutral PMW secure client contract | Met | `contracts/phase13/secure-canvas-messages-v1.schema.json`; hello/ack/presence/error examples; `packages/secure-canvas-client` | `tests/phase13-pmw-json-contract.test.mjs`; `tests/secure-client.test.mjs`; token absence control |
 | 6. Ephemeral runtime presence | Met | `packages/runtime-presence`; `ephemeral_runtime_presence_v1`; identity comes only from authenticated channel; no persistence API | `tests/runtime-presence.test.mjs`; `tests/runtime-presence-e2e.test.mjs`; stale revision/sequence and forged identity controls |
 | 7. Live portal host contract | Met at contract/runtime level | `packages/portal-overlay`; `live_portal_host_v1`; mounted/visible/focused/controlOwner separation; explicit activation/revocation and LRU budget | `tests/portal-runtime.test.mjs`; `tests/phase13-live-portal-host-contract.test.mjs`; offscreen and eviction controls |
-| 8. Acceptance, release evidence and one canonical PR | Local met; GitHub pending | v0.14 workspace versions; this matrix; generated release manifest; one current-main branch | `npm run check`; 174/174 tests; Phase 12 offline demo; secret scan; GitHub CI to be recorded after PR |
+| 8. Acceptance, release evidence and one canonical PR | Met, merge-gated | v0.14 workspace versions; this matrix; generated release manifest; canonical PR #15 | `npm run check`; 175/175 tests; Phase 12 offline demo; secret scan; exact-head GitHub CI is required before merge |
 
 ## Required negative controls
 

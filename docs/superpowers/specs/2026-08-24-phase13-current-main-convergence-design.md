@@ -1,6 +1,6 @@
 # MRMIC／NVCL Phase 13 Current-Main Convergence Design
 
-日期：2026-08-24  
+日期：2026-08-24
 狀態：Neo.K 已批准 current-main、單一 branch、單一 PR 收斂方案
 
 ## 目標
@@ -118,4 +118,3 @@ Activation 顯式；focus 與 control acquisition/release/revoke 也是顯式操
 - 真實 Provider 成本
 - universal identity merge 或 hidden-context exchange
 - Electron/WebContents production host implementation
-
