@@ -1,8 +1,24 @@
 import { createHash } from 'node:crypto'
 import type { StateVectorSyncRoom, StateVector, PresenceState, SyncUpdate, StateReplacementUpdate } from '../../state-vector-sync/src/index.js'
+import {
+  bearerTokenFromAuthorization,
+  type AuthenticatedPrincipal,
+  type IdentityResolver,
+} from '../../identity-auth/src/index.js'
+import {
+  RuntimePresenceRegistry,
+  type RuntimePresenceInput,
+  type RuntimePresenceState,
+} from '../../runtime-presence/src/index.js'
 
 interface SocketLike { write(data: string | Uint8Array): void; end(): void; destroy(): void; on(event: string, listener: (...args: any[]) => void): void }
-interface Peer { clientId?: string; socket: SocketLike; buffer: Uint8Array }
+interface Peer { clientId?: string; socket: SocketLike; buffer: Uint8Array; principal?: AuthenticatedPrincipal }
+
+export interface CanvasWebSocketHubOptions {
+  identityResolver?: IdentityResolver
+  allowAnonymousUserPresence?: boolean
+  runtimePresenceRegistry?: RuntimePresenceRegistry
+}
 
 function acceptKey(key: string): string {
   return createHash('sha1').update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64')
@@ -29,42 +45,170 @@ function decodeFrames(input: Uint8Array): { messages: string[]; rest: Uint8Array
   return {messages,rest:input.slice(offset),closed}
 }
 
+function asPresence(value: unknown): Partial<PresenceState> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Partial<PresenceState> : {}
+}
+
+function nonEmpty(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+export function bindPresenceToPrincipal(
+  value: unknown,
+  clientId: string,
+  principal?: AuthenticatedPrincipal,
+  allowAnonymousUserPresence = true,
+): PresenceState {
+  if (!clientId) throw new Error('presence clientId is required')
+  const input = asPresence(value)
+  const cursor = input.cursor ? structuredClone(input.cursor) : undefined
+  const viewport = input.viewport ? structuredClone(input.viewport) : undefined
+  const selectedObjectIds = Array.isArray(input.selectedObjectIds) ? input.selectedObjectIds.map(String) : []
+  const task = nonEmpty(input.task)
+  const label = nonEmpty(input.label)
+
+  if (principal) {
+    return {
+      clientId,
+      actorType: principal.actor.actorType,
+      actorId: principal.actor.actorId,
+      label: label ?? principal.semanticAgentId ?? principal.actor.actorId,
+      ...(nonEmpty(input.color) ? { color: input.color } : {}),
+      ...(cursor ? { cursor } : {}),
+      ...(viewport ? { viewport } : {}),
+      selectedObjectIds,
+      ...(task ? { task } : {}),
+      identityStatus: 'verified',
+      principalId: principal.principalId,
+      ...(principal.semanticAgentId ? { semanticAgentId: principal.semanticAgentId } : {}),
+      updatedAt: new Date().toISOString(),
+    }
+  }
+
+  if (!allowAnonymousUserPresence) throw new Error('authenticated presence is required')
+  if (input.actorType !== undefined && input.actorType !== 'user') {
+    throw new Error('agent/system presence requires an authenticated principal')
+  }
+  return {
+    clientId,
+    actorType: 'user',
+    actorId: `ui:${clientId}`,
+    label: label ?? `UI ${clientId}`,
+    ...(nonEmpty(input.color) ? { color: input.color } : {}),
+    ...(cursor ? { cursor } : {}),
+    ...(viewport ? { viewport } : {}),
+    selectedObjectIds,
+    ...(task ? { task } : {}),
+    identityStatus: 'local_ui',
+    updatedAt: new Date().toISOString(),
+  }
+}
+
+function bindUpdateActor(update: SyncUpdate, principal: AuthenticatedPrincipal): SyncUpdate {
+  const bound = structuredClone(update)
+  bound.transaction.actor = structuredClone(principal.actor)
+  return bound
+}
+
 export class CanvasWebSocketHub {
   readonly #room: StateVectorSyncRoom
   readonly #peers = new Set<Peer>()
-  constructor(room: StateVectorSyncRoom) {
+  readonly #identityResolver?: IdentityResolver
+  readonly #allowAnonymousUserPresence: boolean
+  readonly #runtimePresence: RuntimePresenceRegistry
+
+  constructor(room: StateVectorSyncRoom, options: CanvasWebSocketHubOptions = {}) {
     this.#room=room
+    this.#identityResolver=options.identityResolver
+    this.#allowAnonymousUserPresence=options.allowAnonymousUserPresence ?? true
+    this.#runtimePresence=options.runtimePresenceRegistry ?? new RuntimePresenceRegistry()
     room.subscribe(event=>{
       if(event.type==='update') this.broadcast({type:'update',update:event.update,stateVector:room.stateVector()})
       else if(event.type==='presence') this.broadcast({type:'presence',presence:event.presence})
       else this.broadcast({type:'presence_removed',clientId:event.clientId})
     })
   }
+
   handleUpgrade(request:any,socket:SocketLike,head:Uint8Array):void {
     const key=String(request.headers['sec-websocket-key']??''); if(!key){socket.destroy();return}
+    const headerToken=bearerTokenFromAuthorization(request.headers.authorization)
+    const headerPrincipal=headerToken&&this.#identityResolver?this.#identityResolver.resolveToken(headerToken)??undefined:undefined
+    if(headerToken&&this.#identityResolver&&!headerPrincipal){socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');socket.end();return}
     socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${acceptKey(key)}\r\n\r\n`)
-    const peer:Peer={socket,buffer:new Uint8Array(0)}; this.#peers.add(peer)
+    const peer:Peer={socket,buffer:new Uint8Array(0),...(headerPrincipal?{principal:headerPrincipal}:{})}; this.#peers.add(peer)
     const onData=(chunk:Uint8Array)=>{ peer.buffer=concat(peer.buffer,chunk); const decoded=decodeFrames(peer.buffer); peer.buffer=decoded.rest
       for(const text of decoded.messages) this.#onMessage(peer,text).catch(error=>this.send(peer,{type:'error',message:error instanceof Error?error.message:String(error)}))
       if(decoded.closed) this.#remove(peer)
     }
     socket.on('data',onData); socket.on('close',()=>this.#remove(peer)); socket.on('error',()=>this.#remove(peer)); if(head?.length) onData(head)
   }
+
   broadcast(payload:unknown, except?:Peer):void { for(const peer of this.#peers) if(peer!==except) this.send(peer,payload) }
   send(peer:Peer,payload:unknown):void { peer.socket.write(frameText(JSON.stringify(payload))) }
   peerCount():number{return this.#peers.size}
+  runtimePresenceSnapshot():RuntimePresenceState[]{return this.#runtimePresence.snapshot()}
+
   async #onMessage(peer:Peer,text:string):Promise<void>{
     const message=JSON.parse(text) as any
     if(message.type==='hello') {
-      peer.clientId=String(message.clientId); const vector=(message.stateVector??{}) as StateVector
-      if(message.presence) this.#room.setPresence(message.presence as PresenceState)
-      this.send(peer,{type:'hello_ack',roomId:this.#room.roomId,stateVector:this.#room.stateVector(),missingUpdates:this.#room.diff(vector),presence:this.#room.presenceSnapshot()}); return
+      peer.clientId=String(message.clientId??'')
+      if(!peer.clientId) throw new Error('hello clientId is required')
+      if(!peer.principal&&typeof message.authToken==='string'){
+        if(!this.#identityResolver) throw new Error('authenticated agent presence is not configured')
+        const resolved=this.#identityResolver.resolveToken(message.authToken)
+        if(!resolved) throw new Error('invalid PMW binding token')
+        peer.principal=resolved
+      }
+      const vector=(message.stateVector??{}) as StateVector
+      if(message.presence) {
+        if(this.#identityResolver) this.#room.setPresence(bindPresenceToPrincipal(message.presence,peer.clientId,peer.principal,this.#allowAnonymousUserPresence))
+        else this.#room.setPresence(message.presence as PresenceState)
+      }
+      this.send(peer,{type:'hello_ack',roomId:this.#room.roomId,stateVector:this.#room.stateVector(),missingUpdates:this.#room.diff(vector),presence:this.#room.presenceSnapshot(),runtimePresence:this.#runtimePresence.snapshot(),identity:peer.principal?{verified:true,principalId:peer.principal.principalId,semanticAgentId:peer.principal.semanticAgentId??null}:{verified:false}}); return
     }
-    if(message.type==='update'){ await this.#room.apply(message.update as SyncUpdate); return }
-    if(message.type==='state_replace'){ await this.#room.applyStateReplacement(message.update as StateReplacementUpdate); return }
-    if(message.type==='presence'){ this.#room.setPresence(message.presence as PresenceState); return }
+    if(message.type==='update'){
+      const update=message.update as SyncUpdate
+      if(this.#identityResolver){
+        if(!peer.principal) throw new Error('authenticated principal required for synchronized mutation')
+        await this.#room.apply(bindUpdateActor(update,peer.principal)); return
+      }
+      await this.#room.apply(update); return
+    }
+    if(message.type==='state_replace'){
+      if(this.#identityResolver&&(!peer.principal||peer.principal.role!=='owner')) throw new Error('owner principal required for state replacement')
+      await this.#room.applyStateReplacement(message.update as StateReplacementUpdate); return
+    }
+    if(message.type==='presence'){
+      if(!peer.clientId) throw new Error('hello is required before presence updates')
+      if(this.#identityResolver) this.#room.setPresence(bindPresenceToPrincipal(message.presence,peer.clientId,peer.principal,this.#allowAnonymousUserPresence))
+      else this.#room.setPresence(message.presence as PresenceState)
+      return
+    }
+    if(message.type==='runtime_presence'){
+      if(!peer.clientId) throw new Error('hello is required before runtime presence updates')
+      if(!peer.principal) throw new Error('authenticated principal required for runtime presence')
+      const result=this.#runtimePresence.apply(message.runtime as RuntimePresenceInput,peer.principal,peer.clientId)
+      if(!result.accepted){this.send(peer,{type:'runtime_presence_rejected',reason:result.reason,runtimePresence:result.state});return}
+      this.broadcast({type:'runtime_presence',runtimePresence:result.state}); return
+    }
+    if(message.type==='runtime_presence_remove'){
+      if(!peer.clientId) throw new Error('hello is required before runtime presence removal')
+      if(!peer.principal||peer.principal.role==='viewer') throw new Error('authenticated mutating principal required for runtime presence removal')
+      const provider=nonEmpty(message.provider); const providerResourceId=nonEmpty(message.providerResourceId)
+      if(!provider||!providerResourceId) throw new Error('runtime presence provider and providerResourceId are required')
+      const removed=this.#runtimePresence.removeResource(peer.principal.principalId,provider,providerResourceId)
+      if(removed)this.broadcast({type:'runtime_presence_removed',runtimePresence:removed}); return
+    }
     if(message.type==='ping'){ this.send(peer,{type:'pong',at:new Date().toISOString()}); return }
     throw new Error(`Unknown sync message type: ${String(message.type)}`)
   }
-  #remove(peer:Peer):void { if(!this.#peers.delete(peer))return; if(peer.clientId)this.#room.removePresence(peer.clientId); try{peer.socket.end()}catch{} }
+  #remove(peer:Peer):void {
+    if(!this.#peers.delete(peer))return
+    if(peer.clientId){
+      this.#room.removePresence(peer.clientId)
+      const removed=this.#runtimePresence.removeClient(peer.clientId)
+      for(const runtimePresence of removed)this.broadcast({type:'runtime_presence_removed',runtimePresence})
+    }
+    try{peer.socket.end()}catch{}
+  }
 }
