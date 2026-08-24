@@ -496,7 +496,7 @@ Do not spawn a reviewer Agent. Verify the exact change surface and fail closed:
 
 ```powershell
 $base = '6606b54532c0f327206e7c021120370044b6e0ff'
-$changed = @(git diff --name-only "$base..HEAD")
+$changed = @(git -c core.quotepath=false diff --name-only "$base..HEAD")
 $allowed = @(
   'README.md',
   'MANIFEST.json',
