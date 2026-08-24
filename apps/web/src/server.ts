@@ -14,6 +14,7 @@ import { McpReferenceCanvasServer } from '../../../packages/mcp-reference-server
 import { DirectoryNvclTraceSink, LocalMcpCanvasClient, NvclRuntime, ReferenceSceneNvclAgent } from '../../../packages/nvcl-runtime/src/index.js'
 import { DirectoryRecursiveTraceSink, REFERENCE_DETAIL_CHECKS, RecursiveNvclRuntime, ReferenceDetailNvclAgent } from '../../../packages/recursive-nvcl-runtime/src/index.js'
 import { MultimodalCanvasLab, MultimodalLabError, type LabAction, type ObservationMode, type RasterCrop } from '../../../packages/multimodal-lab/src/index.js'
+import { capabilityDocument } from '../../../packages/capability-contract/src/index.js'
 import { agent, createWorkspace, object, transactionId } from '../../cli/src/fixtures.js'
 
 interface Phase6ServerOptions { port?: number; host?: string; databasePath?: string; syncDatabasePath?: string; labLeaseTtlMs?: number; now?: () => number }
@@ -41,7 +42,7 @@ export function createRepairTransaction(store:CanvasStore,canvasId:string):Canva
 }
 
 export function createPhase6Server(options:Phase6ServerOptions={}){
-  const {workspace,rootCanvas}=createWorkspace(); workspace.title='MRMIC NVCL Phase 12'; workspace.schemaVersion='0.13.0'; rootCanvas.title='Transient-preserving hybrid and opt-in Provider A/B laboratory'
+  const {workspace,rootCanvas}=createWorkspace(); workspace.title='MRMIC NVCL Phase 13'; workspace.schemaVersion='0.14.0'; rootCanvas.title='Canvas-first PMW visual world and multimodal laboratory'
   const ledger=new SqliteEventLedger(options.databasePath??':memory:'); const recovered=ledger.latestSnapshot(workspace.id); const store=new CanvasStore(workspace,rootCanvas,{eventSink:ledger},recovered?.state); const adapter=new SvgCanvasAdapter(store,{x:0,y:0,width:1200,height:800,zoom:1})
   const syncLedger=new SqliteSyncUpdateLog(options.syncDatabasePath??':memory:'); const registry=new CanvasSyncRegistry({workspaceId:workspace.id,store,adapter,persistence:syncLedger}); const room=registry.roomFor(rootCanvas.id); const hub=registry.hubFor(rootCanvas.id); const roomId=room.roomId
   const lab=new MultimodalCanvasLab({store,adapter,canvasId:rootCanvas.id,applyTransaction:async tx=>(await registry.roomFor(tx.canvasId).apply(registry.roomFor(tx.canvasId).nextUpdate('phase12-lab',tx))).result,replaceState:input=>registry.replaceAll('phase12-history',input),leaseTtlMs:options.labLeaseTtlMs,now:options.now})
@@ -52,6 +53,7 @@ export function createPhase6Server(options:Phase6ServerOptions={}){
   const sseClients=new Set<any>(); adapter.subscribe(delta=>{const message=`event: canvas_delta\ndata: ${JSON.stringify(delta)}\n\n`;for(const client of sseClients)client.write(message)})
   const publicRoot=resolve(process.cwd(),'apps/web/public')
   const server=createServer(async(request:any,response:any)=>{try{if(await mcp.handleHttp(request,response))return;const url=new URL(request.url??'/',`http://${request.headers.host??'localhost'}`);const pathname=url.pathname
+    if(request.method==='GET'&&pathname==='/api/capabilities'){json(response,200,capabilityDocument());return}
     if(request.method==='GET'&&pathname==='/api/state'){const canvasId=url.searchParams.get('canvasId')??rootCanvas.id;json(response,200,{workspace:store.workspace,canvas:store.getCanvas(canvasId),viewport:await adapter.getViewport(),objects:await adapter.listObjects(canvasId),eventCount:ledger.count(),sync:{roomId:registry.roomFor(canvasId).roomId,stateVector:registry.roomFor(canvasId).stateVector(),updates:registry.roomFor(canvasId).updateCount(),presence:registry.roomFor(canvasId).presenceSnapshot(),peers:registry.hubFor(canvasId).peerCount(),handle:registry.syncHandle(canvasId)},renderUri:`/api/render.svg?canvasId=${encodeURIComponent(canvasId)}`,lab:{history:lab.historyStatus,trajectoryLength:lab.trajectory.length}});return}
     if(request.method==='GET'&&pathname==='/api/lab/observe'){json(response,200,{observation:await lab.observe(labMode(url.searchParams.get('mode'))),history:lab.historyStatus});return}
     if(request.method==='GET'&&pathname.startsWith('/api/lab/frame/')&&pathname.endsWith('.svg')){const frameId=decodeURIComponent(pathname.slice('/api/lab/frame/'.length,-4));const frame=lab.frame(frameId);if(!frame){json(response,404,{error:'Frame not found',code:'FRAME_NOT_FOUND'});return}response.writeHead(200,{'content-type':'image/svg+xml; charset=utf-8','cache-control':'private, max-age=31536000, immutable','x-mrmic-frame-id':frameId,'x-mrmic-render-sha256':frame.observation.renderSha256});response.end(frame.svg);return}

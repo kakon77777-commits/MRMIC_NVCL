@@ -1,0 +1,16 @@
+{
+  "schema": "compat_frame_v0",
+  "canvasObjectId": "portal-browser-1",
+  "canvasId": "root",
+  "portalId": "browser-1",
+  "pmwWorkspaceId": "pmw-workspace-1",
+  "pmwTaskId": "pmw-task-1",
+  "provider": "tandem",
+  "resourceKind": "browser_tab",
+  "providerResourceId": "tab-1",
+  "displayMode": "snapshot",
+  "interactionMode": "inspect",
+  "title": "Browser tab 1",
+  "previewUri": "artifact://snapshot/tab-1.png",
+  "transform": { "x": 100, "y": 120, "width": 640, "height": 420, "rotation": 0, "scaleX": 1, "scaleY": 1, "zIndex": 10 }
+}
