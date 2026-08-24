@@ -27,6 +27,16 @@ immutable pixel samples
 
 Phase 0–11 仍完整保留，包括 typed canvas、同步、MCP、NVCL、Undo/Redo、immutable PNG、pixel Gesture IR、Observation Governor、Passive Scene Timeline 與四策略受控 A/B。
 
+## 正式工作區與文件入口
+
+正式本機 checkout 是 `D:\Ai\work together\MRMIC_NVCL`；GitHub `main` 是程式碼與工程文件的同步權威。外部研究母本與 Phase ZIP 不會鏡像進儲存庫。
+
+- [文件總索引](docs/INDEX.md)
+- [Canonical 理論入口](docs/theory/README.md)
+- [理論來源與 SHA-256](docs/provenance/THEORY_SOURCE_MAP.md)
+
+`docs/theory/canonical/` 保存唯一正式理論全文。未合併的 Phase 13 遠端分支是候選資料，不代表目前 `main` 或已驗收能力。
+
 ## 一般執行
 
 需求：Node.js 22.5+、npm 10+。
