@@ -88,7 +88,7 @@ Reference server 維持 26 個工具：15 個 `canvas.*` 與 11 個 `lab.*`。Ph
 
 ## 目前驗收摘要
 
-- 自動測試：75/75；Phase 12 demo 已通過。
+- 自動測試：76/76；Phase 12 demo 已通過。
 - 2 seeds × 5 policies = 10 個隔離 runs；每個策略 22/22 Freshness、22/22 Transition Guard，plan 與 full-PNG trace 在同一 seed 內完全一致。
 - `hybrid_transient`：8 次投遞、301,745 bytes、避免 20 次投遞、79.7390% byte reduction、2 個 reversal boundaries，成功保留測試瞬態。
 - `passive_timeline`：同為 8 次投遞但 378,922 bytes，未保留測試瞬態。

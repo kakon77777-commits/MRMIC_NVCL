@@ -2,11 +2,11 @@
   "name": "MRMIC_NVCL_MVP_Phase12_v0.13",
   "version": "0.13.0",
   "phase": 12,
-  "generatedAt": "2026-08-11T18:09:32.714Z",
+  "generatedAt": "2026-08-24T10:01:14.436Z",
   "sourceBaseline": "git main 483be91 (merged Phase 11 v0.12)",
   "automatedTests": {
-    "total": 75,
-    "passed": 75,
+    "total": 76,
+    "passed": 76,
     "failed": 0
   },
   "mcpTools": {
@@ -97,7 +97,7 @@
     },
     "evidence": "artifacts/phase12-hybrid-benchmark.json"
   },
-  "fileCount": 267,
+  "fileCount": 269,
   "files": [
     {
       "path": ".gitattributes",
@@ -1060,6 +1060,12 @@
       "normalization": "lf"
     },
     {
+      "path": "docs/INDEX.md",
+      "size": 1123,
+      "sha256": "1c4bf9cfee1784c2ddd80fd5ac6c4661428b0a145c3b5e34a735a71fe01d18ce",
+      "normalization": "lf"
+    },
+    {
       "path": "docs/MCP_COMPATIBILITY.md",
       "size": 3380,
       "sha256": "e465a1b9aa56e40c16a746bd0d9b3f201f9ffb442903a647b841e340629178ef",
@@ -1192,6 +1198,12 @@
       "normalization": "lf"
     },
     {
+      "path": "docs/provenance/THEORY_SOURCE_MAP.md",
+      "size": 1356,
+      "sha256": "935f2cad2c4b1f0144fc74b1f6025f62cdf3f281993b14d525436f0107387f7e",
+      "normalization": "lf"
+    },
+    {
       "path": "docs/REAL_PROVIDER_AB.md",
       "size": 3792,
       "sha256": "0c1a829839c36e0c57c1697f2c95968a7ab7d2b8a908be8808d3aa436d44f993",
@@ -1204,27 +1216,15 @@
       "normalization": "lf"
     },
     {
-      "path": "docs/theory/01___蝚西_蝜芸__牧.md",
-      "size": 23460,
-      "sha256": "b753b1c6594f47f8ea2acfc14f49fd086a2fb3d41461d413160ac7d2900e3be9",
+      "path": "docs/superpowers/plans/2026-08-24-mrmic-nvcl-workspace-consolidation.md",
+      "size": 23979,
+      "sha256": "ccc47274c734c54f0d0553065f04a95204bb462a51a4c26bfa55e31bcf158560",
       "normalization": "lf"
     },
     {
-      "path": "docs/theory/02___閬死撱箸_餈渲楝_NVCL.md",
-      "size": 29335,
-      "sha256": "fc3883bb0d775422b4ffc9a00417edb3e0d9f6db13060f2503604530441ab045",
-      "normalization": "lf"
-    },
-    {
-      "path": "docs/theory/03_MCP___飛憭芋__撣MRMIC.md",
-      "size": 33776,
-      "sha256": "e572b7e1c912242acf8f23b83c4a082ee5a81a266ac0cf38a262a1666c97d8e5",
-      "normalization": "lf"
-    },
-    {
-      "path": "docs/theory/04_MRMIC_NVCL_MVP_銵_格.md",
-      "size": 29976,
-      "sha256": "7cdbebffa010497502b69c5661bf7e894451d261d41ee40c8d5fc641f5db2451",
+      "path": "docs/superpowers/specs/2026-08-24-mrmic-nvcl-workspace-consolidation-design.md",
+      "size": 6842,
+      "sha256": "71548cdebbf5a49b082efb4be66e43e9748041cfdfb535028b81585454c69ec8",
       "normalization": "lf"
     },
     {
@@ -1261,6 +1261,12 @@
       "path": "docs/theory/canonical/README.md",
       "size": 752,
       "sha256": "244b3e372d1cb5fd1f16d7c876598ba24339c1fece97aff3cb8e1b7b22aef8c2",
+      "normalization": "lf"
+    },
+    {
+      "path": "docs/theory/README.md",
+      "size": 1047,
+      "sha256": "b47cc50ab41b960851f19321bfcacaa2bc02662799dc5cfea60d0a4661b70e39",
       "normalization": "lf"
     },
     {
@@ -1547,8 +1553,8 @@
     },
     {
       "path": "README.md",
-      "size": 5366,
-      "sha256": "b57b0708670f1f7f6816138730dc3c27f7e22cdebc516ee1e79f2a2142f207f5",
+      "size": 5890,
+      "sha256": "5bb1f4f755640e71a4f434503e67caf9678aef1ee4a9d74fd7ad3507126b3fbd",
       "normalization": "lf"
     },
     {
@@ -1560,7 +1566,7 @@
     {
       "path": "scripts/release-manifest.mjs",
       "size": 3842,
-      "sha256": "dccadc34fe1d45c6392870c4fe269fb650f30acf8b367cc54d7ce6e90848b6dc",
+      "sha256": "ed95514eb362562672bfcec87687f83e74881e3ca5bf3861f5a39a7f326b937c",
       "normalization": "lf"
     },
     {
@@ -1675,6 +1681,12 @@
       "path": "tests/websocket-sync.test.mjs",
       "size": 2524,
       "sha256": "6688ba6d851aa80f966c4e2541b392511cd6c8a98c20a7719e65abb58b2788fc",
+      "normalization": "lf"
+    },
+    {
+      "path": "tests/workspace-layout.test.mjs",
+      "size": 2755,
+      "sha256": "cc1421c6fc009b95c042ad21cf406adea2ad090da8e3f786f4ff251b1a9da24b",
       "normalization": "lf"
     },
     {

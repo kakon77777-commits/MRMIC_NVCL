@@ -35,7 +35,7 @@ const manifest = {
   phase: 12,
   generatedAt: new Date().toISOString(),
   sourceBaseline: 'git main 483be91 (merged Phase 11 v0.12)',
-  automatedTests: { total: 75, passed: 75, failed: 0 },
+  automatedTests: { total: 76, passed: 76, failed: 0 },
   mcpTools: { total: 26, lab: 11 },
   browserAcceptance: {
     status: 'passed',
