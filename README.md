@@ -27,6 +27,16 @@ immutable pixel samples
 
 Phase 0–11 仍完整保留，包括 typed canvas、同步、MCP、NVCL、Undo/Redo、immutable PNG、pixel Gesture IR、Observation Governor、Passive Scene Timeline 與四策略受控 A/B。
 
+## 正式工作區與文件入口
+
+正式本機 checkout 是 `D:\Ai\work together\MRMIC_NVCL`；GitHub `main` 是程式碼與工程文件的同步權威。外部研究母本與 Phase ZIP 不會鏡像進儲存庫。
+
+- [文件總索引](docs/INDEX.md)
+- [Canonical 理論入口](docs/theory/README.md)
+- [理論來源與 SHA-256](docs/provenance/THEORY_SOURCE_MAP.md)
+
+`docs/theory/canonical/` 保存唯一正式理論全文。未合併的 Phase 13 遠端分支是候選資料，不代表目前 `main` 或已驗收能力。
+
 ## 一般執行
 
 需求：Node.js 22.5+、npm 10+。
@@ -78,7 +88,7 @@ Reference server 維持 26 個工具：15 個 `canvas.*` 與 11 個 `lab.*`。Ph
 
 ## 目前驗收摘要
 
-- 自動測試：75/75；Phase 12 demo 已通過。
+- 自動測試：76/76；Phase 12 demo 已通過。
 - 2 seeds × 5 policies = 10 個隔離 runs；每個策略 22/22 Freshness、22/22 Transition Guard，plan 與 full-PNG trace 在同一 seed 內完全一致。
 - `hybrid_transient`：8 次投遞、301,745 bytes、避免 20 次投遞、79.7390% byte reduction、2 個 reversal boundaries，成功保留測試瞬態。
 - `passive_timeline`：同為 8 次投遞但 378,922 bytes，未保留測試瞬態。
