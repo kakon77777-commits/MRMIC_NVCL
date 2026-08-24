@@ -1,10 +1,10 @@
 # MCP Compatibility
 
-Server version: `0.13.0`
+Server version: `0.14.0`
 
 ## Protocol boundary
 
-The current server implements a handwritten, stateful reference subset based on protocol revision `2025-11-25`. The finalized MCP `2026-07-28` specification uses a stateless core and is not implemented by this endpoint. Version `0.13.0` therefore does not claim latest-spec or formal conformance.
+The current server implements a handwritten, stateful reference subset based on protocol revision `2025-11-25`. The finalized MCP `2026-07-28` specification uses a stateless core and is not implemented by this endpoint. Version `0.14.0` therefore does not claim latest-spec or formal conformance.
 
 | Capability | Status | Notes |
 |---|---|---|
@@ -22,12 +22,15 @@ The current server implements a handwritten, stateful reference subset based on 
 | DELETE session | Implemented | Closes streams and session |
 | JSON-RPC batch | Not implemented | Legacy endpoint limitation |
 | resumability | Not implemented | No Last-Event-ID replay |
-| OAuth | Not implemented | Local role header only |
+| Bearer principal binding | Implemented application layer | Secure mode wraps MCP and pins each session to its verified principal |
+| OAuth | Not implemented | No OAuth discovery or authorization-server profile |
 | official SDK | Not integrated | Reference implementation remains handwritten |
 | formal conformance suite | Not run | No conformance claim |
 | MCP `2026-07-28` stateless core | Not implemented | Planned as a separate compatibility adapter |
 
 ## Application extensions
+
+Phase 13 adds the provider-neutral capability resource `mrmic://capabilities`. It reports the exact protocol profile, auth modes, portal schema and runtime-presence support; PMW clients must use this resource or `GET /api/capabilities` instead of guessing from failure behavior.
 
 Phase 12 exposes eleven `lab.*` tools:
 

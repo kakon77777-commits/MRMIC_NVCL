@@ -13,6 +13,14 @@
 - [Recursive Runtime contract](RECURSIVE_RUNTIME_CONTRACT.md)
 - [MCP compatibility](MCP_COMPATIBILITY.md)
 
+## Phase 13 目前狀態
+
+- [Phase 13 PMW coverage matrix](PHASE13_PMW_COVERAGE_MATRIX.md)
+- [Phase 13 status report](PHASE13_STATUS_REPORT.md)
+- [Canvas-first PMW architecture](PHASE13_CANVAS_FIRST_PMW.md)
+- [Portal migration](PHASE13_PORTAL_MIGRATION.md)
+- [Historical stack provenance](PHASE13_CONVERGENCE_PROVENANCE.md)
+
 ## Phase 12 目前狀態
 
 - [Phase 12 status report](PHASE12_STATUS_REPORT.md)
@@ -22,7 +30,7 @@
 
 ## 設計決策
 
-ADR-001 至 ADR-012 位於本目錄，依編號記錄 SVG adapter、同步、MCP、NVCL、遞歸畫布、恢復、Lab、像素原生代理、Governor、Passive Timeline、Policy A/B 與 Phase 12 hybrid／Provider A/B。
+ADR-001 至 ADR-012 位於本目錄，依編號記錄 SVG adapter、同步、MCP、NVCL、遞歸畫布、恢復、Lab、像素原生代理、Governor、Passive Timeline、Policy A/B 與 Phase 12 hybrid／Provider A/B。Phase 13 是 current-main 安全收斂與跨專案契約層，完整 coverage 由上列 matrix 記錄。
 
 ## 驗收與證據
 

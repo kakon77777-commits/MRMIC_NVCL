@@ -1,0 +1,27 @@
+{
+  "id": "portal-browser-1",
+  "canvasId": "root",
+  "type": "resource_portal",
+  "transform": { "x": 100, "y": 120, "width": 640, "height": 420, "rotation": 0, "scaleX": 1, "scaleY": 1, "zIndex": 10 },
+  "style": {},
+  "content": { "text": "Browser tab 1", "previewUri": "artifact://snapshot/tab-1.png" },
+  "childIds": [],
+  "bindings": [],
+  "metadata": {
+    "portalSchema": "native_resource_portal_v1",
+    "portal": {
+      "portalId": "browser-1",
+      "pmwWorkspaceId": "pmw-workspace-1",
+      "pmwTaskId": "pmw-task-1",
+      "provider": "tandem",
+      "resourceKind": "browser_tab",
+      "providerResourceId": "tab-1",
+      "displayMode": "snapshot",
+      "interactionMode": "inspect"
+    }
+  },
+  "createdBy": { "actorType": "agent", "actorId": "mrmic:verified-pmw-binding" },
+  "createdAt": "2026-08-24T00:00:00.000Z",
+  "updatedAt": "2026-08-24T00:00:00.000Z",
+  "revision": 0
+}

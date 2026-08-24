@@ -40,9 +40,15 @@
 | Dual opt-in real Provider budget gate | 12 | `tests/provider-ab.test.mjs` | Pass |
 | Real Provider A/B source and semantic verification | 12 | `artifacts/phase12-real-provider-ab.json` | Pass |
 | Atomic partial evidence on real-run interruption | 12 | CLI checkpoint + attempt artifact | Pass |
+| Versioned capability negotiation over HTTP and MCP | 13 | `tests/phase13-capability-contract.test.mjs` | Pass |
+| Native resource portal v1 and compat migration | 13 | portal + migration tests | Pass |
+| Principal-bound HTTP/WebSocket/MCP mutations | 13 | auth integration tests | Pass |
+| Provider-neutral secure PMW JSON contract | 13 | `tests/phase13-pmw-json-contract.test.mjs` | Pass |
+| Ephemeral monotonic runtime presence | 13 | runtime presence tests | Pass |
+| Explicit live portal host focus/control ownership | 13 | portal runtime + host contract tests | Pass |
 
 ```text
-Automated tests: 75 / 75 passed
+Automated tests: 175 / 175 passed
 Seeded Phase 9 observations: 27 / 27 classified
 Phase 9 Provider calls avoided: 12
 Phase 9 browser warnings/errors: 0 / 0
@@ -62,6 +68,7 @@ Phase 12 real semantic classifications: 8 / 8 correct
 Phase 12 real Freshness / Transition Guard: 4 / 4 and 4 / 4
 Phase 12 real total Tokens: always-full 104313; Governor ROI 58010
 Inherited real Provider actions: 1 / 1 verified
+Phase 13 real Provider calls: 0 (not run; intentionally outside convergence acceptance)
 ```
 
-Not claimed: broad visual-agent generalization, arbitrary video/audio understanding, semantic narration, policy learning, deterministic cross-machine font rasterization, production security, official MCP conformance, MCP `2026-07-28` support, or transfer to uncontrolled games/desktops.
+Not claimed: external Python PMW adapter E2E, production Electron/WebView host integration, broad visual-agent generalization, arbitrary video/audio understanding, semantic narration, policy learning, deterministic cross-machine font rasterization, production security, official MCP conformance, MCP `2026-07-28` support, or transfer to uncontrolled games/desktops.

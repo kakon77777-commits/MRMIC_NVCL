@@ -1,0 +1,11 @@
+{
+  "type": "presence",
+  "presence": {
+    "label": "PMW Python",
+    "color": "teal-1",
+    "cursor": { "x": 100, "y": 120 },
+    "viewport": { "x": 0, "y": 0, "width": 1200, "height": 800, "zoom": 1 },
+    "selectedObjectIds": ["portal-browser-1"],
+    "task": "Inspect portal"
+  }
+}

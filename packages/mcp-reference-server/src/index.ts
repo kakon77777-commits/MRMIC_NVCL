@@ -23,10 +23,11 @@ import {
   type ObservationPolicyKind,
   type ObservationPolicyScoreInput,
 } from '../../multimodal-agent-runtime/src/policy-benchmark.js'
+import { capabilityDocument, MRMIC_CAPABILITIES_URI } from '../../capability-contract/src/index.js'
 
 export const MCP_PROTOCOL_VERSION = '2025-11-25'
 export const MCP_SERVER_NAME = 'mrmic-nvcl-canvas'
-export const MCP_SERVER_VERSION = '0.13.0'
+export const MCP_SERVER_VERSION = '0.14.0'
 
 type JsonRpcId = string | number | null
 interface JsonRpcRequest { jsonrpc: '2.0'; id?: JsonRpcId; method: string; params?: Record<string, unknown> }
@@ -636,6 +637,7 @@ export class McpReferenceCanvasServer {
   #listResources() {
     const { workspaceId, rootCanvasId } = this.#runtime
     return [
+      { uri: MRMIC_CAPABILITIES_URI, name: 'MRMIC capabilities', mimeType: 'application/json', description: 'Versioned PMW/Canvas capability negotiation.' },
       { uri: CanvasResource.workspace(workspaceId), name: 'Current workspace', mimeType: 'application/json', description: 'MRMIC workspace summary.' },
       { uri: CanvasResource.canvas(workspaceId, rootCanvasId), name: 'Root canvas', mimeType: 'application/json', description: 'Root canvas structure and object summaries.' },
       { uri: CanvasResource.viewport(workspaceId, rootCanvasId), name: 'Current viewport', mimeType: 'application/json', description: 'Current agent viewport and visible objects.' },
@@ -662,6 +664,9 @@ export class McpReferenceCanvasServer {
 
   async #readResource(uri: string) {
     const { workspaceId, rootCanvasId, store, adapter, ledger, room } = this.#runtime
+    if (uri === MRMIC_CAPABILITIES_URI) {
+      return [{ uri, mimeType: 'application/json', text: encodeText(capabilityDocument()) }]
+    }
     if (uri === CanvasResource.workspace(workspaceId)) {
       return [{ uri, mimeType: 'application/json', text: encodeText({ workspace: store.workspace, rootCanvasId, sync: { stateVector: room.stateVector(), updates: room.updateCount(), presence: room.presenceSnapshot() } }) }]
     }
@@ -1151,6 +1156,7 @@ export class McpReferenceCanvasServer {
     response.end(JSON.stringify(payload))
   }
   #sendRpc(response: any, status: number, payload: JsonRpcResponse, sessionId?: string): void {
+    if (sessionId && typeof response.setHeader === 'function') response.setHeader('mcp-session-id', sessionId)
     response.writeHead(status, {
       'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store',
       ...(sessionId ? { 'mcp-session-id': sessionId } : {}),

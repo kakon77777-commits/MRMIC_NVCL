@@ -1,41 +1,40 @@
-# MRMIC／NVCL Phase 12 v0.13
+# MRMIC／NVCL Phase 13 v0.14
 
-Phase 12 完成兩個彼此分離的觀察實驗：一個能在普通 burst coalescing 中保住 A→B→A 瞬態的 hybrid policy，以及一個只有雙重 opt-in 才能消耗 Codex Account 容量的真實 Provider A/B runner。
+Phase 13 把 MRMIC 收斂成 PMW 可機械協商、安全接入的 Canvas-first Visual World：Canvas 擁有幾何與投影，provider 保留原生資源權威，所有 secure-mode mutation 都由已驗 principal 綁定。
 
 ```text
-immutable pixel samples
-  ├─ transient-preserving hybrid
-  │    local A→B→A reversal detector
-  │      → flush B before return sample enters burst
-  │      → no object ID / no action authority
-  └─ opt-in real Provider A/B
-       identical five-frame source trace
-       ├─ always_full: 5 calls
-       └─ governor_roi: 3 calls
-            → semantic accuracy + Token + latency evidence
+PMW logical workspace
+  → capability negotiation
+  → authenticated Canvas session
+  → native resource_portal_v1
+       ├─ durable: geometry / projection
+       ├─ ephemeral: runtime presence
+       └─ provider-owned: browser / terminal / thread resource
 ```
 
-## Phase 12 新增
+## Phase 13 新增
 
-- `hybrid_transient` policy：在 Governor 與 Passive Scene Timeline 之間加入本地 A→B→A 邊界偵測；不把 hidden state 或物件 ID 傳給 Provider。
-- 五策略 identical-sequence benchmark：`always_full`、`static_crop`、`governor_roi`、`passive_timeline`、`hybrid_transient`。
-- `lab.observe_passive` 可選 `boundaryMode: "transient_preserving"`，並回報 `return_to_recent_visual_state` 與 interruption 統計。
-- `RealProviderABRunner`：在兩個隔離 Lab 重播相同五影格來源，量測語義正確率、每次呼叫 Token 與延遲。
-- `CodexAccountMultimodalProvider.observeVisual`：只做 schema-bound 視覺分類，不產生動作，也不能授權 SCL/action。
-- 三層 fail-closed：明確環境 acknowledgement、命令列確認、固定 8-call 上限與正整數 Token 上限。
-- capability probe 與離線 Provider-shaped fixture；未授權時是 0 次 inference。
+- `GET /api/capabilities` 與 MCP resource `mrmic://capabilities` 回傳同一份 `mrmic-capabilities/v1`，明示版本、Canvas schema、MCP profile、projection/auth modes、portal 與 runtime-presence 支援。
+- `native_resource_portal_v1` 固定 portal、PMW workspace/task、provider resource、display/interaction mode 與 optional owner semantic agent 欄位；Canvas 不冒充 provider resource owner。
+- `compat_frame_v0` → `native_resource_portal_v1` 確定性 migration fixture 與 fail-closed parser。
+- HTTP transaction、HTTP sync、WebSocket 與 MCP mutation 共用 bearer principal resolver；payload 中的 actor/semantic identity 只算 claimed，server 覆寫或拒絕。
+- provider-neutral secure hello/ack、presence、runtime presence 與 error JSON schemas/examples；token 不進 broadcast、Canvas object、ledger 或公開 evidence。
+- ephemeral runtime presence 以 authenticated channel 提供 identity，並對 stale epoch/revision/sequence fail closed。
+- live portal host 明確分離 `mounted`、`visible`、`focused`、`controlOwner`；控制權可取得、釋放、撤銷，offscreen 不等於 provider resource destroyed。
 
-Phase 0–11 仍完整保留，包括 typed canvas、同步、MCP、NVCL、Undo/Redo、immutable PNG、pixel Gesture IR、Observation Governor、Passive Scene Timeline 與四策略受控 A/B。
+Phase 0–12 均保留，包括 typed Canvas、同步、MCP、NVCL、Undo/Redo、immutable PNG、pixel Gesture IR、Observation Governor、Passive Scene Timeline、hybrid transient 與雙重 opt-in Provider A/B。
 
 ## 正式工作區與文件入口
 
-正式本機 checkout 是 `D:\Ai\work together\MRMIC_NVCL`；GitHub `main` 是程式碼與工程文件的同步權威。外部研究母本與 Phase ZIP 不會鏡像進儲存庫。
+正式本機 checkout 是 `D:\Ai\work together\MRMIC_NVCL`；GitHub `main` 是程式碼與工程文件的同步權威。外部研究母本與 Phase ZIP 不鏡像進儲存庫。
 
 - [文件總索引](docs/INDEX.md)
+- [Phase 13 PMW coverage matrix](docs/PHASE13_PMW_COVERAGE_MATRIX.md)
+- [Phase 13 status report](docs/PHASE13_STATUS_REPORT.md)
 - [Canonical 理論入口](docs/theory/README.md)
 - [理論來源與 SHA-256](docs/provenance/THEORY_SOURCE_MAP.md)
 
-`docs/theory/canonical/` 保存唯一正式理論全文。未合併的 Phase 13 遠端分支是候選資料，不代表目前 `main` 或已驗收能力。
+`docs/theory/canonical/` 保存唯一正式理論全文；歷史 stacked branches 只是移植來源，不是 current-main authority。
 
 ## 一般執行
 
@@ -49,62 +48,51 @@ npm run phase12:demo
 npm run lab
 ```
 
-互動畫布預設位於 `http://127.0.0.1:4173`。
+互動畫布預設位於 `http://127.0.0.1:4173`。一般 test、demo、web 與 MCP 不會呼叫付費 Provider。
 
-## 真實 Provider A/B（明確 opt-in）
+## Capability 與 secure mode
 
-只檢查本機 Codex App Server 與可用影像模型，不做推理：
+啟動 server 後，PMW 應先讀取：
+
+```text
+GET /api/capabilities
+MCP resources/read mrmic://capabilities
+```
+
+設定 `MRMIC_PMW_BINDINGS_JSON` 後進入 `bearer_principal_v1` secure mode。未設定時保留單機 `legacy_local` compatibility；這個模式會由 capability document 明示，不能被誤認為已驗身份。
+
+穩定 JSON schema 與 examples 位於 [`contracts/phase13/`](contracts/phase13/)。真實 bearer token 不得提交、broadcast 或寫入 durable Canvas evidence。
+
+## MCP 邊界
+
+Reference server 維持 26 個工具：15 個 `canvas.*` 與 11 個 `lab.*`。Capability 是 resource，不是新增 tool。當 secure mode 啟用，MCP session 綁定建立它的 principal，跨 principal 重用會 fail closed。
+
+目前仍是手寫 stateful `2025-11-25` subset；不宣稱 finalized stateless `2026-07-28` conformance。真實 Provider A/B 不是 MCP tool，仍只存在雙重 opt-in CLI。
+
+## Phase 12 真實 Provider A/B（歷史、明確 opt-in）
+
+只檢查本機能力、不做推理：
 
 ```powershell
 npm run phase12:probe
 ```
 
-實際 A/B 必須同時提供精確 acknowledgement、確認旗標、固定 8-call budget 與自行選定的 Token budget：
+實際 A/B 需要 exact acknowledgement、確認旗標、call cap 與 Token continuation threshold。Phase 13 收斂沒有重跑這個付費實驗；既有證據保留於 `artifacts/phase12-real-provider-ab.json`。
 
-```powershell
-$env:MRMIC_REAL_PROVIDER_AB='I_UNDERSTAND_THIS_USES_CODEX_ACCOUNT_CAPACITY'
-npm run phase12:codex-ab -- --confirm-real-provider-ab --max-provider-calls=8 --max-total-tokens=200000
-Remove-Item Env:MRMIC_REAL_PROVIDER_AB
-```
+## 驗收摘要
 
-一般 `npm test`、Demo、MCP 與未確認的 CLI 呼叫都不會執行真實 Provider 推理。真實 A/B 也只做合成畫布的唯讀語義觀察；兩次 reversible restyle 由 trusted runner 執行並經 Freshness／Transition Guard 驗證，Provider 回覆不能觸發動作。
-
-## MCP
-
-Reference server 維持 26 個工具：15 個 `canvas.*` 與 11 個 `lab.*`。Phase 12 沒有增加可消耗帳戶容量的 MCP tool；真實 A/B 刻意只留在雙重 opt-in CLI。
-
-`lab.observe_passive` 的 Phase 12 參數：
-
-```json
-{
-  "timelineId": "viewer-timeline",
-  "operation": "sample",
-  "boundaryMode": "transient_preserving",
-  "transientReturnDifferenceThreshold": 0.0005,
-  "transientPulseDifferenceThreshold": 0.00005,
-  "transientReversalRatio": 0.2
-}
-```
-
-## 目前驗收摘要
-
-- 自動測試：76/76；Phase 12 demo 已通過。
-- 2 seeds × 5 policies = 10 個隔離 runs；每個策略 22/22 Freshness、22/22 Transition Guard，plan 與 full-PNG trace 在同一 seed 內完全一致。
-- `hybrid_transient`：8 次投遞、301,745 bytes、避免 20 次投遞、79.7390% byte reduction、2 個 reversal boundaries，成功保留測試瞬態。
-- `passive_timeline`：同為 8 次投遞但 378,922 bytes，未保留測試瞬態。
-- Hybrid 的 exact post-state retention 仍為 6/21；它替換了被保留的中間狀態，沒有增加總數。
-- 透明 ranking 仍推薦 `governor_roi`，因其在此 fixture 保留 21/21 exact post-state；這不是普遍最優定理。
-- 真實 Provider A/B 已完成：相同來源 trace、相同 action plan、8/8 schema-valid 且語義正確；Governor 由 5 calls／104,313 total Tokens／62.978 秒降至 3 calls／58,010 total Tokens／29.568 秒，少 46,303 Tokens（44.3885%）與 33.410 秒（53.0503%）。
+- 自動測試：175/175；TypeScript check 與 Phase 12 離線 demo 通過。
+- Phase 13 negative controls 覆蓋 invalid portal、forged identity、unauthenticated agent/system presence、cross-principal MCP session、stale runtime revision/sequence 與 duplicate idempotency。
+- capability HTTP/MCP document、migration fixture、secure client JSON、ephemeral runtime presence 與 live host control contract 均有離線測試。
+- Phase 12 既有 Provider 證據仍是 8/8 schema-valid/semantic-correct；本輪沒有外部 Provider、Electron/WebView 或 PMW Python adapter E2E，因此不把契約測試宣稱為跨程序整合完成。
 
 ## 誠實邊界
 
-- Hybrid 是像素 signature 的局部三影格 reversal heuristic，不是語義事件理解，也不保證捕捉所有短暫事件。
-- `hybrid_transient` 會多做本地 full-raster signature 計算；byte 指標只計 Provider delivery，不代表總 CPU/GPU 成本。
-- 真實 A/B 只比較五個受控合成影格；不證明任意影音、遊戲或桌面泛化。
-- `max-total-tokens` 是下一次呼叫前的 continuation threshold，不是不可預知單次成本的嚴格最終封頂；本次 150,000 threshold 在第八次呼叫後累積為 162,323，之後不會再發出呼叫。
-- MCP endpoint 仍是手寫 stateful `2025-11-25` subset；不宣稱 finalized stateless `2026-07-28` conformance。
-
-詳見 `docs/HYBRID_TRANSIENT_POLICY.md`、`docs/REAL_PROVIDER_AB.md`、`docs/ADR-012_TRANSIENT_HYBRID_AND_PROVIDER_AB.md`、`docs/PHASE12_STATUS_REPORT.md`、`artifacts/phase12-hybrid-benchmark.json` 與 `artifacts/phase12-real-provider-ab.json`。
+- `resource_portal` 是 provider resource 的投影，不是資源所有權轉移。
+- runtime presence 是 process-local ephemeral truth，不是 durable Canvas truth。
+- live portal host 已驗契約與 negative controls，尚未證明特定 Electron/WebView host 的 production integration。
+- provider-neutral JSON examples 已固定，但尚未在外部 Python PMW adapter 做跨 repo E2E。
+- 不宣稱任意影音、遊戲、桌面泛化、production security review 或 MCP `2026-07-28` conformance。
 
 ## License
 

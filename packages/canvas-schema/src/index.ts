@@ -39,6 +39,37 @@ export interface ObjectContent {
   blobUri?: string
   childCanvasId?: string
   pathData?: string
+  resourceUri?: string
+  previewUri?: string
+}
+
+export type ResourceProvider = 'mrmic' | 'tandem' | 'herdr' | 'ai_board' | 'github' | 'ctcl' | 'external'
+export type ResourceKind =
+  | 'browser_tab'
+  | 'browser_workspace'
+  | 'browser_state_node'
+  | 'terminal_agent'
+  | 'terminal_pane'
+  | 'ai_board_thread'
+  | 'code_diff'
+  | 'document'
+  | 'image'
+  | 'video'
+  | 'artifact'
+  | 'external_generic'
+export type ResourcePortalDisplayMode = 'snapshot' | 'live' | 'summary' | 'hidden'
+export type ResourcePortalInteractionMode = 'inspect' | 'interact' | 'control' | 'read_only'
+
+export interface ResourcePortalDescriptor {
+  portalId: string
+  pmwWorkspaceId: string
+  pmwTaskId?: string
+  provider: ResourceProvider
+  resourceKind: ResourceKind
+  providerResourceId: string
+  displayMode: ResourcePortalDisplayMode
+  interactionMode: ResourcePortalInteractionMode
+  ownerSemanticAgentId?: string
 }
 
 export type CanvasObjectType =
@@ -52,6 +83,7 @@ export type CanvasObjectType =
   | 'frame'
   | 'subcanvas'
   | 'agent_note'
+  | 'resource_portal'
 
 export interface Binding {
   id: string
@@ -199,8 +231,15 @@ export class SchemaValidationError extends Error {
 
 const objectTypes = new Set<CanvasObjectType>([
   'rectangle', 'ellipse', 'line', 'freehand', 'text', 'image',
-  'group', 'frame', 'subcanvas', 'agent_note',
+  'group', 'frame', 'subcanvas', 'agent_note', 'resource_portal',
 ])
+const resourceProviders = new Set<ResourceProvider>(['mrmic', 'tandem', 'herdr', 'ai_board', 'github', 'ctcl', 'external'])
+const resourceKinds = new Set<ResourceKind>([
+  'browser_tab', 'browser_workspace', 'browser_state_node', 'terminal_agent', 'terminal_pane',
+  'ai_board_thread', 'code_diff', 'document', 'image', 'video', 'artifact', 'external_generic',
+])
+const portalDisplayModes = new Set<ResourcePortalDisplayMode>(['snapshot', 'live', 'summary', 'hidden'])
+const portalInteractionModes = new Set<ResourcePortalInteractionMode>(['inspect', 'interact', 'control', 'read_only'])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -210,12 +249,46 @@ function assertFiniteNumber(value: unknown, label: string, issues: string[]): vo
   if (typeof value !== 'number' || !Number.isFinite(value)) issues.push(`${label} must be finite`)
 }
 
+function requiredString(value: unknown, label: string, issues: string[]): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    issues.push(`${label} is required`)
+    return ''
+  }
+  return value.trim()
+}
+
 export function validateActorRef(value: unknown): asserts value is ActorRef {
   const issues: string[] = []
   if (!isRecord(value)) throw new SchemaValidationError(['actor must be an object'])
   if (!['user', 'agent', 'system'].includes(String(value.actorType))) issues.push('actorType is invalid')
   if (typeof value.actorId !== 'string' || value.actorId.length === 0) issues.push('actorId is required')
   if (issues.length) throw new SchemaValidationError(issues)
+}
+
+export function validateResourcePortalDescriptor(value: unknown): asserts value is ResourcePortalDescriptor {
+  const issues: string[] = []
+  if (!isRecord(value)) throw new SchemaValidationError(['resource portal descriptor must be an object'])
+  requiredString(value.portalId, 'portalId', issues)
+  requiredString(value.pmwWorkspaceId, 'pmwWorkspaceId', issues)
+  const provider = requiredString(value.provider, 'provider', issues) as ResourceProvider
+  const resourceKind = requiredString(value.resourceKind, 'resourceKind', issues) as ResourceKind
+  requiredString(value.providerResourceId, 'providerResourceId', issues)
+  const displayMode = requiredString(value.displayMode, 'displayMode', issues) as ResourcePortalDisplayMode
+  const interactionMode = requiredString(value.interactionMode, 'interactionMode', issues) as ResourcePortalInteractionMode
+  if (provider && !resourceProviders.has(provider)) issues.push('provider is invalid')
+  if (resourceKind && !resourceKinds.has(resourceKind)) issues.push('resourceKind is invalid')
+  if (displayMode && !portalDisplayModes.has(displayMode)) issues.push('displayMode is invalid')
+  if (interactionMode && !portalInteractionModes.has(interactionMode)) issues.push('interactionMode is invalid')
+  if (value.pmwTaskId !== undefined && (typeof value.pmwTaskId !== 'string' || !value.pmwTaskId.trim())) issues.push('pmwTaskId must be a non-empty string when supplied')
+  if (value.ownerSemanticAgentId !== undefined && (typeof value.ownerSemanticAgentId !== 'string' || !value.ownerSemanticAgentId.trim())) issues.push('ownerSemanticAgentId must be a non-empty string when supplied')
+  if (issues.length) throw new SchemaValidationError(issues)
+}
+
+export function resourcePortalDescriptor(object: CanvasObject): ResourcePortalDescriptor {
+  if (object.type !== 'resource_portal') throw new SchemaValidationError(['object is not a resource_portal'])
+  const descriptor = object.metadata.portal
+  validateResourcePortalDescriptor(descriptor)
+  return structuredClone(descriptor)
 }
 
 export function validateCanvasObject(value: unknown): asserts value is CanvasObject {
@@ -237,6 +310,15 @@ export function validateCanvasObject(value: unknown): asserts value is CanvasObj
   if (!Array.isArray(value.childIds)) issues.push('childIds must be an array')
   if (!Array.isArray(value.bindings)) issues.push('bindings must be an array')
   if (!isRecord(value.metadata)) issues.push('metadata must be an object')
+  if (value.type === 'resource_portal') {
+    if (!isRecord(value.metadata)) {
+      issues.push('resource_portal metadata is required')
+    } else {
+      try { validateResourcePortalDescriptor(value.metadata.portal) } catch (error) {
+        issues.push(error instanceof Error ? error.message : 'resource portal descriptor is invalid')
+      }
+    }
+  }
   if (!Number.isInteger(value.revision) || Number(value.revision) < 0) issues.push('revision must be a non-negative integer')
   try { validateActorRef(value.createdBy) } catch (error) {
     issues.push(error instanceof Error ? error.message : 'createdBy is invalid')

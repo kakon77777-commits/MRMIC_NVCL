@@ -3,20 +3,32 @@ import type { CanvasAdapter } from '../../canvas-adapter/src/index.js'
 import type { SqliteSyncUpdateLog } from '../../sync-ledger/src/index.js'
 import { StateVectorSyncRoom, type StateReplacementUpdate } from '../../state-vector-sync/src/index.js'
 import { CanvasWebSocketHub } from '../../websocket-sync/src/index.js'
+import { createIdentityResolverFromEnv, type IdentityResolver } from '../../identity-auth/src/index.js'
 
 export class CanvasSyncRegistry {
   readonly #workspaceId: string
   readonly #store: CanvasStore
   readonly #adapter: CanvasAdapter
   readonly #persistence: SqliteSyncUpdateLog
+  readonly #identityResolver?: IdentityResolver
+  readonly #allowAnonymousUserPresence: boolean
   readonly #rooms = new Map<string, StateVectorSyncRoom>()
   readonly #hubs = new Map<string, CanvasWebSocketHub>()
 
-  constructor(input: { workspaceId: string; store: CanvasStore; adapter: CanvasAdapter; persistence: SqliteSyncUpdateLog }) {
+  constructor(input: {
+    workspaceId: string
+    store: CanvasStore
+    adapter: CanvasAdapter
+    persistence: SqliteSyncUpdateLog
+    identityResolver?: IdentityResolver
+    allowAnonymousUserPresence?: boolean
+  }) {
     this.#workspaceId = input.workspaceId
     this.#store = input.store
     this.#adapter = input.adapter
     this.#persistence = input.persistence
+    this.#identityResolver = input.identityResolver ?? createIdentityResolverFromEnv()
+    this.#allowAnonymousUserPresence = input.allowAnonymousUserPresence ?? true
   }
 
   roomFor(canvasId: string): StateVectorSyncRoom {
@@ -36,7 +48,10 @@ export class CanvasSyncRegistry {
   hubFor(canvasId: string): CanvasWebSocketHub {
     const existing = this.#hubs.get(canvasId)
     if (existing) return existing
-    const hub = new CanvasWebSocketHub(this.roomFor(canvasId))
+    const hub = new CanvasWebSocketHub(this.roomFor(canvasId), {
+      identityResolver: this.#identityResolver,
+      allowAnonymousUserPresence: this.#allowAnonymousUserPresence,
+    })
     this.#hubs.set(canvasId, hub)
     return hub
   }

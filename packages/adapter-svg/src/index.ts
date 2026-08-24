@@ -1,5 +1,5 @@
 import type { CanvasStore } from '../../canvas-core/src/index.js'
-import { boundsOf, type Bounds, type CanvasObject, type CanvasTransaction, type TransactionResult } from '../../canvas-schema/src/index.js'
+import { boundsOf, resourcePortalDescriptor, type Bounds, type CanvasObject, type CanvasTransaction, type TransactionResult } from '../../canvas-schema/src/index.js'
 import type {
   CanvasAdapter,
   CanvasDelta,
@@ -50,6 +50,20 @@ function styleAttributes(object: CanvasObject): string {
   return ` fill="${escapeXml(fill)}" stroke="${escapeXml(stroke)}" stroke-width="${strokeWidth}" opacity="${opacity}"`
 }
 
+function resourcePortalToSvg(object: CanvasObject): string {
+  const { x, y, width, height } = object.transform
+  const portal = resourcePortalDescriptor(object)
+  const title = escapeXml(object.content?.text ?? `${portal.resourceKind}`)
+  const provider = escapeXml(portal.provider)
+  const resource = escapeXml(portal.providerResourceId)
+  const mode = escapeXml(portal.displayMode)
+  const preview = object.content?.previewUri
+  const previewImage = preview && (preview.startsWith('data:') || preview.startsWith('http://') || preview.startsWith('https://'))
+    ? `<image x="${x + 10}" y="${y + 48}" width="${Math.max(0, width - 20)}" height="${Math.max(0, height - 82)}" href="${escapeXml(preview)}" preserveAspectRatio="xMidYMid slice" opacity="0.94" />`
+    : ''
+  return `<g data-object-id="${escapeXml(object.id)}" data-resource-provider="${provider}" data-resource-kind="${escapeXml(portal.resourceKind)}"${transformAttribute(object)}><rect x="${x}" y="${y}" width="${width}" height="${height}" rx="14" fill="${escapeXml(object.style.fill ?? '#f8fafc')}" stroke="${escapeXml(object.style.stroke ?? '#475569')}" stroke-width="${object.style.strokeWidth ?? 2}" opacity="${object.style.opacity ?? 1}"/><rect x="${x}" y="${y}" width="${width}" height="38" rx="14" fill="#e2e8f0"/><text x="${x + 14}" y="${y + 25}" fill="#0f172a" font-family="Inter, system-ui, sans-serif" font-size="15" font-weight="700">${title}</text><text x="${x + width - 14}" y="${y + 25}" text-anchor="end" fill="#475569" font-family="Inter, system-ui, sans-serif" font-size="12">${provider} · ${mode}</text>${previewImage}<text x="${x + 14}" y="${y + height - 14}" fill="#64748b" font-family="ui-monospace, monospace" font-size="11">${resource}</text></g>`
+}
+
 function objectToSvg(object: CanvasObject): string {
   const { x, y, width, height } = object.transform
   const common = `data-object-id="${escapeXml(object.id)}"${styleAttributes(object)}${transformAttribute(object)}`
@@ -84,6 +98,8 @@ function objectToSvg(object: CanvasObject): string {
     }
     case 'subcanvas':
       return `<g data-object-id="${escapeXml(object.id)}"${transformAttribute(object)}><rect x="${x}" y="${y}" width="${width}" height="${height}" rx="14" fill="#f8fafc" stroke="#7c3aed" stroke-width="3" stroke-dasharray="8 6" /><text x="${x + 18}" y="${y + 34}" fill="#5b21b6" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="700">↳ ${escapeXml(object.content?.text ?? 'Subcanvas')}</text></g>`
+    case 'resource_portal':
+      return resourcePortalToSvg(object)
     case 'group':
       return `<rect ${common} x="${x}" y="${y}" width="${width}" height="${height}" rx="6" fill="none" stroke-dasharray="4 6" />`
     default:

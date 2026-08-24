@@ -1,0 +1,17 @@
+{
+  "type": "runtime_presence_rejected",
+  "reason": "stale_revision",
+  "runtimePresence": {
+    "provider": "herdr",
+    "providerResourceId": "terminal-claude",
+    "runtimeEpochId": "epoch-example-1",
+    "status": "working",
+    "revision": 7,
+    "sequence": 9,
+    "clientId": "pmw-python-client",
+    "principalId": "principal:pmw-python",
+    "semanticAgentId": "agent:pmw-python",
+    "identityStatus": "verified",
+    "updatedAt": "2026-08-24T00:00:00.000Z"
+  }
+}

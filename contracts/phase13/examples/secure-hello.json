@@ -1,0 +1,7 @@
+{
+  "type": "hello",
+  "clientId": "pmw-python-client",
+  "authToken": "${MRMIC_PMW_BEARER_TOKEN}",
+  "stateVector": { "pmw-python-client": 3 },
+  "presence": { "label": "PMW Python", "task": "Inspect shared Canvas" }
+}

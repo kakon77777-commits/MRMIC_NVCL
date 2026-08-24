@@ -1,0 +1,9 @@
+{
+  "type": "hello_ack",
+  "roomId": "pmw-workspace:root",
+  "stateVector": { "pmw-python-client": 3, "canvas-runtime": 8 },
+  "missingUpdates": [],
+  "presence": [],
+  "runtimePresence": [],
+  "identity": { "verified": true, "principalId": "principal:pmw-python", "semanticAgentId": "agent:pmw-python" }
+}
