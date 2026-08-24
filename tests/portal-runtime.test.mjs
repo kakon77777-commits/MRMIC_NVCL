@@ -58,11 +58,43 @@ test('live portal coordinator mounts provider surface from Canvas geometry', asy
   const result = await coordinator.activate(portal('portal-a', 'tab-a'), viewport, clientRect)
   assert.equal(result.mounted, true)
   assert.equal(coordinator.isMounted('portal-a'), true)
+  assert.deepEqual(coordinator.state('portal-a'), {
+    portalObjectId: 'portal-a',
+    mounted: true,
+    visible: true,
+    focused: false,
+    controlOwner: null,
+  })
   assert.deepEqual(tandem.events[0], {
     type: 'mount',
     handle: { portalObjectId: 'portal-a', provider: 'tandem', providerResourceId: 'tab-a' },
     rect: { left: 110, top: 120, width: 500, height: 400, visible: true },
   })
+})
+
+test('focus and control ownership are explicit, separate, and single-owner', async () => {
+  const tandem = fakeHost()
+  const hosts = new LivePortalHostRegistry()
+  hosts.register('tandem', tandem.host)
+  const coordinator = new CanvasLivePortalCoordinator(hosts)
+  await coordinator.activate(portal('portal-a', 'tab-a'), viewport, clientRect)
+
+  assert.equal(coordinator.setFocused('portal-a', true).focused, true)
+  assert.equal(coordinator.acquireControl('portal-a', 'principal:neo.k').controlOwner, 'principal:neo.k')
+  assert.equal(coordinator.acquireControl('portal-a', 'principal:neo.k').controlOwner, 'principal:neo.k')
+  assert.throws(
+    () => coordinator.acquireControl('portal-a', 'principal:other'),
+    /already controlled by principal:neo\.k/,
+  )
+  assert.throws(
+    () => coordinator.releaseControl('portal-a', 'principal:other'),
+    /cannot release control owned by principal:neo\.k/,
+  )
+
+  assert.equal(coordinator.releaseControl('portal-a', 'principal:neo.k').controlOwner, null)
+  coordinator.acquireControl('portal-a', 'principal:neo.k')
+  assert.equal(coordinator.revokeControl('portal-a').controlOwner, null)
+  assert.equal(coordinator.state('portal-a').focused, true)
 })
 
 test('geometry sync updates an already-active live surface without creating another resource', async () => {
@@ -111,6 +143,43 @@ test('offscreen activation does not consume a live-surface slot or mount a provi
   assert.equal(result.mounted, false)
   assert.deepEqual(coordinator.activePortalObjectIds(), [])
   assert.equal(tandem.events.length, 0)
+  assert.deepEqual(coordinator.state('portal-a'), {
+    portalObjectId: 'portal-a',
+    mounted: false,
+    visible: false,
+    focused: false,
+    controlOwner: null,
+  })
+})
+
+test('offscreen geometry revokes focus and control without destroying the provider resource', async () => {
+  const tandem = fakeHost()
+  const hosts = new LivePortalHostRegistry()
+  hosts.register('tandem', tandem.host)
+  const coordinator = new CanvasLivePortalCoordinator(hosts, new LiveSurfaceBudget(1))
+  const live = portal('portal-a', 'tab-a')
+  await coordinator.activate(live, viewport, clientRect)
+  coordinator.setFocused('portal-a', true)
+  coordinator.acquireControl('portal-a', 'principal:neo.k')
+
+  const offscreen = portal('portal-a', 'tab-a', {
+    transform: { ...live.transform, x: 5000, y: 5000 },
+  })
+  await coordinator.syncGeometry([offscreen], viewport, clientRect)
+  assert.deepEqual(coordinator.state('portal-a'), {
+    portalObjectId: 'portal-a',
+    mounted: true,
+    visible: false,
+    focused: false,
+    controlOwner: null,
+  })
+  assert.deepEqual(coordinator.activePortalObjectIds(), [])
+  assert.equal(tandem.events.filter(event => event.type === 'unmount').length, 0)
+
+  await coordinator.syncGeometry([live], viewport, clientRect)
+  assert.equal(coordinator.state('portal-a').visible, true)
+  assert.deepEqual(coordinator.activePortalObjectIds(), ['portal-a'])
+  assert.equal(tandem.events.filter(event => event.type === 'mount').length, 1)
 })
 
 test('switching a Canvas portal out of live mode unmounts only the projection', async () => {
@@ -125,6 +194,33 @@ test('switching a Canvas portal out of live mode unmounts only the projection', 
   await coordinator.syncGeometry([snapshot], viewport, clientRect)
   assert.equal(coordinator.isMounted('portal-a'), false)
   assert.equal(tandem.events.at(-1).type, 'unmount')
+  assert.deepEqual(coordinator.state('portal-a'), {
+    portalObjectId: 'portal-a',
+    mounted: false,
+    visible: false,
+    focused: false,
+    controlOwner: null,
+  })
+})
+
+test('deactivation and LRU eviction revoke focus and control while only unmounting the projection', async () => {
+  const tandem = fakeHost()
+  const hosts = new LivePortalHostRegistry()
+  hosts.register('tandem', tandem.host)
+  const coordinator = new CanvasLivePortalCoordinator(hosts, new LiveSurfaceBudget(1))
+  await coordinator.activate(portal('portal-a', 'tab-a'), viewport, clientRect)
+  coordinator.setFocused('portal-a', true)
+  coordinator.acquireControl('portal-a', 'principal:neo.k')
+
+  await coordinator.activate(portal('portal-b', 'tab-b'), viewport, clientRect)
+  assert.deepEqual(coordinator.state('portal-a'), {
+    portalObjectId: 'portal-a',
+    mounted: false,
+    visible: false,
+    focused: false,
+    controlOwner: null,
+  })
+  assert.equal(tandem.events.filter(event => event.type === 'unmount' && event.handle.portalObjectId === 'portal-a').length, 1)
 })
 
 test('provider resource identity change cannot silently reuse an existing live handle', async () => {

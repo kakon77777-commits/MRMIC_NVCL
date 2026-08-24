@@ -20,6 +20,14 @@ export interface PortalActivationResult {
   reason?: 'offscreen'
 }
 
+export interface LivePortalState {
+  portalObjectId: string
+  mounted: boolean
+  visible: boolean
+  focused: boolean
+  controlOwner: string | null
+}
+
 interface MountedPortal {
   handle: LivePortalHandle
   host: LivePortalHost
@@ -53,6 +61,7 @@ export class CanvasLivePortalCoordinator {
   readonly #hosts: LivePortalHostRegistry
   readonly #budget: LiveSurfaceBudget
   readonly #mounted = new Map<string, MountedPortal>()
+  readonly #states = new Map<string, LivePortalState>()
 
   constructor(hosts: LivePortalHostRegistry, budget: LiveSurfaceBudget = new LiveSurfaceBudget(2)) {
     this.#hosts = hosts
@@ -65,6 +74,47 @@ export class CanvasLivePortalCoordinator {
 
   isMounted(portalObjectId: string): boolean {
     return this.#mounted.has(portalObjectId)
+  }
+
+  state(portalObjectId: string): LivePortalState | null {
+    const state = this.#states.get(portalObjectId)
+    return state ? { ...state } : null
+  }
+
+  setFocused(portalObjectId: string, focused: boolean): LivePortalState {
+    const state = this.#requireState(portalObjectId)
+    if (focused && (!state.mounted || !state.visible)) {
+      throw new Error(`Portal ${portalObjectId} must be mounted and visible before it can receive focus`)
+    }
+    return this.#writeState({ ...state, focused })
+  }
+
+  acquireControl(portalObjectId: string, principalId: string): LivePortalState {
+    const principal = principalId.trim()
+    if (!principal) throw new Error('principalId is required')
+    const state = this.#requireState(portalObjectId)
+    if (!state.mounted || !state.visible) {
+      throw new Error(`Portal ${portalObjectId} must be mounted and visible before control can be acquired`)
+    }
+    if (state.controlOwner && state.controlOwner !== principal) {
+      throw new Error(`Portal ${portalObjectId} is already controlled by ${state.controlOwner}`)
+    }
+    return this.#writeState({ ...state, controlOwner: principal })
+  }
+
+  releaseControl(portalObjectId: string, principalId: string): LivePortalState {
+    const principal = principalId.trim()
+    if (!principal) throw new Error('principalId is required')
+    const state = this.#requireState(portalObjectId)
+    if (state.controlOwner !== principal) {
+      throw new Error(`Principal ${principal} cannot release control owned by ${state.controlOwner ?? 'no principal'}`)
+    }
+    return this.#writeState({ ...state, controlOwner: null })
+  }
+
+  revokeControl(portalObjectId: string): LivePortalState {
+    const state = this.#requireState(portalObjectId)
+    return this.#writeState({ ...state, controlOwner: null })
   }
 
   async activate(
@@ -87,6 +137,13 @@ export class CanvasLivePortalCoordinator {
       const current = this.#mounted.get(object.id)
       if (current) await current.host.update(current.handle, rect)
       this.#budget.deactivate(object.id)
+      this.#writeState({
+        portalObjectId: object.id,
+        mounted: Boolean(current),
+        visible: false,
+        focused: false,
+        controlOwner: null,
+      })
       return {
         portalObjectId: object.id,
         provider: descriptor.provider,
@@ -102,10 +159,12 @@ export class CanvasLivePortalCoordinator {
     for (const evictedId of activation.evicted) await this.#unmount(evictedId)
 
     const existing = this.#mounted.get(object.id)
+    let preserveInteractionState = true
     if (existing) {
       if (existing.handle.provider !== handle.provider || existing.handle.providerResourceId !== handle.providerResourceId) {
         await existing.host.unmount(existing.handle)
         this.#mounted.delete(object.id)
+        preserveInteractionState = false
         await host.mount(handle, rect)
         this.#mounted.set(object.id, { handle, host })
       } else {
@@ -115,6 +174,15 @@ export class CanvasLivePortalCoordinator {
       await host.mount(handle, rect)
       this.#mounted.set(object.id, { handle, host })
     }
+
+    const previous = preserveInteractionState ? this.#states.get(object.id) : undefined
+    this.#writeState({
+      portalObjectId: object.id,
+      mounted: true,
+      visible: true,
+      focused: previous?.focused ?? false,
+      controlOwner: previous?.controlOwner ?? null,
+    })
 
     return {
       portalObjectId: object.id,
@@ -159,6 +227,30 @@ export class CanvasLivePortalCoordinator {
       }
       const rect = worldTransformToOverlayRect(object.transform, viewport, canvasClientRect)
       await mounted.host.update(mounted.handle, rect)
+      if (!rect.visible) {
+        this.#budget.deactivate(portalObjectId)
+        this.#writeState({
+          portalObjectId,
+          mounted: true,
+          visible: false,
+          focused: false,
+          controlOwner: null,
+        })
+        continue
+      }
+
+      if (!this.#budget.active().includes(portalObjectId)) {
+        const activation = this.#budget.activate(portalObjectId)
+        for (const evictedId of activation.evicted) await this.#unmount(evictedId)
+      }
+      const previous = this.#states.get(portalObjectId)
+      this.#writeState({
+        portalObjectId,
+        mounted: true,
+        visible: true,
+        focused: previous?.focused ?? false,
+        controlOwner: previous?.controlOwner ?? null,
+      })
     }
   }
 
@@ -175,8 +267,28 @@ export class CanvasLivePortalCoordinator {
 
   async #unmount(portalObjectId: string): Promise<void> {
     const mounted = this.#mounted.get(portalObjectId)
-    if (!mounted) return
-    await mounted.host.unmount(mounted.handle)
-    this.#mounted.delete(portalObjectId)
+    if (mounted) {
+      await mounted.host.unmount(mounted.handle)
+      this.#mounted.delete(portalObjectId)
+    }
+    this.#writeState({
+      portalObjectId,
+      mounted: false,
+      visible: false,
+      focused: false,
+      controlOwner: null,
+    })
+  }
+
+  #requireState(portalObjectId: string): LivePortalState {
+    const state = this.#states.get(portalObjectId)
+    if (!state) throw new Error(`Portal ${portalObjectId} has no live host state`)
+    return state
+  }
+
+  #writeState(state: LivePortalState): LivePortalState {
+    const stored = { ...state }
+    this.#states.set(state.portalObjectId, stored)
+    return { ...stored }
   }
 }
