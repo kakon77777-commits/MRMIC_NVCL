@@ -30,14 +30,32 @@ const files = listed.map(path => {
 })
 
 const manifest = {
-  name: 'MRMIC_NVCL_MVP_Phase12_v0.13',
-  version: '0.13.0',
-  phase: 12,
+  name: 'MRMIC_NVCL_MVP_Phase13_v0.14',
+  version: '0.14.0',
+  phase: 13,
   generatedAt: new Date().toISOString(),
-  sourceBaseline: 'git main 483be91 (merged Phase 11 v0.12)',
-  automatedTests: { total: 76, passed: 76, failed: 0 },
+  sourceBaseline: 'git main da1ec4f (organized Phase 12 v0.13)',
+  phase13PortSource: '07da8848314d5e0ca50e3e956c6b7af1883d0d83 (audited path-level source, not merged)',
+  automatedTests: { total: 174, passed: 174, failed: 0 },
   mcpTools: { total: 26, lab: 11 },
-  browserAcceptance: {
+  phase13Integration: {
+    capabilitySchema: 'mrmic-capabilities/v1',
+    capabilityHttp: '/api/capabilities',
+    capabilityMcpResource: 'mrmic://capabilities',
+    portalSchema: 'native_resource_portal_v1',
+    portalMigration: 'compat_frame_v0 -> native_resource_portal_v1',
+    secureAuthSurfaces: ['http_transaction', 'http_sync_update', 'websocket', 'mcp'],
+    runtimePresence: 'ephemeral_runtime_presence_v1',
+    livePortalHost: 'live_portal_host_v1',
+    coverage: 'docs/PHASE13_PMW_COVERAGE_MATRIX.md',
+  },
+  localAcceptance: {
+    typescriptCheck: 'passed',
+    automatedTests: '174/174 passed',
+    phase12OfflineDemo: 'passed',
+    realProviderRun: 'not_run',
+  },
+  historicalPhase12BrowserAcceptance: {
     status: 'passed',
     dragUndoRedo: 'passed',
     freshnessAndTransitionGuard: 'passed',
@@ -45,7 +63,7 @@ const manifest = {
     errors: 0,
     evidence: 'artifacts/phase12-browser-acceptance.json',
   },
-  realCodexPixelAcceptance: {
+  historicalPhase12RealCodexPixelAcceptance: {
     status: 'completed',
     provider: 'openai_codex_account',
     model: 'gpt-5.6-sol',
@@ -59,7 +77,7 @@ const manifest = {
     transitionGuard: '4/4',
     evidence: 'artifacts/phase12-real-provider-ab.json',
   },
-  observationPolicyAB: {
+  historicalPhase12ObservationPolicyAB: {
     protocolVersion: 'mrmic-observation-policy-ab-v1',
     fixedSeeds: [42],
     heldOutSeeds: [9001],
@@ -99,6 +117,13 @@ const manifest = {
     },
     evidence: 'artifacts/phase12-hybrid-benchmark.json',
   },
+  notProven: [
+    'external Python PMW adapter end-to-end integration',
+    'production Electron/WebView live portal host integration',
+    'MCP 2026-07-28 stateless conformance',
+    'new real Provider A/B results for Phase 13',
+    'uncontrolled game, desktop, audio, or video generalization',
+  ],
   fileCount: files.length,
   files,
 }

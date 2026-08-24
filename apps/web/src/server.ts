@@ -115,4 +115,4 @@ export const createPhase9Server=createPhase6Server
 export const createPhase10Server=createPhase6Server
 export const createPhase11Server=createPhase6Server
 export const createPhase12Server=createPhase6Server
-if(process.argv[1]?.endsWith('server.js')){const app=createPhase12Server({port:Number(process.env.PORT??4173),host:process.env.HOST??'127.0.0.1',databasePath:process.env.MRMIC_DB??':memory:',syncDatabasePath:process.env.MRMIC_SYNC_DB??':memory:'});app.start().then(({url})=>console.log(`MRMIC/NVCL Phase 12 hybrid observation lab running at ${url}`)).catch(error=>{console.error(error);process.exitCode=1})}
+if(process.argv[1]?.endsWith('server.js')){const app=createPhase12Server({port:Number(process.env.PORT??4173),host:process.env.HOST??'127.0.0.1',databasePath:process.env.MRMIC_DB??':memory:',syncDatabasePath:process.env.MRMIC_SYNC_DB??':memory:'});app.start().then(({url})=>console.log(`MRMIC/NVCL Phase 13 Visual World running at ${url}`)).catch(error=>{console.error(error);process.exitCode=1})}
