@@ -1,0 +1,7 @@
+{
+  "name": "@mrmic/resource-portal",
+  "version": "0.14.0",
+  "private": true,
+  "type": "module",
+  "description": "Provider-neutral resource portal projection view model for the MRMIC visual world."
+}

@@ -1,0 +1,7 @@
+{
+  "name": "@mrmic/identity-auth",
+  "version": "0.14.0",
+  "private": true,
+  "type": "module",
+  "description": "Provider-neutral authenticated principal bindings for PMW/Canvas integrations."
+}
