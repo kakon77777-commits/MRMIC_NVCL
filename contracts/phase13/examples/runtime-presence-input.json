@@ -1,0 +1,16 @@
+{
+  "type": "runtime_presence",
+  "runtime": {
+    "provider": "herdr",
+    "providerResourceId": "terminal-claude",
+    "runtimeEpochId": "epoch-example-1",
+    "status": "working",
+    "revision": 7,
+    "sequence": 9,
+    "kind": "claude",
+    "focused": false,
+    "interactiveReady": true,
+    "launchPending": false,
+    "coordinates": { "workspaceId": "workspace-1", "tabId": "tab-1", "paneId": "pane-1" }
+  }
+}

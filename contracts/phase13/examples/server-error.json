@@ -1,0 +1,4 @@
+{
+  "type": "error",
+  "message": "authenticated principal required for synchronized mutation"
+}
