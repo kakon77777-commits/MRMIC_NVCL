@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/schemas/hdsrc-state-ref-v1.schema.json",
+  "title": "HDSRC State Reference v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "stateId", "stateRevision", "stateDigest", "dimension", "authority"],
+  "properties": {
+    "schema": { "const": "hdsrc-state-ref/v1" },
+    "stateId": { "type": "string", "minLength": 1 },
+    "stateRevision": { "type": "integer", "minimum": 0 },
+    "stateDigest": { "type": "string", "pattern": "^sha256:[A-Fa-f0-9]{64}$" },
+    "dimension": { "type": "integer", "minimum": 1 },
+    "authority": { "const": "hdsrc" }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/schemas/hdsrc-materialization-decision-v1.schema.json",
+  "title": "HDSRC Materialization Decision v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "decision", "confidence"],
+  "properties": {
+    "schema": { "const": "hdsrc-materialization-decision/v1" },
+    "decision": { "enum": ["fast_path", "oracle_fallback"] },
+    "selectedCarrier": { "enum": ["HIC1", "SNIC1", "SFPIC1", "HDT1", "HST1", "HCT1", "HBT1", "HMBT1"] },
+    "logicalScale": { "type": "integer", "minimum": 1 },
+    "confidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "requiresOracle"],
+      "properties": {
+        "mode": { "const": "empirical" },
+        "requiresOracle": { "type": "boolean" },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "decision": { "const": "fast_path" } }, "required": ["decision"] },
+      "then": { "required": ["selectedCarrier"], "properties": { "confidence": { "properties": { "requiresOracle": { "const": false } } } } }
+    },
+    {
+      "if": { "properties": { "decision": { "const": "oracle_fallback" } }, "required": ["decision"] },
+      "then": { "properties": { "confidence": { "properties": { "requiresOracle": { "const": true } } } } }
+    }
+  ]
+}

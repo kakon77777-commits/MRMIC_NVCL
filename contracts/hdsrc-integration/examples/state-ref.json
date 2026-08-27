@@ -1,0 +1,8 @@
+{
+  "schema": "hdsrc-state-ref/v1",
+  "stateId": "state:demo-4096",
+  "stateRevision": 12,
+  "stateDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "dimension": 4096,
+  "authority": "hdsrc"
+}

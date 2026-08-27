@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/schemas/hdsrc-provider-error-v1.schema.json",
+  "title": "HDSRC Provider Error v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "code", "message", "retryable"],
+  "properties": {
+    "schema": { "const": "hdsrc-provider-error/v1" },
+    "code": { "enum": ["INVALID_REQUEST", "UNAUTHORIZED", "RESOURCE_NOT_FOUND", "UNSUPPORTED_PROFILE", "STALE_STATE", "INTEGRITY_FAILURE", "MATERIALIZATION_FAILED", "ORACLE_REQUIRED", "ORACLE_FAILED", "PROVIDER_UNAVAILABLE"] },
+    "message": { "type": "string", "minLength": 1 },
+    "retryable": { "type": "boolean" }
+  }
+}

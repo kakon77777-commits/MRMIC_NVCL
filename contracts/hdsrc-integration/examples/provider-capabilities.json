@@ -1,0 +1,11 @@
+{
+  "schema": "hdsrc-provider-capabilities/v1",
+  "providerVersion": "0.10",
+  "stateProfiles": ["HDSRC-SymbolicState"],
+  "carrierProfiles": ["HIC1", "SNIC1", "SFPIC1", "HDT1", "HST1", "HCT1", "HBT1", "HMBT1"],
+  "planningProfiles": ["HRT1", "HMSP1", "HMR1", "HPCM1", "HPCM2"],
+  "observationModes": ["human_preview", "machine_carrier", "structured_manifest"],
+  "partialRead": true,
+  "oracleFallback": true,
+  "canonicalMutation": false
+}
