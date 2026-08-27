@@ -2,13 +2,15 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 const providerModule = () => import('../dist/packages/provider-hdsrc/src/index.js')
+const observationModule = () => import('../dist/packages/provider-hdsrc/src/observation.js')
 
 const NOW = '2026-08-27T00:00:00.000Z'
 const ACTOR = { actorType: 'agent', actorId: 'agent:observation-test' }
 const TRANSFORM = { x: 0, y: 0, width: 320, height: 180, rotation: 0, scaleX: 1, scaleY: 1, zIndex: 1 }
 
 async function fixture() {
-  const { DeterministicFakeHdsrcProvider, createHdsrcMaterializationPortal, HdsrcObservationBridge } = await providerModule()
+  const { DeterministicFakeHdsrcProvider, createHdsrcMaterializationPortal } = await providerModule()
+  const { HdsrcObservationBridge } = await observationModule()
   const provider = new DeterministicFakeHdsrcProvider()
   const read = { principalId: 'principal:test', allowHdsrcRead: true }
   const materialization = await provider.materialization(
