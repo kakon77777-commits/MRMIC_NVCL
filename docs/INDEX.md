@@ -12,6 +12,7 @@
 - [NVCL Runtime contract](NVCL_RUNTIME_CONTRACT.md)
 - [Recursive Runtime contract](RECURSIVE_RUNTIME_CONTRACT.md)
 - [MCP compatibility](MCP_COMPATIBILITY.md)
+- [HDSRC × MRMIC/NVCL Integration Architecture v0.1](HDSRC_MRMIC_NVCL_INTEGRATION_ARCHITECTURE_v0.1.md)
 
 ## Phase 13 目前狀態
 
