@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/schemas/hdsrc-provider-capabilities-v1.schema.json",
+  "title": "HDSRC Provider Capabilities v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "providerVersion", "stateProfiles", "carrierProfiles", "planningProfiles", "observationModes", "partialRead", "oracleFallback", "canonicalMutation"],
+  "properties": {
+    "schema": { "const": "hdsrc-provider-capabilities/v1" },
+    "providerVersion": { "type": "string", "minLength": 1 },
+    "stateProfiles": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "carrierProfiles": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["HIC1", "SNIC1", "SFPIC1", "HDT1", "HST1", "HCT1", "HBT1", "HMBT1"] } },
+    "planningProfiles": { "type": "array", "uniqueItems": true, "items": { "enum": ["HRT1", "HMSP1", "HMR1", "HPCM1", "HPCM2"] } },
+    "observationModes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["human_preview", "machine_carrier", "structured_manifest"] } },
+    "partialRead": { "type": "boolean" },
+    "oracleFallback": { "type": "boolean" },
+    "canonicalMutation": { "const": false }
+  }
+}

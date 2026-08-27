@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/schemas/hdsrc-materialization-v1.schema.json",
+  "title": "HDSRC Materialization v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "materializationId", "stateId", "stateRevision", "stateDigest", "materializationDigest", "carrierProfile", "spatializationId", "logicalScale", "workloadDigest", "machineResourceUri", "previewResourceUri"],
+  "properties": {
+    "schema": { "const": "hdsrc-materialization/v1" },
+    "materializationId": { "type": "string", "minLength": 1 },
+    "stateId": { "type": "string", "minLength": 1 },
+    "stateRevision": { "type": "integer", "minimum": 0 },
+    "stateDigest": { "type": "string", "pattern": "^sha256:[A-Fa-f0-9]{64}$" },
+    "materializationDigest": { "type": "string", "pattern": "^sha256:[A-Fa-f0-9]{64}$" },
+    "carrierProfile": { "enum": ["HIC1", "SNIC1", "SFPIC1", "HDT1", "HST1", "HCT1", "HBT1", "HMBT1"] },
+    "spatializationId": { "type": "string", "minLength": 1 },
+    "logicalScale": { "type": "integer", "minimum": 1 },
+    "workloadDigest": { "type": "string", "pattern": "^sha256:[A-Fa-f0-9]{64}$" },
+    "machineResourceUri": { "type": "string", "pattern": "^hdsrc://" },
+    "previewResourceUri": { "type": "string", "pattern": "^hdsrc://" }
+  }
+}

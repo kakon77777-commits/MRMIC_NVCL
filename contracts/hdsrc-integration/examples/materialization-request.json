@@ -1,0 +1,13 @@
+{
+  "schema": "hdsrc-materialization-request/v1",
+  "stateRef": "hdsrc://state/state:demo-4096",
+  "workload": {
+    "schema": "hdsrc-workload-hint/v1",
+    "goalClass": "relation_inspection",
+    "observationMode": "machine_carrier",
+    "queryDirection": "outgoing",
+    "expectedSpan": 16,
+    "expectedReuse": 32,
+    "latencyClass": "interactive"
+  }
+}

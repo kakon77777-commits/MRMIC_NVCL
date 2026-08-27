@@ -1,0 +1,6 @@
+{
+  "schema": "hdsrc-provider-error/v1",
+  "code": "STALE_STATE",
+  "message": "materialization source revision no longer matches provider state",
+  "retryable": true
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/schemas/hdsrc-workload-hint-v1.schema.json",
+  "title": "HDSRC Workload Hint v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "goalClass", "observationMode"],
+  "properties": {
+    "schema": { "const": "hdsrc-workload-hint/v1" },
+    "goalClass": { "type": "string", "minLength": 1 },
+    "observationMode": { "enum": ["human_preview", "machine_carrier", "structured_manifest"] },
+    "queryDirection": { "enum": ["outgoing", "incoming", "block", "mixed"] },
+    "expectedSpan": { "type": "integer", "minimum": 1 },
+    "expectedReuse": { "type": "integer", "minimum": 1 },
+    "latencyClass": { "enum": ["interactive", "batch"] }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/schemas/hdsrc-materialization-request-v1.schema.json",
+  "title": "HDSRC Materialization Request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "stateRef", "workload"],
+  "properties": {
+    "schema": { "const": "hdsrc-materialization-request/v1" },
+    "stateRef": { "type": "string", "pattern": "^hdsrc://state/.+" },
+    "workload": { "$ref": "hdsrc-workload-hint-v1.schema.json" }
+  }
+}

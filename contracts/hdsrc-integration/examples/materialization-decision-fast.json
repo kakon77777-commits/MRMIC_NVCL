@@ -1,0 +1,10 @@
+{
+  "schema": "hdsrc-materialization-decision/v1",
+  "decision": "fast_path",
+  "selectedCarrier": "HMBT1",
+  "logicalScale": 32,
+  "confidence": {
+    "mode": "empirical",
+    "requiresOracle": false
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schema": "hdsrc-materialization/v1",
+  "materializationId": "mat:invalid-resource",
+  "stateId": "state:demo-4096",
+  "stateRevision": 12,
+  "stateDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "materializationDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "carrierProfile": "HMBT1",
+  "spatializationId": "RCM_PP",
+  "logicalScale": 32,
+  "workloadDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "machineResourceUri": "https://example.invalid/machine",
+  "previewResourceUri": "hdsrc://state/state:demo-4096/materializations/mat:invalid-resource/preview"
+}

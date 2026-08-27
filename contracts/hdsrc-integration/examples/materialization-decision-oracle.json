@@ -1,0 +1,9 @@
+{
+  "schema": "hdsrc-materialization-decision/v1",
+  "decision": "oracle_fallback",
+  "confidence": {
+    "mode": "empirical",
+    "requiresOracle": true,
+    "reason": "outside_current_trust_region"
+  }
+}
