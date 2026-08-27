@@ -46,6 +46,21 @@ function stateRef(materialization: HdsrcMaterializationV1): string {
   return `hdsrc://state/${materialization.stateId}`
 }
 
+function preauthorizeObservation(
+  mode: 'human_preview' | 'structured_manifest' | 'machine_carrier',
+  context: HdsrcAccessContext,
+): void {
+  if (mode === 'structured_manifest' && context.trustedStructured !== true) {
+    throw new HdsrcProviderError('UNAUTHORIZED', 'trusted structured HDSRC observation is not authorized')
+  }
+  if (mode === 'machine_carrier' && context.trustedMachine !== true) {
+    throw new HdsrcProviderError('UNAUTHORIZED', 'trusted machine-carrier HDSRC observation is not authorized')
+  }
+  if (!['human_preview', 'structured_manifest', 'machine_carrier'].includes(mode)) {
+    throw new HdsrcProviderError('INVALID_REQUEST', `unsupported HDSRC observation mode: ${String(mode)}`)
+  }
+}
+
 export class HdsrcObservationBridge {
   readonly #provider: HdsrcProviderClient
 
@@ -58,6 +73,8 @@ export class HdsrcObservationBridge {
     mode: 'human_preview' | 'structured_manifest' | 'machine_carrier',
     context: HdsrcAccessContext,
   ): Promise<HdsrcReadOnlyObservation> {
+    preauthorizeObservation(mode, context)
+
     const ref = materializationRef(portal)
     const materialization = await this.#provider.materialization(ref, context)
     const state = await this.#provider.state(stateRef(materialization), context)
@@ -72,23 +89,13 @@ export class HdsrcObservationBridge {
     }
 
     if (mode === 'structured_manifest') {
-      if (context.trustedStructured !== true) {
-        throw new HdsrcProviderError('UNAUTHORIZED', 'trusted structured HDSRC observation is not authorized')
-      }
       return { mode: 'structured_manifest', materialization: structuredClone(materialization) }
     }
 
-    if (mode === 'machine_carrier') {
-      if (context.trustedMachine !== true) {
-        throw new HdsrcProviderError('UNAUTHORIZED', 'trusted machine-carrier HDSRC observation is not authorized')
-      }
-      const resource = await this.#provider.readResource(materialization.machineResourceUri, context)
-      if (resource.uri === materialization.previewResourceUri) {
-        throw new HdsrcProviderError('INTEGRITY_FAILURE', 'machine carrier must not alias the human preview resource')
-      }
-      return { mode: 'machine_carrier', resource }
+    const resource = await this.#provider.readResource(materialization.machineResourceUri, context)
+    if (resource.uri === materialization.previewResourceUri) {
+      throw new HdsrcProviderError('INTEGRITY_FAILURE', 'machine carrier must not alias the human preview resource')
     }
-
-    throw new HdsrcProviderError('INVALID_REQUEST', `unsupported HDSRC observation mode: ${String(mode)}`)
+    return { mode: 'machine_carrier', resource }
   }
 }
