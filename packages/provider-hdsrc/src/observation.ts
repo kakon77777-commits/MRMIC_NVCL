@@ -50,14 +50,14 @@ function preauthorizeObservation(
   mode: 'human_preview' | 'structured_manifest' | 'machine_carrier',
   context: HdsrcAccessContext,
 ): void {
+  if (!['human_preview', 'structured_manifest', 'machine_carrier'].includes(mode)) {
+    throw new HdsrcProviderError('INVALID_REQUEST', `unsupported HDSRC observation mode: ${String(mode)}`)
+  }
   if (mode === 'structured_manifest' && context.trustedStructured !== true) {
     throw new HdsrcProviderError('UNAUTHORIZED', 'trusted structured HDSRC observation is not authorized')
   }
   if (mode === 'machine_carrier' && context.trustedMachine !== true) {
     throw new HdsrcProviderError('UNAUTHORIZED', 'trusted machine-carrier HDSRC observation is not authorized')
-  }
-  if (!['human_preview', 'structured_manifest', 'machine_carrier'].includes(mode)) {
-    throw new HdsrcProviderError('INVALID_REQUEST', `unsupported HDSRC observation mode: ${String(mode)}`)
   }
 }
 
