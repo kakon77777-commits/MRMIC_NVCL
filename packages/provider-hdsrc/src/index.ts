@@ -1,3 +1,10 @@
+import {
+  validateCanvasObject,
+  type ActorRef,
+  type CanvasObject,
+  type Transform2D,
+} from '../../canvas-schema/src/index.js'
+
 export type HdsrcCarrierProfile =
   | 'HIC1'
   | 'SNIC1'
@@ -235,6 +242,88 @@ export function assertMaterializationFresh(state: HdsrcStateRefV1, materializati
   if (state.stateId !== materialization.stateId) throw new HdsrcProviderError('STALE_STATE', 'state identity mismatch', true)
   if (state.stateRevision !== materialization.stateRevision) throw new HdsrcProviderError('STALE_STATE', 'state revision mismatch', true)
   if (state.stateDigest !== materialization.stateDigest) throw new HdsrcProviderError('INTEGRITY_FAILURE', 'state digest mismatch')
+}
+
+function materializationResourceUri(materialization: HdsrcMaterializationV1): string {
+  const suffix = '/machine'
+  if (!materialization.machineResourceUri.endsWith(suffix)) throw new Error('machineResourceUri must identify the machine member of a materialization')
+  const root = materialization.machineResourceUri.slice(0, -suffix.length)
+  if (materialization.previewResourceUri !== `${root}/preview`) throw new Error('previewResourceUri must identify the preview member of the same materialization')
+  return root
+}
+
+export interface HdsrcPortalProjectionInput {
+  canvasObjectId: string
+  canvasId: string
+  portalId: string
+  pmwWorkspaceId: string
+  pmwTaskId?: string
+  title?: string
+  transform: Transform2D
+  actor: ActorRef
+  createdAt: string
+  materialization: HdsrcMaterializationV1
+}
+
+export function createHdsrcMaterializationPortal(input: HdsrcPortalProjectionInput): CanvasObject {
+  const materialization = assertHdsrcMaterialization(input.materialization)
+  const providerResourceId = materializationResourceUri(materialization)
+  const object: CanvasObject = {
+    id: text(input.canvasObjectId, 'canvasObjectId'),
+    canvasId: text(input.canvasId, 'canvasId'),
+    type: 'resource_portal',
+    transform: clone(input.transform),
+    style: {},
+    content: {
+      ...(input.title ? { text: text(input.title, 'title') } : {}),
+      previewUri: materialization.previewResourceUri,
+    },
+    childIds: [],
+    bindings: [],
+    metadata: {
+      portalSchema: 'native_resource_portal_v1',
+      portal: {
+        portalId: text(input.portalId, 'portalId'),
+        pmwWorkspaceId: text(input.pmwWorkspaceId, 'pmwWorkspaceId'),
+        ...(input.pmwTaskId ? { pmwTaskId: text(input.pmwTaskId, 'pmwTaskId') } : {}),
+        provider: 'external',
+        resourceKind: 'artifact',
+        providerResourceId,
+        displayMode: 'snapshot',
+        interactionMode: 'read_only',
+      },
+      hdsrc: {
+        schema: 'hdsrc-portal-binding/v1',
+        stateId: materialization.stateId,
+        stateRevision: materialization.stateRevision,
+        stateDigest: materialization.stateDigest,
+        materializationId: materialization.materializationId,
+        materializationDigest: materialization.materializationDigest,
+        carrierProfile: materialization.carrierProfile,
+        spatializationId: materialization.spatializationId,
+        logicalScale: materialization.logicalScale,
+        workloadDigest: materialization.workloadDigest,
+      },
+    },
+    createdBy: clone(input.actor),
+    createdAt: text(input.createdAt, 'createdAt'),
+    updatedAt: text(input.createdAt, 'createdAt'),
+    revision: 0,
+  }
+  validateCanvasObject(object)
+  return object
+}
+
+export interface HdsrcPortalLifecycleInput {
+  available: boolean
+  fresh: boolean
+  verified: boolean
+}
+
+export type HdsrcPortalLifecycle = 'projected_snapshot' | 'suspended'
+
+export function hdsrcPortalLifecycle(input: HdsrcPortalLifecycleInput): HdsrcPortalLifecycle {
+  return input.available && input.fresh && input.verified ? 'projected_snapshot' : 'suspended'
 }
 
 function authorize(context: HdsrcAccessContext): void {
