@@ -88,6 +88,54 @@ test('machine carrier lane requires trusted machine access and never aliases the
   assert.ok(result.resource.bytes.length > 0)
 })
 
+test('protected observation lanes reject before any provider read occurs', async () => {
+  const { DeterministicFakeHdsrcProvider, createHdsrcMaterializationPortal } = await providerModule()
+  const { HdsrcObservationBridge } = await observationModule()
+  const inner = new DeterministicFakeHdsrcProvider()
+  const read = { principalId: 'principal:test', allowHdsrcRead: true }
+  const materialization = await inner.materialization(
+    'hdsrc://state/state:demo-4096/materializations/mat:demo-4096-hmbt1-32',
+    read,
+  )
+  const portal = createHdsrcMaterializationPortal({
+    canvasObjectId: 'object:hdsrc-preauth',
+    canvasId: 'canvas:root',
+    portalId: 'portal:hdsrc-preauth',
+    pmwWorkspaceId: 'workspace:test',
+    transform: TRANSFORM,
+    actor: ACTOR,
+    createdAt: NOW,
+    materialization,
+  })
+  let providerReads = 0
+  const guardedProvider = {
+    capabilities: (...args) => inner.capabilities(...args),
+    state: (...args) => { providerReads += 1; return inner.state(...args) },
+    materialize: (...args) => inner.materialize(...args),
+    materialization: (...args) => { providerReads += 1; return inner.materialization(...args) },
+    readResource: (...args) => { providerReads += 1; return inner.readResource(...args) },
+  }
+  const bridge = new HdsrcObservationBridge(guardedProvider)
+
+  await assert.rejects(
+    () => bridge.observe(portal, 'structured_manifest', {
+      principalId: 'principal:test',
+      allowHdsrcRead: true,
+      trustedStructured: false,
+    }),
+    error => error?.code === 'UNAUTHORIZED',
+  )
+  await assert.rejects(
+    () => bridge.observe(portal, 'machine_carrier', {
+      principalId: 'principal:test',
+      allowHdsrcRead: true,
+      trustedMachine: false,
+    }),
+    error => error?.code === 'UNAUTHORIZED',
+  )
+  assert.equal(providerReads, 0)
+})
+
 test('HDSRC observation bridge is read-only and does not expose canonical mutation methods', async () => {
   const { bridge } = await fixture()
   for (const method of ['mutate', 'patchState', 'writeState', 'applyMutation', 'commitState']) {
