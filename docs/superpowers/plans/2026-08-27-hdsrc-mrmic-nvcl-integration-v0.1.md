@@ -27,97 +27,47 @@
 
 ### Task 1: Slice 0 — Versioned HDSRC integration contracts
 
-**Files:**
-- Create `contracts/hdsrc-integration/hdsrc-provider-capabilities-v1.schema.json`
-- Create `contracts/hdsrc-integration/hdsrc-state-ref-v1.schema.json`
-- Create `contracts/hdsrc-integration/hdsrc-workload-hint-v1.schema.json`
-- Create `contracts/hdsrc-integration/hdsrc-materialization-request-v1.schema.json`
-- Create `contracts/hdsrc-integration/hdsrc-materialization-decision-v1.schema.json`
-- Create `contracts/hdsrc-integration/hdsrc-materialization-v1.schema.json`
-- Create `contracts/hdsrc-integration/hdsrc-provider-error-v1.schema.json`
-- Create positive and negative JSON examples under `contracts/hdsrc-integration/examples/`
-- Test `tests/hdsrc-integration.test.mjs`
-
-**Interfaces:** Contract schema names must exactly match the architecture document: `hdsrc-provider-capabilities/v1`, `hdsrc-state-ref/v1`, `hdsrc-workload-hint/v1`, `hdsrc-materialization-decision/v1`, and `hdsrc-materialization/v1`.
-
-- [ ] Write the failing test that loads all seven schema files and positive/negative examples, asserts stable `$id` values, `canonicalMutation: false`, no credential-like fields, and separate preview/machine URIs.
-- [ ] Push the test alone and verify CI RED because contracts and `provider-hdsrc` do not exist.
-- [ ] Add the seven schemas and fixtures with no secrets and no mutation fields.
-- [ ] Run CI and verify contract tests GREEN before moving to Task 2.
+- [x] Write contract tests first.
+- [x] Verify expected RED at commit `93abcbef869ca613f2ab5c0d4baac383644f04a6` / Actions `33053374380`.
+- [x] Add seven versioned schemas plus positive/negative fixtures.
+- [x] Verify GREEN at commit `d7eae337ea550be268302850a4e1f2952665b69b` / Actions `33053639823`.
 
 ### Task 2: Slice 1 — `provider-hdsrc` validation and deterministic fake provider
 
-**Files:**
-- Create `packages/provider-hdsrc/package.json`
-- Create `packages/provider-hdsrc/src/index.ts`
-- Extend `tests/hdsrc-integration.test.mjs`
-
-**Interfaces:**
-- `HdsrcProviderClient`
-- `HdsrcProviderCapabilitiesV1`
-- `HdsrcStateRefV1`
-- `HdsrcMaterializationDecisionV1`
-- `HdsrcMaterializationV1`
-- `HdsrcProviderError`
-- `DeterministicFakeHdsrcProvider`
-- `assertHdsrcCapabilities(value)`
-- `assertHdsrcStateRef(value)`
-- `assertHdsrcMaterialization(value)`
-- `assertMaterializationFresh(state, materialization)`
-
-- [ ] Add failing tests for valid parse, malformed manifest rejection, stale revision rejection, digest mismatch rejection, provider authorization denial, `fast_path`, and `oracle_fallback` as a valid defer state.
-- [ ] Verify CI RED because package APIs are missing.
-- [ ] Implement focused runtime validators with fail-closed behavior; no general JSON Schema engine dependency.
-- [ ] Implement deterministic fake state `state:demo-4096` and deterministic materialization/resource responses.
-- [ ] Verify the fake provider never exposes canonical mutation and returns distinct human preview and machine resource identities.
-- [ ] Run CI GREEN.
+- [x] Add validator/provider tests before implementation.
+- [x] Verify expected RED at commit `3465a836acb0240df0ee6d851bf05b28ea283666` / Actions `33053743622`.
+- [x] Implement `packages/provider-hdsrc`, fail-closed validation, freshness, authorization, fast/defer decisions, and deterministic fake state/materialization/resources.
+- [x] Verify GREEN at commit `84a8f3d52987f3fbcbe7dadd2b09750ec005635e` / Actions `33053972887`.
 
 ### Task 3: Slice 2 — MRMIC native portal projection
 
-**Files:**
-- Extend `packages/provider-hdsrc/src/index.ts`
-- Extend `tests/hdsrc-integration.test.mjs`
+- [x] Add portal/authority tests before projection implementation.
+- [x] Verify expected RED at commit `4708088eb3cbe1eb3b861514a4cb657de314cdb1` / Actions `33054133335`.
+- [x] Implement `createHdsrcMaterializationPortal(...)` with existing `external/artifact` compatibility profile.
+- [x] Prove Canvas geometry mutation does not change HDSRC revision/digest.
+- [x] Implement fail-closed lifecycle mapping.
+- [x] Verify GREEN at commit `a0c3e1043efbdcdc350fd720b88eef3eebd2ca7b` / Actions `33054290249`.
 
-**Interfaces:**
-- `createHdsrcMaterializationPortal(input): CanvasObject`
-- `HdsrcPortalProjectionInput`
-- `hdsrcPortalLifecycle(errorOrState): ResourcePortalLifecycle`
+### Task 4: Slice 3 — explicit read-only NVCL observation bridge
 
-- [ ] Add failing tests proving a valid HDSRC materialization becomes a `resource_portal` with `provider='external'`, `resourceKind='artifact'`, `displayMode='snapshot'`, and read-only/inspect interaction.
-- [ ] Add a test using `CanvasStore` proving moving/resizing the portal increments Canvas revision but leaves the fake provider state digest unchanged.
-- [ ] Add stale/provider-unavailable tests mapping to `suspended`, while verified materialization maps to `projected_snapshot`.
-- [ ] Implement the projection builder storing only stable provider references, state/materialization digests, and preview URI; do not copy machine bytes or credentials into Canvas metadata.
-- [ ] Run CI GREEN.
+Implementation note: the trusted observation client remains an explicit `provider-hdsrc/observation` submodule rather than being re-exported into the core provider barrel. This keeps the trusted observation surface visibly separate from the general provider client and avoids widening the existing pixel Provider boundary.
 
-### Task 4: Slice 3 — Explicit read-only NVCL observation bridge
-
-**Files:**
-- Create `packages/provider-hdsrc/src/observation.ts`
-- Extend `packages/provider-hdsrc/src/index.ts` exports
-- Extend `tests/hdsrc-integration.test.mjs`
-
-**Interfaces:**
-- `HdsrcObservationMode = 'human_preview' | 'structured_manifest' | 'machine_carrier'`
-- `HdsrcObservationBridge`
-- `observe(portal, mode, context)` returns one of three discriminated read-only payloads.
-
-- [ ] Add failing tests for three observation modes.
-- [ ] Prove `human_preview` returns only approved preview identity/mime data and never state digest, spatialization details, machine bytes, credentials, or canonical state.
-- [ ] Prove `structured_manifest` requires trusted access and returns the validated materialization manifest.
-- [ ] Prove `machine_carrier` requires trusted machine access and returns an authorized resource handle/payload distinct from the preview.
-- [ ] Prove no observation API exposes a canonical mutation operation.
-- [ ] Implement bridge as a separate trusted client surface; do not change `MultimodalProvider` or existing pixel observation schema.
-- [ ] Run focused and full CI GREEN.
+- [x] Add human/structured/machine observation tests before bridge implementation.
+- [x] Verify expected RED at commit `ba0cf8f5318ce09d9ce6d36895c78e8d8eace6ac` / Actions `33054428657`.
+- [x] Implement `HdsrcObservationBridge` as a separate read-only trusted surface.
+- [x] Prove human preview contains no hidden HDSRC structured metadata.
+- [x] Require `trustedStructured` for structured manifests.
+- [x] Require `trustedMachine` for machine-carrier access.
+- [x] Prove the bridge exposes no canonical mutation methods.
+- [x] Verify GREEN at commit `d62f0d067dc1afe65aa627bd175fc05e8f4f5ba9` / Actions `33054660597` with 192 tests, 191 pass, 0 fail, 1 skip.
 
 ### Task 5: Slice 0–3 acceptance and documentation closure
 
-**Files:**
-- Create `docs/HDSRC_MRMIC_NVCL_INTEGRATION_STATUS_v0.1.md`
-- Update `docs/INDEX.md`
-- Update architecture status from draft to implemented Slices 0–3 only after tests are green.
+The architecture document is retained as the immutable approved design contract. Implementation state is recorded separately in `docs/HDSRC_MRMIC_NVCL_INTEGRATION_STATUS_v0.1.md` rather than rewriting the design after implementation.
 
-- [ ] Run `npm run check` and `npm test` through CI on the final branch head.
-- [ ] Verify existing Phase 13 tests remain green.
-- [ ] Verify branch diff contains no HDSRC canonical mutation implementation and no public Canvas enum expansion.
-- [ ] Record exact implemented/not-proven boundaries: fake provider only; no real Python process E2E; no HDSRC writeback; no production security claim.
-- [ ] Open one PR to `main` only after the final branch head has green CI.
+- [x] Verify TypeScript check and full test suite through CI on the implemented runtime head.
+- [x] Verify existing Phase 13 tests remain green in the same run.
+- [x] Audit `main...integration/hdsrc-mrmic-nvcl-v0.1`: no HDSRC canonical mutation implementation and no public Canvas enum expansion.
+- [x] Record implemented/not-proven boundaries in the dedicated status document.
+- [ ] Verify the documentation-closure branch head remains green.
+- [ ] Open one PR to `main` only after that final branch-head CI is green.
