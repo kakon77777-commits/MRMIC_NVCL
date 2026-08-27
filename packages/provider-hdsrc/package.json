@@ -1,0 +1,7 @@
+{
+  "name": "@mrmic/provider-hdsrc",
+  "version": "0.14.0",
+  "private": true,
+  "type": "module",
+  "description": "Read-only HDSRC provider bridge for MRMIC resource portals and trusted NVCL observations."
+}
