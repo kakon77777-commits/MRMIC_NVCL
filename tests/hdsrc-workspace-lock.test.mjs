@@ -16,5 +16,6 @@ test('committed package-lock records provider-hdsrc as a workspace link and pack
 })
 
 test('npm install leaves the committed package-lock unchanged', () => {
-  assert.doesNotThrow(() => execFileSync('git', ['diff', '--exit-code', '--', 'package-lock.json'], { stdio: 'pipe' }))
+  const diff = execFileSync('git', ['diff', '--', 'package-lock.json'], { encoding: 'utf8' })
+  assert.equal(diff, '')
 })
