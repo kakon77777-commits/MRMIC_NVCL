@@ -26,6 +26,11 @@ const expectedIds = {
 
 const readJson = async path => JSON.parse(await readFile(path, 'utf8'))
 const providerModule = () => import('../dist/packages/provider-hdsrc/src/index.js')
+const canvasCoreModule = () => import('../dist/packages/canvas-core/src/index.js')
+
+const NOW = '2026-08-27T00:00:00.000Z'
+const ACTOR = { actorType: 'agent', actorId: 'agent:integration-test' }
+const TRANSFORM = { x: 10, y: 20, width: 320, height: 180, rotation: 0, scaleX: 1, scaleY: 1, zIndex: 5 }
 
 test('HDSRC integration publishes seven versioned draft-2020-12 schemas', async () => {
   for (const name of schemaFiles) {
@@ -177,4 +182,67 @@ test('fake HDSRC provider preserves oracle fallback as defer and denies unauthor
     () => provider.state('hdsrc://state/state:demo-4096', denied),
     error => error instanceof HdsrcProviderError && error.code === 'UNAUTHORIZED',
   )
+})
+
+test('HDSRC materialization projects through the existing external/artifact resource portal contract', async () => {
+  const { DeterministicFakeHdsrcProvider, createHdsrcMaterializationPortal } = await providerModule()
+  const provider = new DeterministicFakeHdsrcProvider()
+  const context = { principalId: 'principal:test', allowHdsrcRead: true }
+  const materialization = await provider.materialization('hdsrc://state/state:demo-4096/materializations/mat:demo-4096-hmbt1-32', context)
+  const portal = createHdsrcMaterializationPortal({
+    canvasObjectId: 'object:hdsrc-demo',
+    canvasId: 'canvas:root',
+    portalId: 'portal:hdsrc-demo',
+    pmwWorkspaceId: 'workspace:test',
+    title: 'HDSRC 4096D materialization',
+    transform: TRANSFORM,
+    actor: ACTOR,
+    createdAt: NOW,
+    materialization,
+  })
+  assert.equal(portal.type, 'resource_portal')
+  assert.equal(portal.metadata.portalSchema, 'native_resource_portal_v1')
+  assert.equal(portal.metadata.portal.provider, 'external')
+  assert.equal(portal.metadata.portal.resourceKind, 'artifact')
+  assert.equal(portal.metadata.portal.providerResourceId, 'hdsrc://state/state:demo-4096/materializations/mat:demo-4096-hmbt1-32')
+  assert.equal(portal.metadata.portal.displayMode, 'snapshot')
+  assert.equal(portal.metadata.portal.interactionMode, 'read_only')
+  assert.equal(portal.content.previewUri, materialization.previewResourceUri)
+  assert.equal(portal.metadata.hdsrc.machineResourceUri, undefined)
+})
+
+test('Canvas geometry mutations do not mutate HDSRC state identity', async () => {
+  const { CanvasStore } = await canvasCoreModule()
+  const { DeterministicFakeHdsrcProvider, createHdsrcMaterializationPortal } = await providerModule()
+  const provider = new DeterministicFakeHdsrcProvider()
+  const context = { principalId: 'principal:test', allowHdsrcRead: true }
+  const before = await provider.state('hdsrc://state/state:demo-4096', context)
+  const materialization = await provider.materialization('hdsrc://state/state:demo-4096/materializations/mat:demo-4096-hmbt1-32', context)
+  const portal = createHdsrcMaterializationPortal({
+    canvasObjectId: 'object:hdsrc-demo', canvasId: 'canvas:root', portalId: 'portal:hdsrc-demo', pmwWorkspaceId: 'workspace:test',
+    transform: TRANSFORM, actor: ACTOR, createdAt: NOW, materialization,
+  })
+  const workspace = { id: 'workspace:test', title: 'test', rootCanvasId: 'canvas:root', schemaVersion: 'mrmic-canvas/0.14', createdAt: NOW, updatedAt: NOW }
+  const canvas = { id: 'canvas:root', workspaceId: 'workspace:test', title: 'root', objectIds: [], revision: 0, createdAt: NOW, updatedAt: NOW }
+  const store = new CanvasStore(workspace, canvas)
+  store.applyTransaction({ id: 'tx:create-hdsrc', canvasId: 'canvas:root', actor: ACTOR, intent: 'project HDSRC materialization', preconditions: [], operations: [{ op: 'create_object', object: portal }], mode: 'direct', createdAt: NOW })
+  const created = store.getObject(portal.id)
+  store.applyTransaction({
+    id: 'tx:move-hdsrc', canvasId: 'canvas:root', actor: ACTOR, intent: 'move only Canvas projection', preconditions: [],
+    operations: [{ op: 'patch_object', objectId: portal.id, expectedRevision: created.revision, patch: { transform: { x: 100, y: 140, width: 480, height: 260 } } }],
+    mode: 'direct', createdAt: NOW,
+  })
+  assert.equal(store.getCanvas('canvas:root').revision, 2)
+  assert.deepEqual(store.getObject(portal.id).transform, { ...TRANSFORM, x: 100, y: 140, width: 480, height: 260 })
+  const after = await provider.state('hdsrc://state/state:demo-4096', context)
+  assert.equal(after.stateRevision, before.stateRevision)
+  assert.equal(after.stateDigest, before.stateDigest)
+})
+
+test('HDSRC provider availability and freshness map fail-closed onto portal lifecycle', async () => {
+  const { hdsrcPortalLifecycle } = await providerModule()
+  assert.equal(hdsrcPortalLifecycle({ available: true, fresh: true, verified: true }), 'projected_snapshot')
+  assert.equal(hdsrcPortalLifecycle({ available: false, fresh: true, verified: true }), 'suspended')
+  assert.equal(hdsrcPortalLifecycle({ available: true, fresh: false, verified: true }), 'suspended')
+  assert.equal(hdsrcPortalLifecycle({ available: true, fresh: true, verified: false }), 'suspended')
 })
