@@ -1,0 +1,12 @@
+{
+  "schema": "hdsrc-routed-restart-epoch-validation/v0.3",
+  "decision": "oracle_fallback",
+  "oracleUsed": true,
+  "materializationEpoch": 1,
+  "finalRuntimeEpoch": 2,
+  "managerRuntimeEpoch": 2,
+  "childRestarted": true,
+  "machineBytes": 286313,
+  "canonicalMutation": false,
+  "testStubRuntimeUsed": false
+}
