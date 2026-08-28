@@ -1,0 +1,97 @@
+name: HDSRC v0.3 Task3 one-shot patch
+
+on:
+  push:
+    branches:
+      - integration/hdsrc-runtime-manager-v0.3
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: integration/hdsrc-runtime-manager-v0.3
+          fetch-depth: 0
+      - name: Apply exact failure-origin patches
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('packages/provider-hdsrc/src/process-client.ts')
+          text = p.read_text(encoding='utf-8')
+          anchor = "export const HDSRC_PROCESS_PROTOCOL = 'hdsrc-process/0.1' as const\n"
+          insert = anchor + "\nexport type HdsrcProcessFailureOrigin = 'transport' | 'contract'\n\nexport class HdsrcProcessClientError extends Error {\n  constructor(message: string, readonly origin: HdsrcProcessFailureOrigin) {\n    super(message)\n    this.name = 'HdsrcProcessClientError'\n  }\n}\n"
+          if 'export class HdsrcProcessClientError' not in text:
+              if text.count(anchor) != 1: raise SystemExit('process client export anchor mismatch')
+              text = text.replace(anchor, insert)
+
+          replacements = {
+            "if (!options.executable?.trim()) throw new Error('HDSRC process executable is required')": "if (!options.executable?.trim()) throw new HdsrcProcessClientError('HDSRC process executable is required', 'contract')",
+            "this.#child.on('error', (error: Error) => this.#fatal(new Error(`HDSRC process error: ${error.message}`)))": "this.#child.on('error', (error: Error) => this.#fatal(new HdsrcProcessClientError(`HDSRC process error: ${error.message}`, 'transport')))",
+            "this.#fatal(new Error(`HDSRC process exited with ${detail}${this.#stderrSuffix()}`), false)": "this.#fatal(new HdsrcProcessClientError(`HDSRC process exited with ${detail}${this.#stderrSuffix()}`, 'transport'), false)",
+            "if (!this.#closed) this.#fatal(new Error(`HDSRC process stdin failed: ${error.message}${this.#stderrSuffix()}`))": "if (!this.#closed) this.#fatal(new HdsrcProcessClientError(`HDSRC process stdin failed: ${error.message}${this.#stderrSuffix()}`, 'transport'))",
+            "if (!this.#closed) this.#fatal(new Error(`HDSRC process stdout failed: ${error.message}${this.#stderrSuffix()}`))": "if (!this.#closed) this.#fatal(new HdsrcProcessClientError(`HDSRC process stdout failed: ${error.message}${this.#stderrSuffix()}`, 'transport'))",
+            "if (this.#closed) return Promise.reject(new Error('HDSRC process client is closed'))": "if (this.#closed) return Promise.reject(new HdsrcProcessClientError('HDSRC process client is closed', 'transport'))",
+            "if (!method?.trim()) return Promise.reject(new Error('HDSRC process method is required'))": "if (!method?.trim()) return Promise.reject(new HdsrcProcessClientError('HDSRC process method is required', 'contract'))",
+            "return Promise.reject(new Error('HDSRC process params must be an object'))": "return Promise.reject(new HdsrcProcessClientError('HDSRC process params must be an object', 'contract'))",
+            "this.#fatal(new Error(`HDSRC process request ${method} timed out after ${timeout} ms${this.#stderrSuffix()}`))": "this.#fatal(new HdsrcProcessClientError(`HDSRC process request ${method} timed out after ${timeout} ms${this.#stderrSuffix()}`, 'transport'))",
+            "this.#fatal(new Error(`HDSRC process write failed: ${error.message}${this.#stderrSuffix()}`))": "this.#fatal(new HdsrcProcessClientError(`HDSRC process write failed: ${error.message}${this.#stderrSuffix()}`, 'transport'))",
+            "this.#fatal(asError(error, 'HDSRC process write failed'))": "this.#fatal(new HdsrcProcessClientError(asError(error, 'HDSRC process write failed').message, 'transport'))",
+            "this.#rejectAll(new Error('HDSRC process client is closed'))": "this.#rejectAll(new HdsrcProcessClientError('HDSRC process client is closed', 'transport'))",
+            "this.#fatal(new Error(`Malformed HDSRC process JSON: ${asError(error).message}${this.#stderrSuffix()}`))": "this.#fatal(new HdsrcProcessClientError(`Malformed HDSRC process JSON: ${asError(error).message}${this.#stderrSuffix()}`, 'contract'))",
+            "this.#fatal(new Error(`HDSRC process protocol mismatch: expected ${this.#protocol}`))": "this.#fatal(new HdsrcProcessClientError(`HDSRC process protocol mismatch: expected ${this.#protocol}`, 'contract'))",
+            "this.#fatal(new Error('Malformed HDSRC process response id'))": "this.#fatal(new HdsrcProcessClientError('Malformed HDSRC process response id', 'contract'))",
+            "this.#fatal(new Error('Malformed HDSRC process response must contain exactly one of result or error'))": "this.#fatal(new HdsrcProcessClientError('Malformed HDSRC process response must contain exactly one of result or error', 'contract'))",
+            "this.#fatal(new Error(`Malformed HDSRC process response references unknown request id ${id}`))": "this.#fatal(new HdsrcProcessClientError(`Malformed HDSRC process response references unknown request id ${id}`, 'contract'))",
+          }
+          for old, new in replacements.items():
+              if old in text:
+                  text = text.replace(old, new)
+              elif new not in text:
+                  raise SystemExit(f'missing process-client anchor: {old}')
+          p.write_text(text, encoding='utf-8')
+
+          p = Path('packages/provider-hdsrc/src/local-process.ts')
+          text = p.read_text(encoding='utf-8')
+          old_import = "  HdsrcJsonlProcessClient,\n  HdsrcProcessRemoteError,\n"
+          new_import = "  HdsrcJsonlProcessClient,\n  HdsrcProcessClientError,\n  HdsrcProcessRemoteError,\n"
+          if old_import in text:
+              text = text.replace(old_import, new_import)
+          elif new_import not in text:
+              raise SystemExit('local-process import anchor mismatch')
+
+          anchor = "export interface LocalProcessHdsrcProviderOptions {\n"
+          definitions = "export type HdsrcLocalProcessFailureOrigin = 'transport' | 'contract' | 'remote_domain'\n\nexport class HdsrcLocalProcessProviderError extends HdsrcProviderError {\n  constructor(\n    code: HdsrcProviderErrorCode,\n    message: string,\n    retryable: boolean,\n    readonly origin: HdsrcLocalProcessFailureOrigin,\n  ) {\n    super(code, message, retryable)\n    this.name = 'HdsrcLocalProcessProviderError'\n  }\n}\n\n" + anchor
+          if 'export class HdsrcLocalProcessProviderError' not in text:
+              if text.count(anchor) != 1: raise SystemExit('local-process definitions anchor mismatch')
+              text = text.replace(anchor, definitions)
+
+          handshake = {
+            "throw new Error('HDSRC process did not initialize as the required read-only protocol')": "throw new HdsrcLocalProcessProviderError('INTEGRITY_FAILURE', 'HDSRC process did not initialize as the required read-only protocol', false, 'contract')",
+            "throw new Error(`HDSRC process is missing required method ${required}`)": "throw new HdsrcLocalProcessProviderError('INTEGRITY_FAILURE', `HDSRC process is missing required method ${required}`, false, 'contract')",
+            "throw new Error('HDSRC process exposes a forbidden canonical mutation method')": "throw new HdsrcLocalProcessProviderError('INTEGRITY_FAILURE', 'HDSRC process exposes a forbidden canonical mutation method', false, 'contract')",
+          }
+          for old, new in handshake.items():
+              if old in text:
+                  text = text.replace(old, new)
+              elif new not in text:
+                  raise SystemExit(f'missing handshake anchor: {old}')
+
+          old = """function mapProcessError(error: unknown): HdsrcProviderError {\n  if (error instanceof HdsrcProviderError) return error\n  if (error instanceof HdsrcProcessRemoteError) {\n    const code = error.code && KNOWN_ERROR_CODES.has(error.code as HdsrcProviderErrorCode)\n      ? error.code as HdsrcProviderErrorCode\n      : 'PROVIDER_UNAVAILABLE'\n    return new HdsrcProviderError(code, error.message, error.retryable)\n  }\n  const message = error instanceof Error ? error.message : String(error)\n  return new HdsrcProviderError('PROVIDER_UNAVAILABLE', message, true)\n}\n"""
+          new = """function mapProcessError(error: unknown): HdsrcProviderError {\n  if (error instanceof HdsrcLocalProcessProviderError) return error\n  if (error instanceof HdsrcProcessRemoteError) {\n    const code = error.code && KNOWN_ERROR_CODES.has(error.code as HdsrcProviderErrorCode)\n      ? error.code as HdsrcProviderErrorCode\n      : 'PROVIDER_UNAVAILABLE'\n    return new HdsrcLocalProcessProviderError(code, error.message, error.retryable, 'remote_domain')\n  }\n  if (error instanceof HdsrcProcessClientError) {\n    return new HdsrcLocalProcessProviderError(\n      error.origin === 'transport' ? 'PROVIDER_UNAVAILABLE' : 'INTEGRITY_FAILURE',\n      error.message,\n      error.origin === 'transport',\n      error.origin,\n    )\n  }\n  if (error instanceof HdsrcProviderError) return error\n  const message = error instanceof Error ? error.message : String(error)\n  return new HdsrcLocalProcessProviderError('INTEGRITY_FAILURE', message, false, 'contract')\n}\n"""
+          if old in text:
+              text = text.replace(old, new)
+          elif new not in text:
+              raise SystemExit('mapProcessError anchor mismatch')
+          p.write_text(text, encoding='utf-8')
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add packages/provider-hdsrc/src/process-client.ts packages/provider-hdsrc/src/local-process.ts
+          git commit -m 'feat: preserve HDSRC process failure origin'
+          git push origin HEAD:integration/hdsrc-runtime-manager-v0.3
