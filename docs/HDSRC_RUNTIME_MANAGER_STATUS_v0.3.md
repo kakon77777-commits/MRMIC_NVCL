@@ -271,6 +271,8 @@ Observed real behavior:
 - `canonicalMutation = false`;
 - `testStubRuntimeUsed = false`.
 
+The real-runtime evidence and v0.3 documentation/index/plan execution record are now closed. The branch is entering source-frozen pre-merge verification; no further feature work belongs in this phase.
+
 ## Preserved authority boundaries
 
 $$
@@ -316,10 +318,8 @@ v0.3 does not implement:
 
 Before merge:
 
-1. index v0.3 docs/evidence;
-2. mark implementation plan execution status;
-3. run a final source-frozen branch CI;
-4. audit the final diff against authority boundaries;
-5. review PR comments/threads and mergeability;
-6. squash merge using the verified expected head SHA;
-7. verify the merged `main` commit with its own full CI run.
+1. run a final source-frozen branch CI;
+2. audit the final diff against authority boundaries;
+3. review PR comments/threads and mergeability;
+4. squash merge using the verified expected head SHA;
+5. verify the merged `main` commit with its own full CI run.
