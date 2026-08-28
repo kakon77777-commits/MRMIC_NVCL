@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/schemas/hdsrc-runtime-binding-v1.schema.json",
+  "title": "HDSRC Runtime Binding v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "runtimeId",
+    "protocol",
+    "executable",
+    "hostScript",
+    "registry",
+    "profileRoot",
+    "materializationRoot"
+  ],
+  "properties": {
+    "schema": { "const": "hdsrc-runtime-binding/v1" },
+    "runtimeId": { "type": "string", "minLength": 1 },
+    "protocol": { "const": "hdsrc-process/0.1" },
+    "executable": { "type": "string", "minLength": 1 },
+    "hostScript": { "type": "string", "minLength": 1 },
+    "registry": { "type": "string", "minLength": 1 },
+    "profileRoot": { "type": "string", "minLength": 1 },
+    "materializationRoot": { "type": "string", "minLength": 1 },
+    "cwd": { "type": "string", "minLength": 1 },
+    "timeoutMs": { "type": "integer", "minimum": 1 },
+    "maxResourceBytes": { "type": "integer", "minimum": 1 }
+  }
+}
