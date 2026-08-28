@@ -1,5 +1,5 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { createInterface, type Interface as ReadLineInterface } from 'node:readline'
+import { spawn } from 'node:child_process'
+import { createInterface } from 'node:readline'
 
 export const HDSRC_PROCESS_PROTOCOL = 'hdsrc-process/0.1' as const
 const DEFAULT_TIMEOUT_MS = 30_000
@@ -8,7 +8,7 @@ const MAX_STDERR_CHARS = 4096
 export interface HdsrcJsonlProcessClientOptions {
   executable: string
   args?: string[]
-  env?: NodeJS.ProcessEnv
+  env?: Record<string, string | undefined>
   cwd?: string
   timeoutMs?: number
   protocol?: string
@@ -47,8 +47,8 @@ export class HdsrcProcessRemoteError extends Error {
 }
 
 export class HdsrcJsonlProcessClient {
-  readonly #child: ChildProcessWithoutNullStreams
-  readonly #lines: ReadLineInterface
+  readonly #child: any
+  readonly #lines: any
   readonly #pending = new Map<number, PendingRequest>()
   readonly #protocol: string
   readonly #defaultTimeoutMs: number
@@ -67,20 +67,23 @@ export class HdsrcJsonlProcessClient {
       ...(options.cwd ? { cwd: options.cwd } : {}),
       ...(options.env ? { env: options.env } : {}),
     })
+    if (!this.#child.stdin || !this.#child.stdout || !this.#child.stderr) {
+      throw new Error('HDSRC process stdio is unavailable')
+    }
     this.#lines = createInterface({ input: this.#child.stdout, crlfDelay: Infinity })
-    this.#lines.on('line', line => this.#onLine(line))
+    this.#lines.on('line', (line: string) => this.#onLine(line))
     this.#child.stderr.setEncoding('utf8')
-    this.#child.stderr.on('data', chunk => this.#captureStderr(String(chunk)))
-    this.#child.on('error', error => this.#fatal(new Error(`HDSRC process error: ${error.message}`)))
-    this.#child.on('exit', (code, signal) => {
+    this.#child.stderr.on('data', (chunk: unknown) => this.#captureStderr(String(chunk)))
+    this.#child.on('error', (error: Error) => this.#fatal(new Error(`HDSRC process error: ${error.message}`)))
+    this.#child.on('exit', (code: number | null, signal: string | null) => {
       if (this.#closed) return
       const detail = code !== null ? `code ${code}` : `signal ${signal ?? 'unknown'}`
       this.#fatal(new Error(`HDSRC process exited with ${detail}${this.#stderrSuffix()}`), false)
     })
-    this.#child.stdin.on('error', error => {
+    this.#child.stdin.on('error', (error: Error) => {
       if (!this.#closed) this.#fatal(new Error(`HDSRC process stdin failed: ${error.message}${this.#stderrSuffix()}`))
     })
-    this.#child.stdout.on('error', error => {
+    this.#child.stdout.on('error', (error: Error) => {
       if (!this.#closed) this.#fatal(new Error(`HDSRC process stdout failed: ${error.message}${this.#stderrSuffix()}`))
     })
   }
@@ -105,7 +108,7 @@ export class HdsrcJsonlProcessClient {
       this.#pending.set(id, { method, resolve, reject, timer })
       const message = `${JSON.stringify({ protocol: this.#protocol, id, method, params })}\n`
       try {
-        this.#child.stdin.write(message, 'utf8', error => {
+        this.#child.stdin.write(message, 'utf8', (error?: Error | null) => {
           if (error && this.#pending.has(id)) {
             this.#fatal(new Error(`HDSRC process write failed: ${error.message}${this.#stderrSuffix()}`))
           }
@@ -119,8 +122,7 @@ export class HdsrcJsonlProcessClient {
   close(): void {
     if (this.#closed) return
     this.#closed = true
-    const error = new Error('HDSRC process client is closed')
-    this.#rejectAll(error)
+    this.#rejectAll(new Error('HDSRC process client is closed'))
     try { this.#lines.close() } catch { /* no-op */ }
     try { this.#child.stdin.end() } catch { /* no-op */ }
     try { this.#child.kill() } catch { /* no-op */ }
@@ -161,11 +163,8 @@ export class HdsrcJsonlProcessClient {
     this.#pending.delete(id)
     clearTimeout(pending.timer)
 
-    if (hasError) {
-      pending.reject(remoteError(message.error, pending.method))
-    } else {
-      pending.resolve(message.result)
-    }
+    if (hasError) pending.reject(remoteError(message.error, pending.method))
+    else pending.resolve(message.result)
   }
 
   #captureStderr(chunk: string): void {
