@@ -1,0 +1,13 @@
+{
+  "canonicalMutation": false,
+  "metadataRebindingAccepted": true,
+  "originalCarrierSha256": "4251d168cb7c121e855c39ab8e45f8c4992aa786b1a08d6e6ab5dad1f3b52780",
+  "reboundCarrierSha256": "e04cb3af0c747c12c8d774408238c3c707164324f246db4e0b0d515f1eb2bed4",
+  "schema": "hdsrc-local-process-rebinding-validation/v0.2",
+  "structuralCarrierRead": {
+    "code": "INTEGRITY_FAILURE",
+    "retryable": false
+  },
+  "structuralFailClosed": true,
+  "testStubRuntimeUsed": false
+}
