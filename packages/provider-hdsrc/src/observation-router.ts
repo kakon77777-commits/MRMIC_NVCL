@@ -158,13 +158,6 @@ export async function routeHdsrcObservation(
   preauthorizeObservation(intent.observationMode, context)
   const request = intentToMaterializationRequest(intent)
   const resolved = await manager.materializeResolved(request, context)
-  const status = manager.status()
-  const runtimeEpoch = positiveRuntimeEpoch(status.runtimeEpoch)
-  const evidence: RoutingEvidence = {
-    runtimeEpoch,
-    decision: structuredClone(resolved.decision),
-    oracleUsed: resolved.oracleUsed,
-  }
 
   if ((resolved.decision.decision === 'oracle_fallback') !== resolved.oracleUsed) {
     throw new HdsrcProviderError('INTEGRITY_FAILURE', 'HDSRC routing oracle evidence is inconsistent')
@@ -178,14 +171,18 @@ export async function routeHdsrcObservation(
     if (!resource.mimeType.startsWith('image/')) {
       throw new HdsrcProviderError('INTEGRITY_FAILURE', 'human preview resource must be an image')
     }
-    return { mode: 'human_preview', resource: cloneResource(resource), ...evidence }
+    return {
+      mode: 'human_preview',
+      resource: cloneResource(resource),
+      ...routingEvidence(manager, resolved),
+    }
   }
 
   if (intent.observationMode === 'structured_manifest') {
     return {
       mode: 'structured_manifest',
       materialization: structuredClone(resolved.materialization),
-      ...evidence,
+      ...routingEvidence(manager, resolved),
     }
   }
 
@@ -198,7 +195,7 @@ export async function routeHdsrcObservation(
     return {
       mode: 'partial_relation_block_row',
       partial: structuredClone(partial),
-      ...evidence,
+      ...routingEvidence(manager, resolved),
     }
   }
 
@@ -209,7 +206,22 @@ export async function routeHdsrcObservation(
   if (resource.uri === resolved.materialization.previewResourceUri) {
     throw new HdsrcProviderError('INTEGRITY_FAILURE', 'machine carrier must not alias human preview')
   }
-  return { mode: 'machine_carrier', resource: cloneResource(resource), ...evidence }
+  return {
+    mode: 'machine_carrier',
+    resource: cloneResource(resource),
+    ...routingEvidence(manager, resolved),
+  }
+}
+
+function routingEvidence(
+  manager: Pick<HdsrcObservationRuntime, 'status'>,
+  resolved: ResolvedHdsrcMaterialization,
+): RoutingEvidence {
+  return {
+    runtimeEpoch: positiveRuntimeEpoch(manager.status().runtimeEpoch),
+    decision: structuredClone(resolved.decision),
+    oracleUsed: resolved.oracleUsed,
+  }
 }
 
 function preauthorizeObservation(mode: HdsrcObservationMode, context: HdsrcAccessContext): void {
