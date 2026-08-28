@@ -1,0 +1,51 @@
+name: HDSRC v0.3 schema inventory one-shot patch
+
+on:
+  push:
+    branches:
+      - integration/hdsrc-runtime-manager-v0.3
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: integration/hdsrc-runtime-manager-v0.3
+          fetch-depth: 0
+      - name: Update HDSRC schema inventory and remove this workflow
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('tests/hdsrc-integration.test.mjs')
+          text = p.read_text(encoding='utf-8')
+
+          old_list = """  'hdsrc-provider-error-v1.schema.json',\n]\n"""
+          new_list = """  'hdsrc-provider-error-v1.schema.json',\n  'hdsrc-runtime-binding-v1.schema.json',\n  'hdsrc-observation-intent-v1.schema.json',\n]\n"""
+          if text.count(old_list) != 1:
+              raise SystemExit('schema list anchor mismatch')
+          text = text.replace(old_list, new_list)
+
+          old_ids = """  'hdsrc-provider-error-v1.schema.json': 'https://evemisslab.com/schemas/hdsrc-provider-error-v1.schema.json',\n}\n"""
+          new_ids = """  'hdsrc-provider-error-v1.schema.json': 'https://evemisslab.com/schemas/hdsrc-provider-error-v1.schema.json',\n  'hdsrc-runtime-binding-v1.schema.json': 'https://evemisslab.com/schemas/hdsrc-runtime-binding-v1.schema.json',\n  'hdsrc-observation-intent-v1.schema.json': 'https://evemisslab.com/schemas/hdsrc-observation-intent-v1.schema.json',\n}\n"""
+          if text.count(old_ids) != 1:
+              raise SystemExit('schema id anchor mismatch')
+          text = text.replace(old_ids, new_ids)
+
+          old_title = "test('HDSRC integration publishes seven versioned draft-2020-12 schemas', async () => {"
+          new_title = "test('HDSRC integration publishes nine versioned draft-2020-12 schemas', async () => {"
+          if text.count(old_title) != 1:
+              raise SystemExit('schema title anchor mismatch')
+          text = text.replace(old_title, new_title)
+          p.write_text(text, encoding='utf-8')
+          PY
+          git rm .github/workflows/hdsrc-v03-schema-inventory-patch.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add tests/hdsrc-integration.test.mjs
+          git commit -m 'test: track nine HDSRC integration schemas'
+          git push origin HEAD:integration/hdsrc-runtime-manager-v0.3
