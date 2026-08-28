@@ -104,7 +104,18 @@ Recommended shape:
 }
 ```
 
-`cwd`, `timeoutMs`, and `maxResourceBytes` are optional. All path-bearing fields must be non-empty strings. `timeoutMs` and `maxResourceBytes`, when present, must be positive integers.
+`cwd`, `timeoutMs`, and `maxResourceBytes` are optional. `timeoutMs` and `maxResourceBytes`, when present, must be positive integers.
+
+All path-bearing values must be non-empty. Absolute paths remain absolute. Relative paths are resolved exactly once against the directory containing the selected binding file; they are never resolved through `PATH`, arbitrary working-directory search, or Git discovery.
+
+`profileRoot` has a stronger meaning than an artifact directory. For the v0.3 source-runtime profile it must resolve to the HDSRC v0.10 root containing both:
+
+```text
+src/hdsrc_exp/
+artifacts_image_v010/
+```
+
+or equivalent profile files already supported by the v0.2 runtime adapter.
 
 The binding has no principal list. HDSRC read principals remain in the independent v0.2 local HDSRC state registry and are enforced by the Python process host.
 
@@ -122,7 +133,13 @@ known user-local binding location
 PROVIDER_UNAVAILABLE
 ```
 
-An earlier source that exists but is malformed fails closed. Discovery must not silently continue to a lower-precedence source after parsing or integrity failure.
+Precedence is source-selecting, not best-effort searching:
+
+- if an explicit binding path is supplied, that source is authoritative for the call; missing, unreadable, or malformed content fails closed and does not fall through;
+- otherwise, if `HDSRC_RUNTIME_BINDING` is set, that source is authoritative; missing, unreadable, or malformed content fails closed and does not fall through;
+- otherwise, the deterministic user-local path is checked;
+- if the user-local file is absent, discovery reports `PROVIDER_UNAVAILABLE`;
+- if the user-local file exists but is unreadable or malformed, discovery fails closed.
 
 The known user-local location is platform-aware but deterministic:
 
@@ -139,12 +156,35 @@ The implementation must not:
 - recursively scan disks;
 - search arbitrary Git checkouts;
 - infer a runtime from a similarly named Python package;
-- accept the first `python` found on PATH as proof of HDSRC identity;
+- accept the first `python` found on `PATH` as proof of HDSRC identity;
 - fetch or install HDSRC from the network;
 - read credentials to discover a runtime;
 - mutate the binding file as part of discovery.
 
 Discovery answers only: "Which configured local runtime should MRMIC attempt to use?"
+
+### 4.4 Profile-root module binding
+
+Phase 14 v0.2 real validation explicitly supplied `PYTHONPATH` to the validator process. A production discovery layer must not depend on that external setup.
+
+Therefore v0.3 makes the configured `profileRoot` the HDSRC Python module authority for the local host.
+
+Before the production host imports canonical `hdsrc_exp` modules, it must bind:
+
+```text
+<profileRoot>/src
+```
+
+as the highest-priority HDSRC module root for that child process. The host must then verify that the loaded `hdsrc_exp` package resolves underneath that configured root.
+
+Required failure behavior:
+
+- missing `<profileRoot>/src/hdsrc_exp` → `PROVIDER_UNAVAILABLE`;
+- loaded `hdsrc_exp` resolving outside the configured profile root → non-retryable `INTEGRITY_FAILURE`;
+- no silent fallback to an installed same-name package;
+- production discovery must remove/ignore `HDSRC_TEST_STUB_RUNTIME`; the CI fixture backend remains test-only.
+
+This requires a small v0.3 bootstrap refactor in the Python host because the v0.2 host imports `hdsrc_exp.codec` before command-line configuration is available. The refactor changes import/bootstrap order only; it does not redefine HDSRC codec or planning semantics.
 
 ## 5. Runtime descriptor
 
@@ -168,7 +208,9 @@ interface HdsrcRuntimeDescriptor {
 }
 ```
 
-The descriptor is MRMIC deployment state only. It is not persisted into Canvas state and is not exposed as HDSRC canonical metadata.
+Every path in the descriptor is normalized to the resolved deployment path chosen from the binding.
+
+The descriptor is MRMIC deployment state only. It is not persisted into Canvas state and is not exposed as HDSRC canonical metadata or NVCL observation content.
 
 ## 6. Runtime manager
 
@@ -176,20 +218,41 @@ The descriptor is MRMIC deployment state only. It is not persisted into Canvas s
 
 The runtime manager wraps `LocalProcessHdsrcProvider`; it does not replace the v0.2 provider or duplicate HDSRC planning policy.
 
-Proposed state machine:
+Allowed state transitions are:
 
 ```text
-undiscovered
-→ discovered
-→ starting
-→ ready
-→ degraded
-→ stopped
+undiscovered → discovered
+discovered   → starting
+starting     → ready | degraded
+ready        → degraded
+degraded     → starting        (one eligible restart attempt)
+undiscovered | discovered | starting | ready | degraded → stopped
 ```
 
 `stopped` is terminal for one manager instance.
 
-### 6.2 Lazy start
+A failed discovery has no child-process side effect and leaves the manager undiscovered.
+
+### 6.2 Manager operation surface
+
+The manager exposes the existing read-only provider operations through lifecycle-aware wrappers rather than handing the router a raw child/provider instance:
+
+```text
+discover
+capabilities
+state
+planMaterialization
+materializeResolved
+materialization
+readResource
+readPartialRelationBlockRow
+status
+stop
+```
+
+`materializeResolved` remains a derived-materialization operation, not canonical mutation.
+
+### 6.3 Lazy start
 
 Discovery may happen before process creation. The HDSRC child starts only when a provider operation is first required.
 
@@ -197,7 +260,7 @@ Concurrent first callers must share one in-flight start operation and one health
 
 The manager must not start multiple HDSRC children merely because multiple observation requests arrive concurrently.
 
-### 6.3 Runtime epoch
+### 6.4 Runtime epoch
 
 Each successful process start receives a new monotonic manager-local runtime epoch:
 
@@ -207,32 +270,57 @@ runtimeEpoch = 1, 2, 3, ...
 
 The epoch is ephemeral integration state. It is not an HDSRC state revision and is not written into HDSRC manifests.
 
-### 6.4 Health and failure
+### 6.5 Failure classification
 
-A provider is `ready` only after the existing v0.2 read-only initialization handshake succeeds and the host advertises the required methods without mutation-like methods.
+The v0.2 provider maps both process-origin failures and remote HDSRC errors into the provider-facing error surface. v0.3 must preserve enough internal origin information for the manager to decide whether restarting a child is meaningful.
 
-Fatal transport failures move the manager to `degraded`.
+The public `HdsrcProviderClient` contract does not change. Internally, local-process failures must preserve one of these origins:
 
-Examples:
+```text
+transport
+contract
+remote_domain
+```
 
-- malformed stdout;
+`transport` includes liveness failures such as:
+
+- spawn/stdio failure;
 - unexpected child exit;
 - request timeout;
+- write failure.
+
+`contract` includes deterministic peer/protocol/security violations such as:
+
+- malformed JSON response;
 - protocol mismatch;
-- failed read-only handshake.
+- malformed or unknown response id;
+- malformed response envelope;
+- read-only handshake missing required methods;
+- handshake advertising mutation-like methods;
+- configured HDSRC module root mismatch.
 
-Ordinary HDSRC domain errors such as `STALE_STATE`, `INTEGRITY_FAILURE`, or `UNAUTHORIZED` do not by themselves mark the process unhealthy.
+`remote_domain` means the process remained protocol-valid and returned an HDSRC error envelope, including `STALE_STATE`, `INTEGRITY_FAILURE`, `UNAUTHORIZED`, or even a provider-level availability error generated by HDSRC itself.
 
-### 6.5 Bounded restart
+Manager behavior:
+
+- `transport` → manager enters `degraded` and may use the bounded restart policy;
+- `contract` → manager enters `degraded`, but no automatic restart is attempted because restarting the same misconfigured or contract-invalid peer is not a recovery strategy;
+- `remote_domain` → manager remains `ready`; the HDSRC domain error is returned to the caller.
+
+A minimal internal error subtype or equivalent tagged cause may be introduced to preserve this classification, but ordinary consumers must still receive the existing `HdsrcProviderError` semantics.
+
+### 6.6 Bounded restart
 
 The first v0.3 policy is deliberately conservative:
 
-- one automatic restart attempt is allowed after a fatal process failure;
-- the restart must create a fresh provider and increment `runtimeEpoch`;
+- one automatic restart attempt is allowed for an eligible `transport` failure during one manager operation;
+- the failed provider is closed before a fresh provider is created;
+- a successful fresh process increments `runtimeEpoch`;
 - the original operation may be retried only if it is classified as safe to retry;
-- if restart or retry fails, surface `PROVIDER_UNAVAILABLE` or the new provider/domain error;
-- no unbounded retry loop;
-- no exponential backoff scheduler in v0.3.
+- no operation performs more than one automatic restart/retry cycle;
+- a later independent transport failure on a later operation may receive its own one-shot restart attempt;
+- if restart or retry fails, the manager remains degraded and surfaces the new error;
+- no exponential-backoff scheduler or background restart loop exists in v0.3.
 
 Safe automatic retry is limited to read-only operations whose caller request is unchanged:
 
@@ -245,7 +333,7 @@ Safe automatic retry is limited to read-only operations whose caller request is 
 
 Resolved materialization creation is not automatically replayed across a fatal boundary in v0.3. The caller receives the error and may explicitly retry, because even though materialization is derived and deterministic, automatic replay would expand lifecycle semantics beyond what is needed for the first manager version.
 
-### 6.6 Stop
+### 6.7 Stop
 
 `close()` / `stop()` closes the active provider and permanently transitions the manager instance to `stopped`.
 
@@ -273,7 +361,14 @@ interface HdsrcObservationIntentV1 {
 }
 ```
 
-`stateRef` must be an `hdsrc://state/...` URI. Optional numeric fields must be non-negative/positive according to the existing workload contract.
+Validation rules are exact:
+
+- `stateRef` must be an `hdsrc://state/...` URI;
+- `goalClass` must be non-empty;
+- `expectedSpan`, when present, must be a positive integer;
+- `expectedReuse`, when present, must be a positive integer;
+- `partialRelationBlockRow`, when present, must be a non-negative integer;
+- `partialRelationBlockRow` is legal only when `observationMode = machine_carrier` and `queryDirection = block`.
 
 ### 7.2 Deterministic workload mapping
 
@@ -308,11 +403,11 @@ The router takes:
 - `HdsrcAccessContext`;
 - an `HdsrcRuntimeManager`.
 
-It must apply MRMIC-side authorization before causing discovery/start/provider access.
+For every observation mode, `allowHdsrcRead=true` and a non-empty principal are required before discovery. Protected lanes add their trust gate before discovery as well.
 
 ### 8.2 Output modes
 
-The router has three bounded result modes matching the existing observation separation.
+The router has three bounded result modes matching the existing observation separation. Each result may include the manager-local `runtimeEpoch` and HDSRC materialization decision as bounded routing evidence, but it must not expose runtime descriptor paths or HDSRC registry contents.
 
 #### Human preview
 
@@ -330,7 +425,7 @@ Returned data must contain only the approved preview payload and bounded routing
 
 #### Structured manifest
 
-Requires `trustedStructured=true` before runtime access.
+Requires `trustedStructured=true` before discovery or runtime access.
 
 Flow:
 
@@ -344,7 +439,7 @@ It returns the existing `HdsrcMaterializationV1`; it does not return machine car
 
 #### Machine carrier / partial relation observation
 
-Requires `trustedMachine=true` before runtime access.
+Requires `trustedMachine=true` before discovery or runtime access.
 
 If `partialRelationBlockRow` is absent:
 
@@ -387,19 +482,21 @@ The manager remains `ready` while HMR1 resolves the materialization.
 
 ## 10. Security boundaries
 
-The v0.3 implementation must preserve these ordering constraints:
+The v0.3 implementation must preserve this ordering:
 
 $$
 Authorize_{MRMIC}\rightarrow Discover\rightarrow Start\rightarrow Authorize_{HDSRC}\rightarrow Read
 $$
 
-Protected structured/machine observations must fail before:
+For every lane, MRMIC read authorization must fail before the runtime binding file is read. For structured and machine lanes, the corresponding trusted-lane gate must also fail before the binding file is read.
 
-- binding file read when possible after caller input validation;
-- child-process start;
-- HDSRC registry/state read;
-- materialization read;
-- resource read.
+Therefore unauthorized or untrusted requests must cause:
+
+- zero runtime binding reads;
+- zero child-process starts;
+- zero HDSRC registry/state reads;
+- zero materialization reads;
+- zero resource reads.
 
 The runtime binding must never contain credentials. Environment variables may select a binding path but must not carry bearer tokens or HDSRC principals as part of this contract.
 
@@ -414,6 +511,7 @@ Owns:
 - runtime binding parsing;
 - discovery precedence;
 - platform-aware known binding location;
+- binding-relative path resolution;
 - immutable descriptor creation.
 
 Does not spawn a process.
@@ -426,6 +524,7 @@ Owns:
 - lazy provider construction;
 - runtime epoch;
 - single-flight start;
+- local failure-origin handling;
 - bounded restart;
 - stop lifecycle.
 
@@ -441,6 +540,10 @@ Owns:
 - routing to preview / manifest / full machine / partial relation result.
 
 Does not implement HPCM2/HMR1/HMBT1 policy.
+
+### Python host bootstrap
+
+`scripts/hdsrc_process_host.py` receives a narrow bootstrap refactor so configured `profileRoot` is able to bind the canonical HDSRC module root before `hdsrc_exp` is imported. `scripts/hdsrc_runtime_adapter.py` remains the planning/materialization adapter and is not duplicated in TypeScript.
 
 ### Contracts
 
@@ -465,10 +568,14 @@ Must cover:
 - environment binding success;
 - user-local binding success;
 - precedence ordering;
-- explicit malformed binding fails without fallback;
-- environment malformed binding fails without user-local fallback;
-- absent binding produces `PROVIDER_UNAVAILABLE`;
+- explicit missing/malformed binding fails without fallback;
+- environment missing/malformed binding fails without user-local fallback;
+- absent user-local binding produces `PROVIDER_UNAVAILABLE`;
+- binding-relative path resolution;
 - unknown protocol fails closed;
+- configured profile root binds the actual `hdsrc_exp` source root;
+- same-name HDSRC package outside configured root cannot be silently used;
+- production manager cannot activate `HDSRC_TEST_STUB_RUNTIME`;
 - mutation capability is still rejected at runtime handshake;
 - no disk scan / PATH probing behavior.
 
@@ -480,22 +587,25 @@ Must cover:
 - lazy first start;
 - concurrent first requests share one process;
 - healthy requests reuse one process and one epoch;
-- fatal child failure → `degraded`;
+- transport failure → `degraded`;
+- contract failure → `degraded` without automatic restart;
+- remote domain error leaves manager `ready`;
 - bounded one-shot restart for safe read operation;
 - successful restart increments runtime epoch;
 - restart does not change HDSRC state identity/revision;
-- second fatal failure surfaces error without restart loop;
-- explicit stop is terminal;
-- ordinary HDSRC domain errors do not degrade the manager.
+- one operation never performs a second automatic restart loop;
+- resolved materialization is not automatically replayed after fatal transport failure;
+- explicit stop is terminal.
 
 ### 12.3 Router tests
 
 Must cover:
 
 - exact intent→workload mapping;
-- authorization before discovery/process access;
-- trusted structured gate before runtime access;
-- trusted machine gate before runtime access;
+- illegal partial-relation intent combinations fail before discovery;
+- authorization before binding read/discovery/process access;
+- trusted structured gate before binding read/discovery/process access;
+- trusted machine gate before binding read/discovery/process access;
 - human preview payload separation;
 - structured manifest separation;
 - full machine carrier route;
@@ -511,11 +621,12 @@ The final branch must again run the production host against the exact HDSRC v0.1
 
 At minimum validate:
 
-- discovered binding starts the real process;
+- a discovered binding starts the real process without external `PYTHONPATH` setup;
+- loaded `hdsrc_exp` is bound to the configured HDSRC v0.10 profile root;
 - calibration-domain fast path;
 - 4096D oracle fallback;
 - partial relation observation remains partial;
-- process restart creates a new runtime epoch while preserving HDSRC state identity;
+- a simulated transport death followed by an eligible read creates a new runtime epoch while preserving HDSRC state identity;
 - stale-state distinction remains correct;
 - rebinding structural fail-closed remains intact;
 - no canonical mutation method appears.
@@ -528,34 +639,41 @@ Phase 14 v0.3 is complete only when all of the following hold:
 
 1. deterministic runtime discovery exists with the documented precedence;
 2. no arbitrary disk/PATH/network discovery occurs;
-3. malformed higher-precedence binding fails closed;
-4. local process starts lazily;
-5. concurrent first callers share one start;
-6. healthy process reuse is observable and deterministic;
-7. fatal process failure transitions to degraded;
-8. safe read-only operation has at most one automatic restart;
-9. runtime epoch increments on successful restart;
-10. runtime epoch never becomes HDSRC state revision;
-11. intent→workload mapping is exact and policy-free;
-12. protected lanes authorize before discovery/process/provider access;
-13. human/structured/machine observations remain distinct;
-14. partial relation route does not fetch the full carrier into Node first;
-15. HPCM2 fast and oracle decisions remain canonical HDSRC outcomes;
-16. stale and integrity failures remain distinct;
-17. no HDSRC canonical mutation method is introduced;
-18. no Canvas provider/resource enum change is introduced;
-19. existing pixel-only multimodal Provider contract is unchanged;
-20. full repository TypeScript check and test suite pass on branch head;
-21. real HDSRC v0.10 validation passes with deterministic evidence;
-22. PR diff contains no validation-only workflow plumbing at merge time;
-23. merge uses an expected head SHA;
-24. `main` post-merge CI passes independently.
+3. explicit/environment-selected missing or malformed binding fails without lower-precedence fallback;
+4. binding-relative path resolution is deterministic;
+5. configured `profileRoot` is the actual loaded HDSRC module authority;
+6. production cannot silently activate the CI stub runtime;
+7. local process starts lazily;
+8. concurrent first callers share one start;
+9. healthy process reuse is observable and deterministic;
+10. transport failures and contract failures are distinguishable from remote HDSRC domain errors;
+11. only eligible transport failure can trigger an automatic restart;
+12. one manager operation performs at most one automatic restart;
+13. runtime epoch increments on successful restart;
+14. runtime epoch never becomes HDSRC state revision;
+15. resolved materialization is not automatically replayed after a fatal boundary;
+16. intent→workload mapping is exact and policy-free;
+17. illegal partial intent combinations fail before discovery;
+18. all lanes authorize before binding read/discovery/process/provider access;
+19. human/structured/machine observations remain distinct;
+20. partial relation route does not fetch the full carrier into Node first;
+21. HPCM2 fast and oracle decisions remain canonical HDSRC outcomes;
+22. stale and integrity failures remain distinct;
+23. no HDSRC canonical mutation method is introduced;
+24. no Canvas provider/resource enum change is introduced;
+25. existing pixel-only multimodal Provider contract is unchanged;
+26. full repository TypeScript check and test suite pass on branch head;
+27. real HDSRC v0.10 validation passes with deterministic evidence;
+28. PR diff contains no validation-only workflow plumbing at merge time;
+29. merge uses an expected head SHA;
+30. `main` post-merge CI passes independently.
 
 ## 14. Explicit non-goals
 
 Phase 14 v0.3 does not implement:
 
 - generic runtime discovery for all MRMIC providers;
+- arbitrary installed-Python-package discovery for HDSRC;
 - remote HDSRC HTTP/WebSocket transport;
 - daemon/service installation;
 - automatic HDSRC download/update;
@@ -577,7 +695,7 @@ $$
 \begin{aligned}
 &\text{NVCL decides what observation it needs}\\
 &\downarrow\\
-&\text{MRMIC discovers and supervises the local HDSRC runtime}\\
+&\text{MRMIC discovers and supervises the configured local HDSRC runtime}\\
 &\downarrow\\
 &\text{HDSRC decides how the state should be materialized}\\
 &\downarrow\\
@@ -586,4 +704,4 @@ $$
 }
 $$
 
-This is the intended v0.3 closure: autonomous local use of HDSRC without transferring canonical state ownership, planning policy, or mutation authority into MRMIC.
+This is the intended v0.3 closure: autonomous local use of the explicitly configured HDSRC runtime without transferring canonical state ownership, planning policy, or mutation authority into MRMIC.
