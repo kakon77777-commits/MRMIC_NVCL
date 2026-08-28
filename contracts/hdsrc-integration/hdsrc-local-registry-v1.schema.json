@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/schemas/hdsrc-local-registry-v1.schema.json",
+  "title": "HDSRC Local Read-Only Registry v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "states"],
+  "properties": {
+    "schema": { "const": "hdsrc-local-registry/v1" },
+    "states": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stateId", "stateRevision", "hds1Path", "readPrincipals"],
+        "properties": {
+          "stateId": { "type": "string", "minLength": 1 },
+          "stateRevision": { "type": "integer", "minimum": 0 },
+          "hds1Path": { "type": "string", "minLength": 1 },
+          "readPrincipals": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    }
+  }
+}
