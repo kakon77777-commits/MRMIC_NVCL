@@ -70,6 +70,13 @@ class StubBridgeRuntime:
             decision=plan.decision,
         )
 
+    def verify_materialized_carrier(self, carrier_bytes: bytes, state, *, block_size: int, algorithm: str) -> None:
+        expected = (
+            f'HMBT1-STUB|d={int(state.dimension)}|b={int(block_size)}|algorithm={str(algorithm)}'
+        ).encode('utf-8')
+        if bytes(carrier_bytes) != expected:
+            raise ValueError('stub HMBT1 structural validation failed')
+
     def partial_relation_block_row(self, carrier_path: Path, block_row: int) -> dict:
         row = int(block_row)
         if row != 0:
