@@ -1,0 +1,11 @@
+{
+  "schema": "hdsrc-local-registry/v1",
+  "states": [
+    {
+      "stateId": "state:fixture",
+      "stateRevision": 3,
+      "hds1Path": "hdsrc-state.hds1",
+      "readPrincipals": ["principal:allowed"]
+    }
+  ]
+}
