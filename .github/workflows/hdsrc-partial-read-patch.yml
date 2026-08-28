@@ -1,0 +1,190 @@
+name: HDSRC partial-read one-shot patch
+
+on:
+  push:
+    branches:
+      - integration/hdsrc-local-process-bridge-v0.2
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: integration/hdsrc-local-process-bridge-v0.2
+      - name: Patch exact HDSRC partial-read anchors
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              text = path.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one anchor, found {count}')
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          host = Path('scripts/hdsrc_process_host.py')
+          replace_once(
+              host,
+              '            "read_resource": self._read_resource,\n            "shutdown": self._shutdown,',
+              '            "read_resource": self._read_resource,\n            "partial_relation_block_row": self._partial_relation_block_row,\n            "shutdown": self._shutdown,',
+          )
+          replace_once(
+              host,
+              '    def _shutdown(self, params: dict[str, Any]) -> dict[str, Any]:\n        self._shutdown_requested = True\n        return {"shuttingDown": True}\n',
+              '''    def _partial_relation_block_row(self, params: dict[str, Any]) -> dict[str, Any]:
+        ref = _required_text(params.get("ref"), "ref")
+        principal_id = _required_text(params.get("principalId"), "principalId")
+        block_row = _required_nonnegative_integer(params.get("blockRow"), "blockRow")
+        entry = self._entry_for_materialization_ref(ref)
+        self._authorize(entry, principal_id)
+        return self._service_call(
+            lambda: self._materializations.partial_relation_block_row(entry, ref, block_row)
+        )
+
+    def _shutdown(self, params: dict[str, Any]) -> dict[str, Any]:
+        self._shutdown_requested = True
+        return {"shuttingDown": True}
+''',
+          )
+          replace_once(
+              host,
+              'def _required_object(value: Any, label: str) -> dict[str, Any]:\n    if not isinstance(value, dict):\n        raise ProviderError("INVALID_REQUEST", f"{label} must be an object")\n    return value\n',
+              '''def _required_object(value: Any, label: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ProviderError("INVALID_REQUEST", f"{label} must be an object")
+    return value
+
+
+def _required_nonnegative_integer(value: Any, label: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise ProviderError("INVALID_REQUEST", f"{label} must be a non-negative integer")
+    return value
+''',
+          )
+
+          ts = Path('packages/provider-hdsrc/src/local-process.ts')
+          replace_once(
+              ts,
+              '''export interface ResolvedHdsrcMaterialization {
+  decision: HdsrcMaterializationDecisionV1
+  materializationRef: string
+  materialization: HdsrcMaterializationV1
+  oracleUsed: boolean
+}
+''',
+              '''export interface ResolvedHdsrcMaterialization {
+  decision: HdsrcMaterializationDecisionV1
+  materializationRef: string
+  materialization: HdsrcMaterializationV1
+  oracleUsed: boolean
+}
+
+export interface HdsrcPartialRelationBlockRow {
+  blockRow: number
+  srcStart: number
+  srcLength: number
+  relations: Array<{ src: number; dst: number; kind: string; qsim: number }>
+  compressedBytesRead: number
+  carrierBytes: number
+}
+''',
+          )
+          replace_once(
+              ts,
+              '''  async #request(method: string, params: Record<string, unknown>): Promise<unknown> {
+''',
+              '''  async readPartialRelationBlockRow(
+    ref: string,
+    blockRow: number,
+    context: HdsrcAccessContext,
+  ): Promise<HdsrcPartialRelationBlockRow> {
+    preauthorize(context)
+    if (!Number.isInteger(blockRow) || blockRow < 0) {
+      throw new HdsrcProviderError('INVALID_REQUEST', 'blockRow must be a non-negative integer')
+    }
+    const payload = record(await this.#request('partial_relation_block_row', {
+      ref,
+      blockRow,
+      principalId: context.principalId,
+    }), 'HDSRC partial relation block row')
+    const relationsValue = payload.relations
+    if (!Array.isArray(relationsValue)) {
+      throw new HdsrcProviderError('INTEGRITY_FAILURE', 'partial relations must be an array')
+    }
+    const relations = relationsValue.map((value, index) => {
+      const relation = record(value, `partial.relations[${index}]`)
+      return {
+        src: integer(relation.src, `partial.relations[${index}].src`),
+        dst: integer(relation.dst, `partial.relations[${index}].dst`),
+        kind: nonemptyText(relation.kind, `partial.relations[${index}].kind`),
+        qsim: integer(relation.qsim, `partial.relations[${index}].qsim`),
+      }
+    })
+    return {
+      blockRow: nonnegativeInteger(payload.blockRow, 'partial.blockRow'),
+      srcStart: nonnegativeInteger(payload.srcStart, 'partial.srcStart'),
+      srcLength: positiveInteger(payload.srcLength, 'partial.srcLength'),
+      relations,
+      compressedBytesRead: positiveInteger(payload.compressedBytesRead, 'partial.compressedBytesRead'),
+      carrierBytes: positiveInteger(payload.carrierBytes, 'partial.carrierBytes'),
+    }
+  }
+
+  async #request(method: string, params: Record<string, unknown>): Promise<unknown> {
+''',
+          )
+          replace_once(
+              ts,
+              "['capabilities', 'state', 'plan_materialization', 'materialize', 'materialization', 'read_resource']",
+              "['capabilities', 'state', 'plan_materialization', 'materialize', 'materialization', 'read_resource', 'partial_relation_block_row']",
+          )
+          replace_once(
+              ts,
+              '''function nonemptyText(value: unknown, label: string): string {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new HdsrcProviderError('INTEGRITY_FAILURE', `${label} must be a non-empty string`)
+  }
+  return value.trim()
+}
+''',
+              '''function nonemptyText(value: unknown, label: string): string {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new HdsrcProviderError('INTEGRITY_FAILURE', `${label} must be a non-empty string`)
+  }
+  return value.trim()
+}
+
+function integer(value: unknown, label: string): number {
+  if (!Number.isInteger(value)) throw new HdsrcProviderError('INTEGRITY_FAILURE', `${label} must be an integer`)
+  return value as number
+}
+
+function nonnegativeInteger(value: unknown, label: string): number {
+  const result = integer(value, label)
+  if (result < 0) throw new HdsrcProviderError('INTEGRITY_FAILURE', `${label} must be non-negative`)
+  return result
+}
+
+function positiveInteger(value: unknown, label: string): number {
+  const result = integer(value, label)
+  if (result <= 0) throw new HdsrcProviderError('INTEGRITY_FAILURE', `${label} must be positive`)
+  return result
+}
+''',
+          )
+      - name: Commit patch if needed
+        shell: bash
+        run: |
+          if git diff --quiet -- scripts/hdsrc_process_host.py packages/provider-hdsrc/src/local-process.ts; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add scripts/hdsrc_process_host.py packages/provider-hdsrc/src/local-process.ts
+          git commit -m "feat: bridge HDSRC partial relation reads"
+          git push origin HEAD:integration/hdsrc-local-process-bridge-v0.2
