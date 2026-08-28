@@ -1,0 +1,38 @@
+name: HDSRC v0.3 Task4 TS one-shot fix
+
+on:
+  push:
+    branches:
+      - integration/hdsrc-runtime-manager-v0.3
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: integration/hdsrc-runtime-manager-v0.3
+          fetch-depth: 0
+      - name: Apply exact TS narrowing fix and remove this workflow
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('packages/provider-hdsrc/src/runtime-manager.ts')
+          text = p.read_text(encoding='utf-8')
+          old = "if (this.#state === 'stopped')"
+          new = "if (this.status().state === 'stopped')"
+          count = text.count(old)
+          if count != 2:
+              raise SystemExit(f'expected exactly 2 narrowed stop checks, found {count}')
+          p.write_text(text.replace(old, new), encoding='utf-8')
+          PY
+          git rm .github/workflows/hdsrc-v03-task4-tsfix.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add packages/provider-hdsrc/src/runtime-manager.ts
+          git commit -m 'fix: preserve stop checks across async manager start'
+          git push origin HEAD:integration/hdsrc-runtime-manager-v0.3
