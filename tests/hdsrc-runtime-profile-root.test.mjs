@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { delimiter, resolve } from 'node:path'
 import { HdsrcJsonlProcessClient } from '../dist/packages/provider-hdsrc/src/process-client.js'
-import { productionHdsrcProcessEnv } from '../dist/packages/provider-hdsrc/src/local-process.js'
+import { productionHdsrcProcessEnv } from '../dist/packages/provider-hdsrc/src/runtime-environment.js'
 
 const python = process.env.PYTHON ?? (process.platform === 'win32' ? 'python' : 'python3')
 const hostScript = resolve('scripts/hdsrc_process_host.py')
