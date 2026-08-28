@@ -157,9 +157,12 @@ class HdsrcRuntimeAdapter:
                 node_order=view.plan.physical_to_canonical,
                 spatialization_id=view.plan.selected_algorithm,
             )
-            decoded = self._decode_hmbt1(carrier)
-            if decoded.state != state:
-                raise RuntimeError('selected HMBT1 failed exact round-trip validation')
+            self.verify_materialized_carrier(
+                carrier,
+                state,
+                block_size=plan.block_size,
+                algorithm=str(view.plan.selected_algorithm),
+            )
             return RuntimeMaterialization(
                 carrier_bytes=carrier,
                 block_size=plan.block_size,
@@ -173,6 +176,12 @@ class HdsrcRuntimeAdapter:
             oracle = self._evaluate_workload_on_materialized_bank(state, plan.runtime_workload, bank)
             selected = bank.view_for(oracle.selected_block_size)
             carrier = selected.path.read_bytes()
+            self.verify_materialized_carrier(
+                carrier,
+                state,
+                block_size=int(oracle.selected_block_size),
+                algorithm=str(oracle.selected_algorithm),
+            )
             return RuntimeMaterialization(
                 carrier_bytes=carrier,
                 block_size=int(oracle.selected_block_size),
@@ -180,6 +189,30 @@ class HdsrcRuntimeAdapter:
                 oracle_used=True,
                 decision=plan.decision,
             )
+
+    def verify_materialized_carrier(
+        self,
+        carrier_bytes: bytes,
+        state: Any,
+        *,
+        block_size: int,
+        algorithm: str,
+    ) -> None:
+        if self._stub is not None:
+            self._stub.verify_materialized_carrier(
+                bytes(carrier_bytes),
+                state,
+                block_size=int(block_size),
+                algorithm=str(algorithm),
+            )
+            return
+        decoded = self._decode_hmbt1(bytes(carrier_bytes))
+        if decoded.state != state:
+            raise RuntimeError('HMBT1 decoded state does not match canonical HDSRC state')
+        if int(decoded.block_size) != int(block_size):
+            raise RuntimeError('HMBT1 block size does not match materialization manifest')
+        if str(decoded.relation_spatialization_id) != str(algorithm):
+            raise RuntimeError('HMBT1 spatialization id does not match materialization manifest')
 
     def partial_relation_block_row(self, carrier_path: str | Path, block_row: int) -> dict[str, Any]:
         path = Path(carrier_path)
