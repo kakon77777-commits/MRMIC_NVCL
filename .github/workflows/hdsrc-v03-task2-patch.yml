@@ -1,0 +1,53 @@
+name: HDSRC v0.3 Task2 one-shot patch
+
+on:
+  push:
+    branches:
+      - integration/hdsrc-runtime-manager-v0.3
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: integration/hdsrc-runtime-manager-v0.3
+          fetch-depth: 0
+      - name: Apply exact Task2 patches
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          host = Path('scripts/hdsrc_process_host.py')
+          text = host.read_text(encoding='utf-8')
+          old = 'from hdsrc_exp.codec import decode_hds1\n'
+          new = 'from hdsrc_profile_bootstrap import decode_hds1\n'
+          if text.count(old) == 1:
+              text = text.replace(old, new)
+              host.write_text(text, encoding='utf-8')
+          elif text.count(new) != 1:
+              raise SystemExit('unexpected hdsrc_process_host import anchor')
+
+          test = Path('tests/hdsrc-process-host.test.mjs')
+          text = test.read_text(encoding='utf-8')
+          old = "    env: { ...process.env, PYTHONPATH: stubRuntime },\n"
+          new = "    env: { ...process.env, PYTHONPATH: stubRuntime, HDSRC_TEST_STUB_RUNTIME: '1' },\n"
+          if text.count(old) == 1:
+              text = text.replace(old, new)
+              test.write_text(text, encoding='utf-8')
+          elif text.count(new) != 1:
+              raise SystemExit('unexpected hdsrc-process-host test env anchor')
+          PY
+          if git diff --quiet -- scripts/hdsrc_process_host.py tests/hdsrc-process-host.test.mjs; then
+            echo 'No patch needed'
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add scripts/hdsrc_process_host.py tests/hdsrc-process-host.test.mjs
+          git commit -m 'fix: bind HDSRC host to configured profile root'
+          git push origin HEAD:integration/hdsrc-runtime-manager-v0.3
