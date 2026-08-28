@@ -2,6 +2,15 @@ import { spawn } from 'node:child_process'
 import { createInterface } from 'node:readline'
 
 export const HDSRC_PROCESS_PROTOCOL = 'hdsrc-process/0.1' as const
+
+export type HdsrcProcessFailureOrigin = 'transport' | 'contract'
+
+export class HdsrcProcessClientError extends Error {
+  constructor(message: string, readonly origin: HdsrcProcessFailureOrigin) {
+    super(message)
+    this.name = 'HdsrcProcessClientError'
+  }
+}
 const DEFAULT_TIMEOUT_MS = 30_000
 const MAX_STDERR_CHARS = 4096
 
@@ -57,7 +66,7 @@ export class HdsrcJsonlProcessClient {
   #stderr = ''
 
   constructor(options: HdsrcJsonlProcessClientOptions) {
-    if (!options.executable?.trim()) throw new Error('HDSRC process executable is required')
+    if (!options.executable?.trim()) throw new HdsrcProcessClientError('HDSRC process executable is required', 'contract')
     this.#protocol = options.protocol?.trim() || HDSRC_PROCESS_PROTOCOL
     this.#defaultTimeoutMs = positiveTimeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS)
     this.#child = spawn(options.executable, options.args ?? [], {
@@ -74,17 +83,17 @@ export class HdsrcJsonlProcessClient {
     this.#lines.on('line', (line: string) => this.#onLine(line))
     this.#child.stderr.setEncoding('utf8')
     this.#child.stderr.on('data', (chunk: unknown) => this.#captureStderr(String(chunk)))
-    this.#child.on('error', (error: Error) => this.#fatal(new Error(`HDSRC process error: ${error.message}`)))
+    this.#child.on('error', (error: Error) => this.#fatal(new HdsrcProcessClientError(`HDSRC process error: ${error.message}`, 'transport')))
     this.#child.on('exit', (code: number | null, signal: string | null) => {
       if (this.#closed) return
       const detail = code !== null ? `code ${code}` : `signal ${signal ?? 'unknown'}`
-      this.#fatal(new Error(`HDSRC process exited with ${detail}${this.#stderrSuffix()}`), false)
+      this.#fatal(new HdsrcProcessClientError(`HDSRC process exited with ${detail}${this.#stderrSuffix()}`, 'transport'), false)
     })
     this.#child.stdin.on('error', (error: Error) => {
-      if (!this.#closed) this.#fatal(new Error(`HDSRC process stdin failed: ${error.message}${this.#stderrSuffix()}`))
+      if (!this.#closed) this.#fatal(new HdsrcProcessClientError(`HDSRC process stdin failed: ${error.message}${this.#stderrSuffix()}`, 'transport'))
     })
     this.#child.stdout.on('error', (error: Error) => {
-      if (!this.#closed) this.#fatal(new Error(`HDSRC process stdout failed: ${error.message}${this.#stderrSuffix()}`))
+      if (!this.#closed) this.#fatal(new HdsrcProcessClientError(`HDSRC process stdout failed: ${error.message}${this.#stderrSuffix()}`, 'transport'))
     })
   }
 
@@ -93,28 +102,28 @@ export class HdsrcJsonlProcessClient {
   }
 
   request(method: string, params: Record<string, unknown>, timeoutMs = this.#defaultTimeoutMs): Promise<unknown> {
-    if (this.#closed) return Promise.reject(new Error('HDSRC process client is closed'))
-    if (!method?.trim()) return Promise.reject(new Error('HDSRC process method is required'))
+    if (this.#closed) return Promise.reject(new HdsrcProcessClientError('HDSRC process client is closed', 'transport'))
+    if (!method?.trim()) return Promise.reject(new HdsrcProcessClientError('HDSRC process method is required', 'contract'))
     if (!params || typeof params !== 'object' || Array.isArray(params)) {
-      return Promise.reject(new Error('HDSRC process params must be an object'))
+      return Promise.reject(new HdsrcProcessClientError('HDSRC process params must be an object', 'contract'))
     }
     const id = this.#nextId++
     const timeout = positiveTimeout(timeoutMs)
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         if (!this.#pending.has(id)) return
-        this.#fatal(new Error(`HDSRC process request ${method} timed out after ${timeout} ms${this.#stderrSuffix()}`))
+        this.#fatal(new HdsrcProcessClientError(`HDSRC process request ${method} timed out after ${timeout} ms${this.#stderrSuffix()}`, 'transport'))
       }, timeout)
       this.#pending.set(id, { method, resolve, reject, timer })
       const message = `${JSON.stringify({ protocol: this.#protocol, id, method, params })}\n`
       try {
         this.#child.stdin.write(message, 'utf8', (error?: Error | null) => {
           if (error && this.#pending.has(id)) {
-            this.#fatal(new Error(`HDSRC process write failed: ${error.message}${this.#stderrSuffix()}`))
+            this.#fatal(new HdsrcProcessClientError(`HDSRC process write failed: ${error.message}${this.#stderrSuffix()}`, 'transport'))
           }
         })
       } catch (error) {
-        this.#fatal(asError(error, 'HDSRC process write failed'))
+        this.#fatal(new HdsrcProcessClientError(asError(error, 'HDSRC process write failed').message, 'transport'))
       }
     })
   }
@@ -122,7 +131,7 @@ export class HdsrcJsonlProcessClient {
   close(): void {
     if (this.#closed) return
     this.#closed = true
-    this.#rejectAll(new Error('HDSRC process client is closed'))
+    this.#rejectAll(new HdsrcProcessClientError('HDSRC process client is closed', 'transport'))
     try { this.#lines.close() } catch { /* no-op */ }
     try { this.#child.stdin.end() } catch { /* no-op */ }
     try { this.#child.kill() } catch { /* no-op */ }
@@ -136,28 +145,28 @@ export class HdsrcJsonlProcessClient {
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('response must be an object')
       message = parsed as ProcessResponse
     } catch (error) {
-      this.#fatal(new Error(`Malformed HDSRC process JSON: ${asError(error).message}${this.#stderrSuffix()}`))
+      this.#fatal(new HdsrcProcessClientError(`Malformed HDSRC process JSON: ${asError(error).message}${this.#stderrSuffix()}`, 'contract'))
       return
     }
 
     if (message.protocol !== this.#protocol) {
-      this.#fatal(new Error(`HDSRC process protocol mismatch: expected ${this.#protocol}`))
+      this.#fatal(new HdsrcProcessClientError(`HDSRC process protocol mismatch: expected ${this.#protocol}`, 'contract'))
       return
     }
     if (!Number.isInteger(message.id) || (message.id as number) < 1) {
-      this.#fatal(new Error('Malformed HDSRC process response id'))
+      this.#fatal(new HdsrcProcessClientError('Malformed HDSRC process response id', 'contract'))
       return
     }
     const id = message.id as number
     const hasResult = Object.prototype.hasOwnProperty.call(message, 'result')
     const hasError = Object.prototype.hasOwnProperty.call(message, 'error')
     if (hasResult === hasError) {
-      this.#fatal(new Error('Malformed HDSRC process response must contain exactly one of result or error'))
+      this.#fatal(new HdsrcProcessClientError('Malformed HDSRC process response must contain exactly one of result or error', 'contract'))
       return
     }
     const pending = this.#pending.get(id)
     if (!pending) {
-      this.#fatal(new Error(`Malformed HDSRC process response references unknown request id ${id}`))
+      this.#fatal(new HdsrcProcessClientError(`Malformed HDSRC process response references unknown request id ${id}`, 'contract'))
       return
     }
     this.#pending.delete(id)

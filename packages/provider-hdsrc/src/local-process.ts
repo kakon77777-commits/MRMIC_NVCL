@@ -15,6 +15,7 @@ import {
 } from './index.js'
 import {
   HdsrcJsonlProcessClient,
+  HdsrcProcessClientError,
   HdsrcProcessRemoteError,
   HDSRC_PROCESS_PROTOCOL,
   type HdsrcJsonlProcessClientOptions,
@@ -32,6 +33,20 @@ const KNOWN_ERROR_CODES = new Set<HdsrcProviderErrorCode>([
   'ORACLE_FAILED',
   'PROVIDER_UNAVAILABLE',
 ])
+
+export type HdsrcLocalProcessFailureOrigin = 'transport' | 'contract' | 'remote_domain'
+
+export class HdsrcLocalProcessProviderError extends HdsrcProviderError {
+  constructor(
+    code: HdsrcProviderErrorCode,
+    message: string,
+    retryable: boolean,
+    readonly origin: HdsrcLocalProcessFailureOrigin,
+  ) {
+    super(code, message, retryable)
+    this.name = 'HdsrcLocalProcessProviderError'
+  }
+}
 
 export interface LocalProcessHdsrcProviderOptions {
   executable: string
@@ -216,7 +231,7 @@ export class LocalProcessHdsrcProvider implements HdsrcProviderClient {
       }).then(value => {
         const payload = record(value, 'HDSRC process initialize')
         if (payload.protocol !== HDSRC_PROCESS_PROTOCOL || payload.readOnly !== true) {
-          throw new Error('HDSRC process did not initialize as the required read-only protocol')
+          throw new HdsrcLocalProcessProviderError('INTEGRITY_FAILURE', 'HDSRC process did not initialize as the required read-only protocol', false, 'contract')
         }
         const methods = Array.isArray(payload.methods) ? payload.methods : []
         for (const required of [
@@ -228,10 +243,10 @@ export class LocalProcessHdsrcProvider implements HdsrcProviderClient {
           'read_resource',
           'partial_relation_block_row',
         ]) {
-          if (!methods.includes(required)) throw new Error(`HDSRC process is missing required method ${required}`)
+          if (!methods.includes(required)) throw new HdsrcLocalProcessProviderError('INTEGRITY_FAILURE', `HDSRC process is missing required method ${required}`, false, 'contract')
         }
         if (methods.some(method => typeof method === 'string' && /(write|patch|mutat|register|replace|commit)/i.test(method))) {
-          throw new Error('HDSRC process exposes a forbidden canonical mutation method')
+          throw new HdsrcLocalProcessProviderError('INTEGRITY_FAILURE', 'HDSRC process exposes a forbidden canonical mutation method', false, 'contract')
         }
       })
     }
@@ -331,13 +346,22 @@ function decodeBase64(value: string): Uint8Array {
 }
 
 function mapProcessError(error: unknown): HdsrcProviderError {
-  if (error instanceof HdsrcProviderError) return error
+  if (error instanceof HdsrcLocalProcessProviderError) return error
   if (error instanceof HdsrcProcessRemoteError) {
     const code = error.code && KNOWN_ERROR_CODES.has(error.code as HdsrcProviderErrorCode)
       ? error.code as HdsrcProviderErrorCode
       : 'PROVIDER_UNAVAILABLE'
-    return new HdsrcProviderError(code, error.message, error.retryable)
+    return new HdsrcLocalProcessProviderError(code, error.message, error.retryable, 'remote_domain')
   }
+  if (error instanceof HdsrcProcessClientError) {
+    return new HdsrcLocalProcessProviderError(
+      error.origin === 'transport' ? 'PROVIDER_UNAVAILABLE' : 'INTEGRITY_FAILURE',
+      error.message,
+      error.origin === 'transport',
+      error.origin,
+    )
+  }
+  if (error instanceof HdsrcProviderError) return error
   const message = error instanceof Error ? error.message : String(error)
-  return new HdsrcProviderError('PROVIDER_UNAVAILABLE', message, true)
+  return new HdsrcLocalProcessProviderError('INTEGRITY_FAILURE', message, false, 'contract')
 }
