@@ -58,9 +58,10 @@ function intent(overrides = {}) {
 
 function spyManager(overrides = {}) {
   const calls = []
+  let runtimeEpoch = overrides.runtimeEpoch ?? 7
   const manager = {
     calls,
-    status() { return { state: 'ready', runtimeEpoch: 7, runtimeId: 'hdsrc:router' } },
+    status() { return { state: 'ready', runtimeEpoch, runtimeId: 'hdsrc:router' } },
     async materializeResolved(request, access) {
       calls.push({ method: 'materializeResolved', request, access })
       if (overrides.materializeResolved instanceof Error) throw overrides.materializeResolved
@@ -69,6 +70,7 @@ function spyManager(overrides = {}) {
     async readResource(uri, access) {
       calls.push({ method: 'readResource', uri, access })
       if (overrides.readResource instanceof Error) throw overrides.readResource
+      if (overrides.readResourceRuntimeEpoch !== undefined) runtimeEpoch = overrides.readResourceRuntimeEpoch
       if (overrides.readResource) return overrides.readResource
       const preview = uri.endsWith('/preview')
       return {
@@ -80,6 +82,7 @@ function spyManager(overrides = {}) {
     async readPartialRelationBlockRow(ref, blockRow, access) {
       calls.push({ method: 'readPartialRelationBlockRow', ref, blockRow, access })
       if (overrides.readPartialRelationBlockRow instanceof Error) throw overrides.readPartialRelationBlockRow
+      if (overrides.partialReadRuntimeEpoch !== undefined) runtimeEpoch = overrides.partialReadRuntimeEpoch
       return overrides.readPartialRelationBlockRow ?? {
         blockRow,
         srcStart: 0,
@@ -203,6 +206,22 @@ test('partial relation route uses the canonical partial reader without a full re
   assert.equal(result.mode, 'partial_relation_block_row')
   assert.equal(result.partial.blockRow, 2)
   assert.ok(result.partial.compressedBytesRead < result.partial.carrierBytes)
+  assert.deepEqual(manager.calls.map(call => call.method), ['materializeResolved', 'readPartialRelationBlockRow'])
+})
+
+test('routing evidence reports the final runtime epoch after a safe machine resource read restarts the runtime', async () => {
+  const manager = spyManager({ runtimeEpoch: 1, readResourceRuntimeEpoch: 2 })
+  const result = await routeHdsrcObservation(intent(), context, manager)
+  assert.equal(result.mode, 'machine_carrier')
+  assert.equal(result.runtimeEpoch, 2)
+  assert.deepEqual(manager.calls.map(call => call.method), ['materializeResolved', 'readResource'])
+})
+
+test('partial routing evidence reports the final runtime epoch after a safe partial read restarts the runtime', async () => {
+  const manager = spyManager({ runtimeEpoch: 3, partialReadRuntimeEpoch: 4 })
+  const result = await routeHdsrcObservation(intent({ partialRelationBlockRow: 2 }), context, manager)
+  assert.equal(result.mode, 'partial_relation_block_row')
+  assert.equal(result.runtimeEpoch, 4)
   assert.deepEqual(manager.calls.map(call => call.method), ['materializeResolved', 'readPartialRelationBlockRow'])
 })
 
