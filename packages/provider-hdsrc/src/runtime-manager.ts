@@ -181,7 +181,7 @@ export class HdsrcRuntimeManager {
       const provider = this.#providerFactory(descriptor)
       try {
         await provider.capabilities()
-        if (this.#state === 'stopped') {
+        if (this.status().state === 'stopped') {
           provider.close()
           throw new HdsrcProviderError('PROVIDER_UNAVAILABLE', 'HDSRC runtime manager stopped during start')
         }
@@ -191,7 +191,7 @@ export class HdsrcRuntimeManager {
         return provider
       } catch (error) {
         provider.close()
-        if (this.#state !== 'stopped') this.#state = 'degraded'
+        if (this.status().state !== 'stopped') this.#state = 'degraded'
         throw error
       }
     })()
