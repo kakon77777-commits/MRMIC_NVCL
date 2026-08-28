@@ -23,12 +23,16 @@ jobs:
           from pathlib import Path
           p = Path('packages/provider-hdsrc/src/runtime-manager.ts')
           text = p.read_text(encoding='utf-8')
-          old = "if (this.#state === 'stopped')"
-          new = "if (this.status().state === 'stopped')"
-          count = text.count(old)
-          if count != 2:
-              raise SystemExit(f'expected exactly 2 narrowed stop checks, found {count}')
-          p.write_text(text.replace(old, new), encoding='utf-8')
+          first_old = """        await provider.capabilities()\n        if (this.#state === 'stopped') {\n"""
+          first_new = """        await provider.capabilities()\n        if (this.status().state === 'stopped') {\n"""
+          second_old = """      } catch (error) {\n        provider.close()\n        if (this.#state !== 'stopped') this.#state = 'degraded'\n"""
+          second_new = """      } catch (error) {\n        provider.close()\n        if (this.status().state !== 'stopped') this.#state = 'degraded'\n"""
+          if text.count(first_old) != 1:
+              raise SystemExit('async start stop-check anchor mismatch')
+          if text.count(second_old) != 1:
+              raise SystemExit('async catch stop-check anchor mismatch')
+          text = text.replace(first_old, first_new).replace(second_old, second_new)
+          p.write_text(text, encoding='utf-8')
           PY
           git rm .github/workflows/hdsrc-v03-task4-tsfix.yml
           git config user.name github-actions[bot]
