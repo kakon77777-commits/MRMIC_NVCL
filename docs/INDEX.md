@@ -17,6 +17,7 @@
 - [HDSRC × MRMIC/NVCL Integration Status v0.1](HDSRC_MRMIC_NVCL_INTEGRATION_STATUS_v0.1.md)
 - [HDSRC Local Process Bridge Status v0.2](HDSRC_LOCAL_PROCESS_BRIDGE_STATUS_v0.2.md)
 - [HDSRC Local Process Bridge Validation v0.2](HDSRC_LOCAL_PROCESS_BRIDGE_VALIDATION_v0.2.md)
+- [HDSRC Local Process Bridge Rebinding Validation v0.2](HDSRC_LOCAL_PROCESS_BRIDGE_REBINDING_VALIDATION_v0.2.md)
 
 ## Phase 13 目前狀態
 
@@ -41,6 +42,7 @@ ADR-001 至 ADR-012 位於本目錄，依編號記錄 SVG adapter、同步、MCP
 
 - [MVP acceptance matrix](MVP_ACCEPTANCE_MATRIX.md)
 - [HDSRC v0.2 real-runtime evidence](../artifacts/hdsrc-local-process-v0.2/real-v010-validation.json)
+- [HDSRC v0.2 real rebinding evidence](../artifacts/hdsrc-local-process-v0.2/real-v010-rebinding-validation.json)
 - 發布 manifest：[`../MANIFEST.json`](../MANIFEST.json)
 - 發布雜湊：[`../SHA256SUMS.txt`](../SHA256SUMS.txt)
 - 有界實驗證據位於 [`../artifacts/`](../artifacts/)
