@@ -43,7 +43,11 @@ class HdsrcRuntimeAdapter:
 
         from hdsrc_exp.codec import decode_hds1
         from hdsrc_exp.materialization_features import extract_candidate_features
-        from hdsrc_exp.multiscale_block_tiff_carrier import decode_hmbt1, encode_hmbt1_from_state
+        from hdsrc_exp.multiscale_block_tiff_carrier import (
+            decode_hmbt1,
+            encode_hmbt1_from_state,
+            read_hmbt1_relation_block_row,
+        )
         from hdsrc_exp.multiscale_relation_router import (
             MultiScaleRelationWorkload,
             evaluate_workload_on_materialized_bank,
@@ -61,6 +65,7 @@ class HdsrcRuntimeAdapter:
         self._extract_candidate_features = extract_candidate_features
         self._decode_hmbt1 = decode_hmbt1
         self._encode_hmbt1_from_state = encode_hmbt1_from_state
+        self._read_hmbt1_relation_block_row = read_hmbt1_relation_block_row
         self._MultiScaleRelationWorkload = MultiScaleRelationWorkload
         self._evaluate_workload_on_materialized_bank = evaluate_workload_on_materialized_bank
         self._materialize_multiscale_view_bank = materialize_multiscale_view_bank
@@ -175,3 +180,25 @@ class HdsrcRuntimeAdapter:
                 oracle_used=True,
                 decision=plan.decision,
             )
+
+    def partial_relation_block_row(self, carrier_path: str | Path, block_row: int) -> dict[str, Any]:
+        path = Path(carrier_path)
+        if self._stub is not None:
+            return self._stub.partial_relation_block_row(path, block_row)
+        partial = self._read_hmbt1_relation_block_row(path, int(block_row))
+        return {
+            'blockRow': int(partial.block_row),
+            'srcStart': int(partial.src_start),
+            'srcLength': int(partial.src_length),
+            'relations': [
+                {
+                    'src': int(relation.src),
+                    'dst': int(relation.dst),
+                    'kind': str(relation.kind),
+                    'qsim': int(relation.qsim),
+                }
+                for relation in partial.relations
+            ],
+            'compressedBytesRead': int(partial.compressed_bytes_read),
+            'carrierBytes': int(partial.carrier_bytes),
+        }
