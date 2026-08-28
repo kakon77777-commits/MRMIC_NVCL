@@ -31,6 +31,7 @@ class HdsrcMaterializationService:
         self.materialization_root.mkdir(parents=True, exist_ok=True)
         self._load_state = load_state
         self._runtime: HdsrcRuntimeAdapter | None = None
+        self._verified_machine: dict[Path, tuple[int, int, str]] = {}
 
     @property
     def runtime(self) -> HdsrcRuntimeAdapter:
@@ -87,9 +88,11 @@ class HdsrcMaterializationService:
         }
         folder = self.materialization_root / identity_hex
         folder.mkdir(parents=True, exist_ok=True)
-        (folder / 'machine.hmbt1.tif').write_bytes(resolved.carrier_bytes)
+        machine_path = folder / 'machine.hmbt1.tif'
+        machine_path.write_bytes(resolved.carrier_bytes)
         (folder / 'preview.svg').write_bytes(_preview_svg(manifest, resolved.oracle_used))
         (folder / 'manifest.json').write_bytes(_canonical_json(manifest))
+        self._cache_verified_machine(machine_path, carrier_digest)
         return {
             'decision': plan.decision,
             'materializationRef': resource_root,
@@ -132,12 +135,28 @@ class HdsrcMaterializationService:
         if filename == 'machine.hmbt1.tif':
             digest = 'sha256:' + hashlib.sha256(payload).hexdigest()
             if digest != manifest.get('materializationDigest'):
+                self._verified_machine.pop(path, None)
                 raise MaterializationServiceError('INTEGRITY_FAILURE', 'HDSRC machine carrier digest mismatch')
+            self._cache_verified_machine(path, digest)
         return {
             'uri': uri,
             'mimeType': mime_type,
             'base64': base64.b64encode(payload).decode('ascii'),
         }
+
+    def partial_relation_block_row(self, entry: Any, ref: str, block_row: int) -> dict[str, Any]:
+        identity_hex = self._identity_from_ref(entry, ref)
+        manifest = self.materialization(entry, ref)
+        path = self.materialization_root / identity_hex / 'machine.hmbt1.tif'
+        self._ensure_machine_integrity(path, manifest)
+        try:
+            return self.runtime.partial_relation_block_row(path, int(block_row))
+        except MaterializationServiceError:
+            raise
+        except ValueError as exc:
+            raise MaterializationServiceError('INVALID_REQUEST', str(exc)) from exc
+        except Exception as exc:
+            raise MaterializationServiceError('INTEGRITY_FAILURE', f'HDSRC partial read failed: {exc}') from exc
 
     def _request_workload(self, entry: Any, request: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(request, dict) or request.get('schema') != 'hdsrc-materialization-request/v1':
@@ -168,6 +187,32 @@ class HdsrcMaterializationService:
         materialization_id = manifest.get('materializationId')
         if not isinstance(materialization_id, str) or not materialization_id.startswith('mat:'):
             raise MaterializationServiceError('INTEGRITY_FAILURE', 'persisted HDSRC materialization identity is invalid')
+
+    def _cache_verified_machine(self, path: Path, digest: str) -> None:
+        stat = path.stat()
+        self._verified_machine[path] = (int(stat.st_size), int(stat.st_mtime_ns), str(digest))
+
+    def _ensure_machine_integrity(self, path: Path, manifest: dict[str, Any]) -> None:
+        expected = manifest.get('materializationDigest')
+        if not isinstance(expected, str):
+            raise MaterializationServiceError('INTEGRITY_FAILURE', 'HDSRC materialization digest is invalid')
+        try:
+            stat = path.stat()
+        except OSError as exc:
+            raise MaterializationServiceError('RESOURCE_NOT_FOUND', f'HDSRC machine carrier is unavailable: {path}') from exc
+        cached = self._verified_machine.get(path)
+        current_key = (int(stat.st_size), int(stat.st_mtime_ns), expected)
+        if cached == current_key:
+            return
+        try:
+            payload = path.read_bytes()
+        except OSError as exc:
+            raise MaterializationServiceError('RESOURCE_NOT_FOUND', f'HDSRC machine carrier is unavailable: {path}') from exc
+        actual = 'sha256:' + hashlib.sha256(payload).hexdigest()
+        if actual != expected:
+            self._verified_machine.pop(path, None)
+            raise MaterializationServiceError('INTEGRITY_FAILURE', 'HDSRC machine carrier digest mismatch')
+        self._verified_machine[path] = current_key
 
 
 def _canonical_json(value: Any) -> bytes:
