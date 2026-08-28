@@ -47,6 +47,7 @@ async function makeProvider(t) {
   const existingPythonPath = process.env.PYTHONPATH
   const env = {
     ...process.env,
+    HDSRC_TEST_STUB_RUNTIME: '1',
     PYTHONPATH: existingPythonPath ? `${stubRuntime}${delimiter}${existingPythonPath}` : stubRuntime,
   }
   const provider = new LocalProcessHdsrcProvider({
