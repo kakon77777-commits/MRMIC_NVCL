@@ -1,0 +1,82 @@
+{
+  "canonicalMutation": false,
+  "changed4096State": {
+    "dimension": 4096,
+    "k": 8,
+    "nodeCount": 72,
+    "relations": 576
+  },
+  "fastState": {
+    "authority": "hdsrc",
+    "decision": {
+      "confidence": {
+        "mode": "empirical",
+        "requiresOracle": false
+      },
+      "decision": "fast_path",
+      "logicalScale": 8,
+      "schema": "hdsrc-materialization-decision/v1",
+      "selectedCarrier": "HMBT1"
+    },
+    "dimension": 64,
+    "k": 4,
+    "nodeCount": 64,
+    "relations": 256,
+    "resolved": {
+      "logicalScale": 8,
+      "materializationDigest": "sha256:4251d168cb7c121e855c39ab8e45f8c4992aa786b1a08d6e6ab5dad1f3b52780",
+      "oracleUsed": false,
+      "spatializationId": "RCM_PP"
+    },
+    "schema": "hdsrc-state-ref/v1",
+    "stateDigest": "sha256:be7be774877a61b9dd0d3e83f793b2fb29e7a33b9f3e128fbcadce65d563c757",
+    "stateId": "state:fast",
+    "stateRevision": 1
+  },
+  "hdsrcRoot": "/mnt/data/hdsrc_v010_src",
+  "malformedHds1": {
+    "code": "INTEGRITY_FAILURE",
+    "retryable": false
+  },
+  "restartPersistence": true,
+  "schema": "hdsrc-local-process-bridge-validation/v0.2",
+  "source4096Sha256": "ea48a90eddc727b1684cf72204ddeaa720c6b67fe036561e05537622b0c12f85",
+  "staleState": {
+    "code": "STALE_STATE",
+    "retryable": true
+  },
+  "state4096": {
+    "authority": "hdsrc",
+    "decision": {
+      "confidence": {
+        "mode": "empirical",
+        "reason": "outside_current_trust_region",
+        "requiresOracle": true
+      },
+      "decision": "oracle_fallback",
+      "schema": "hdsrc-materialization-decision/v1"
+    },
+    "dimension": 4096,
+    "partial": {
+      "carrierBytes": 286313,
+      "compressedBytesRead": 1272,
+      "relations": 256
+    },
+    "resolved": {
+      "carrierBytes": 286313,
+      "logicalScale": 32,
+      "materializationDigest": "sha256:4127f98f00cca7d85d2975e13186a2373814dbe0b53d611cf74215695e9e6c5b",
+      "oracleUsed": true,
+      "spatializationId": "RCM_PP"
+    },
+    "schema": "hdsrc-state-ref/v1",
+    "stateDigest": "sha256:ea48a90eddc727b1684cf72204ddeaa720c6b67fe036561e05537622b0c12f85",
+    "stateId": "state:4096",
+    "stateRevision": 10
+  },
+  "tamperedCarrier": {
+    "code": "INTEGRITY_FAILURE",
+    "retryable": false
+  },
+  "testStubRuntimeUsed": false
+}
