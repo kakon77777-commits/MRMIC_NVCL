@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { HdsrcProviderError } from './index.js'
 import { HDSRC_PROCESS_PROTOCOL } from './process-client.js'
@@ -36,7 +36,7 @@ export interface HdsrcRuntimeDescriptor {
 export interface HdsrcRuntimeDiscoveryOptions {
   explicitBindingPath?: string
   env?: Record<string, string | undefined>
-  platform?: NodeJS.Platform
+  platform?: string
   homeDir?: string
 }
 
@@ -96,14 +96,14 @@ export function userLocalHdsrcBindingPath(
   return home ? resolve(home, '.config/evemisslab/hdsrc/runtime-binding.json') : undefined
 }
 
-async function readSelectedRuntimeBinding(
+function readSelectedRuntimeBinding(
   source: DiscoverySource,
   selectedPath: string,
-): Promise<HdsrcRuntimeDescriptor> {
+): HdsrcRuntimeDescriptor {
   const bindingPath = selectedBindingPath(selectedPath)
   let raw: string
   try {
-    raw = await readFile(bindingPath, 'utf8')
+    raw = Buffer.from(readFileSync(bindingPath)).toString('utf8')
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error)
     throw new HdsrcProviderError(
