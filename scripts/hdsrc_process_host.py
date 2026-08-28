@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Read-only HDSRC JSONL process host for MRMIC/NVCL.
 
-This adapter intentionally owns no canonical HDSRC state. It resolves states from a
-static registry, delegates HDS1 decoding to the installed HDSRC Python runtime, and
-speaks the versioned hdsrc-process/0.1 protocol on stdout.
+This adapter owns no canonical HDSRC state. It resolves states from a static
+registry, delegates HDS1 decoding/planning/materialization to the installed
+HDSRC Python runtime, and speaks hdsrc-process/0.1 on stdout.
 """
 
 from __future__ import annotations
@@ -17,11 +17,13 @@ from pathlib import Path
 from typing import Any, Callable
 
 from hdsrc_exp.codec import decode_hds1
+from hdsrc_materialization_service import HdsrcMaterializationService, MaterializationServiceError
 
 
 PROTOCOL = "hdsrc-process/0.1"
 HOST_NAME = "hdsrc-local-process"
 REGISTRY_SCHEMA = "hdsrc-local-registry/v1"
+DEFAULT_MAX_RESOURCE_BYTES = 64 * 1024 * 1024
 
 
 class ProviderError(Exception):
@@ -46,6 +48,7 @@ class HostConfig:
     profile_root: Path
     materialization_root: Path
     states: dict[str, StateEntry]
+    max_resource_bytes: int
 
 
 class HdsrcProcessHost:
@@ -55,9 +58,18 @@ class HdsrcProcessHost:
             "initialize": self._initialize,
             "capabilities": self._capabilities,
             "state": self._state,
+            "plan_materialization": self._plan_materialization,
+            "materialize": self._materialize,
+            "materialization": self._materialization,
+            "read_resource": self._read_resource,
             "shutdown": self._shutdown,
         }
         self._shutdown_requested = False
+        self._materializations = HdsrcMaterializationService(
+            profile_root=config.profile_root,
+            materialization_root=config.materialization_root,
+            load_state=self._load_state,
+        )
 
     @property
     def methods(self) -> tuple[str, ...]:
@@ -74,7 +86,6 @@ class HdsrcProcessHost:
         return handler(params)
 
     def _initialize(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Client/version are informational only. They never confer HDSRC authority.
         _optional_text(params.get("client"), "client")
         _optional_text(params.get("version"), "version")
         return {
@@ -100,11 +111,7 @@ class HdsrcProcessHost:
                 "HMBT1",
             ],
             "planningProfiles": ["HRT1", "HMSP1", "HMR1", "HPCM1", "HPCM2"],
-            "observationModes": [
-                "human_preview",
-                "machine_carrier",
-                "structured_manifest",
-            ],
+            "observationModes": ["human_preview", "machine_carrier", "structured_manifest"],
             "partialRead": True,
             "oracleFallback": True,
             "canonicalMutation": False,
@@ -113,9 +120,57 @@ class HdsrcProcessHost:
     def _state(self, params: dict[str, Any]) -> dict[str, Any]:
         ref = _required_text(params.get("ref"), "ref")
         principal_id = _required_text(params.get("principalId"), "principalId")
-        entry = self._entry_for_ref(ref)
+        entry = self._entry_for_state_ref(ref)
         self._authorize(entry, principal_id)
+        state, state_digest = self._load_state(entry)
+        return {
+            "schema": "hdsrc-state-ref/v1",
+            "stateId": entry.state_id,
+            "stateRevision": entry.state_revision,
+            "stateDigest": state_digest,
+            "dimension": int(state.dimension),
+            "authority": "hdsrc",
+        }
 
+    def _plan_materialization(self, params: dict[str, Any]) -> dict[str, Any]:
+        request = _required_object(params.get("request"), "request")
+        principal_id = _required_text(params.get("principalId"), "principalId")
+        entry = self._entry_for_request(request)
+        self._authorize(entry, principal_id)
+        return self._service_call(lambda: self._materializations.plan(entry, request))
+
+    def _materialize(self, params: dict[str, Any]) -> dict[str, Any]:
+        request = _required_object(params.get("request"), "request")
+        principal_id = _required_text(params.get("principalId"), "principalId")
+        entry = self._entry_for_request(request)
+        self._authorize(entry, principal_id)
+        return self._service_call(lambda: self._materializations.materialize(entry, request))
+
+    def _materialization(self, params: dict[str, Any]) -> dict[str, Any]:
+        ref = _required_text(params.get("ref"), "ref")
+        principal_id = _required_text(params.get("principalId"), "principalId")
+        entry = self._entry_for_materialization_ref(ref)
+        self._authorize(entry, principal_id)
+        return self._service_call(lambda: self._materializations.materialization(entry, ref))
+
+    def _read_resource(self, params: dict[str, Any]) -> dict[str, Any]:
+        uri = _required_text(params.get("uri"), "uri")
+        principal_id = _required_text(params.get("principalId"), "principalId")
+        entry = self._entry_for_materialization_ref(uri)
+        self._authorize(entry, principal_id)
+        return self._service_call(
+            lambda: self._materializations.read_resource(
+                entry,
+                uri,
+                max_bytes=self.config.max_resource_bytes,
+            )
+        )
+
+    def _shutdown(self, params: dict[str, Any]) -> dict[str, Any]:
+        self._shutdown_requested = True
+        return {"shuttingDown": True}
+
+    def _load_state(self, entry: StateEntry) -> tuple[Any, str]:
         try:
             hds1_bytes = entry.hds1_path.read_bytes()
         except OSError as exc:
@@ -124,44 +179,48 @@ class HdsrcProcessHost:
                 f"HDSRC state bytes are unavailable for {entry.state_id}",
                 True,
             ) from exc
-
         try:
             state = decode_hds1(hds1_bytes)
-            dimension = int(state.dimension)
         except Exception as exc:
             raise ProviderError(
                 "INTEGRITY_FAILURE",
                 f"HDSRC state {entry.state_id} failed canonical HDS1 decode",
                 False,
             ) from exc
-
+        dimension = int(state.dimension)
         if dimension < 1:
             raise ProviderError("INTEGRITY_FAILURE", "decoded HDSRC dimension must be positive")
+        return state, "sha256:" + hashlib.sha256(hds1_bytes).hexdigest()
 
-        state_digest = "sha256:" + hashlib.sha256(hds1_bytes).hexdigest()
-        return {
-            "schema": "hdsrc-state-ref/v1",
-            "stateId": entry.state_id,
-            "stateRevision": entry.state_revision,
-            "stateDigest": state_digest,
-            "dimension": dimension,
-            "authority": "hdsrc",
-        }
+    def _entry_for_request(self, request: dict[str, Any]) -> StateEntry:
+        return self._entry_for_state_ref(_required_text(request.get("stateRef"), "request.stateRef"))
 
-    def _shutdown(self, params: dict[str, Any]) -> dict[str, Any]:
-        self._shutdown_requested = True
-        return {"shuttingDown": True}
-
-    def _entry_for_ref(self, ref: str) -> StateEntry:
+    def _entry_for_state_ref(self, ref: str) -> StateEntry:
         for entry in self.config.states.values():
             if ref == f"hdsrc://state/{entry.state_id}":
                 return entry
         raise ProviderError("RESOURCE_NOT_FOUND", f"HDSRC state {ref} not found")
 
+    def _entry_for_materialization_ref(self, ref: str) -> StateEntry:
+        for entry in self.config.states.values():
+            prefix = f"hdsrc://state/{entry.state_id}/materializations/"
+            if ref.startswith(prefix):
+                return entry
+        raise ProviderError("RESOURCE_NOT_FOUND", f"HDSRC resource {ref} not found")
+
     @staticmethod
     def _authorize(entry: StateEntry, principal_id: str) -> None:
         if principal_id not in entry.read_principals:
             raise ProviderError("UNAUTHORIZED", "HDSRC read access denied")
+
+    @staticmethod
+    def _service_call(call: Callable[[], Any]) -> Any:
+        try:
+            return call()
+        except ProviderError:
+            raise
+        except MaterializationServiceError as exc:
+            raise ProviderError(exc.code, exc.message, exc.retryable) from exc
 
 
 def _required_text(value: Any, label: str) -> str:
@@ -174,6 +233,12 @@ def _optional_text(value: Any, label: str) -> str | None:
     if value is None:
         return None
     return _required_text(value, label)
+
+
+def _required_object(value: Any, label: str) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ProviderError("INVALID_REQUEST", f"{label} must be an object")
+    return value
 
 
 def _load_registry(path: Path) -> dict[str, StateEntry]:
@@ -196,7 +261,6 @@ def _load_registry(path: Path) -> dict[str, StateEntry]:
         allowed_keys = {"stateId", "stateRevision", "hds1Path", "readPrincipals"}
         if set(value.keys()) != allowed_keys:
             raise RuntimeError(f"HDSRC registry states[{index}] fields are invalid")
-
         state_id = value.get("stateId")
         revision = value.get("stateRevision")
         hds1_value = value.get("hds1Path")
@@ -217,16 +281,13 @@ def _load_registry(path: Path) -> dict[str, StateEntry]:
         normalized_principals = [item.strip() for item in principals]
         if len(set(normalized_principals)) != len(normalized_principals):
             raise RuntimeError(f"HDSRC registry states[{index}].readPrincipals must be unique")
-
         hds1_path = Path(hds1_value.strip())
         if not hds1_path.is_absolute():
             hds1_path = registry_root / hds1_path
-        hds1_path = hds1_path.resolve()
-
         result[state_id] = StateEntry(
             state_id=state_id,
             state_revision=revision,
-            hds1_path=hds1_path,
+            hds1_path=hds1_path.resolve(),
             read_principals=frozenset(normalized_principals),
         )
     return result
@@ -239,12 +300,15 @@ def _load_config(args: argparse.Namespace) -> HostConfig:
     if not profile_root.exists() or not profile_root.is_dir():
         raise RuntimeError(f"HDSRC profile root is unavailable: {profile_root}")
     materialization_root.mkdir(parents=True, exist_ok=True)
-    states = _load_registry(registry_path)
+    max_resource_bytes = int(args.max_resource_bytes)
+    if max_resource_bytes < 1:
+        raise RuntimeError("max resource bytes must be positive")
     return HostConfig(
         registry_path=registry_path,
         profile_root=profile_root,
         materialization_root=materialization_root,
-        states=states,
+        states=_load_registry(registry_path),
+        max_resource_bytes=max_resource_bytes,
     )
 
 
@@ -255,7 +319,6 @@ def _parse_request(line: str) -> tuple[int, str, dict[str, Any]]:
         raise RuntimeError("malformed JSON request") from exc
     if not isinstance(message, dict):
         raise RuntimeError("request must be a JSON object")
-
     request_id = message.get("id")
     if not isinstance(request_id, int) or isinstance(request_id, bool) or request_id < 1:
         raise RuntimeError("request id must be a positive integer")
@@ -280,17 +343,11 @@ def _emit_result(request_id: int, result: Any) -> None:
 
 
 def _emit_error(request_id: int, error: ProviderError) -> None:
-    _emit(
-        {
-            "protocol": PROTOCOL,
-            "id": request_id,
-            "error": {
-                "code": error.code,
-                "message": error.message,
-                "retryable": error.retryable,
-            },
-        }
-    )
+    _emit({
+        "protocol": PROTOCOL,
+        "id": request_id,
+        "error": {"code": error.code, "message": error.message, "retryable": error.retryable},
+    })
 
 
 def _run(host: HdsrcProcessHost) -> int:
@@ -307,7 +364,6 @@ def _run(host: HdsrcProcessHost) -> int:
                 return 0
         except ProviderError as exc:
             if request_id is None:
-                # If JSON was parseable enough to expose a valid id, preserve correlation.
                 try:
                     candidate = json.loads(line).get("id")
                     if isinstance(candidate, int) and not isinstance(candidate, bool) and candidate > 0:
@@ -329,10 +385,10 @@ def main() -> int:
     parser.add_argument("--registry", required=True)
     parser.add_argument("--profile-root", required=True)
     parser.add_argument("--materialization-root", required=True)
+    parser.add_argument("--max-resource-bytes", type=int, default=DEFAULT_MAX_RESOURCE_BYTES)
     args = parser.parse_args()
     try:
-        config = _load_config(args)
-        return _run(HdsrcProcessHost(config))
+        return _run(HdsrcProcessHost(_load_config(args)))
     except Exception as exc:
         print(f"HDSRC process host startup failed: {exc}", file=sys.stderr, flush=True)
         return 2
