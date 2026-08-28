@@ -92,6 +92,22 @@ test('selected environment binding fails closed when missing and does not fall t
   )
 })
 
+test('blank environment binding is selected and fails closed instead of falling through to user-local', async t => {
+  const root = await withTemp(t)
+  const home = resolve(root, 'home')
+  const userLocal = resolve(home, '.config/evemisslab/hdsrc/runtime-binding.json')
+  await writeBinding(userLocal, { runtimeId: 'hdsrc:user-local-should-not-win' })
+
+  await assert.rejects(
+    () => discoverHdsrcRuntime({
+      env: { HDSRC_RUNTIME_BINDING: '   ', HOME: home },
+      platform: 'linux',
+      homeDir: home,
+    }),
+    error => error?.code === 'INTEGRITY_FAILURE',
+  )
+})
+
 test('environment binding is used when no explicit binding is supplied', async t => {
   const root = await withTemp(t)
   const environment = resolve(root, 'runtime-binding.json')
