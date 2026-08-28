@@ -208,6 +208,7 @@ export class HdsrcRuntimeManager {
       const provider = await this.#providerForOperation()
       return await invoke(provider)
     } catch (error) {
+      if (this.#failedBeforeRuntimeStart()) throw error
       const origin = failureOrigin(error)
       if (origin === 'remote_domain') throw error
       this.#degradeAndClose()
@@ -235,9 +236,14 @@ export class HdsrcRuntimeManager {
       const provider = await this.#providerForOperation()
       return await invoke(provider)
     } catch (error) {
+      if (this.#failedBeforeRuntimeStart()) throw error
       if (failureOrigin(error) !== 'remote_domain') this.#degradeAndClose()
       throw error
     }
+  }
+
+  #failedBeforeRuntimeStart(): boolean {
+    return this.#state === 'undiscovered' && !this.#descriptor && !this.#provider
   }
 
   #degradeAndClose(): void {
