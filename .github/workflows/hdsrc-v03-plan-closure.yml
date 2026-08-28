@@ -1,0 +1,42 @@
+name: HDSRC v0.3 plan closure
+
+on:
+  push:
+    branches:
+      - integration/hdsrc-runtime-manager-v0.3
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: integration/hdsrc-runtime-manager-v0.3
+          fetch-depth: 0
+      - name: Mark executed plan steps and remove this workflow
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('docs/superpowers/plans/2026-08-28-hdsrc-runtime-manager-v03.md')
+          text = p.read_text(encoding='utf-8')
+          marker = '- [ ] **Step 5: Run final branch regression**'
+          if text.count(marker) != 1:
+              raise SystemExit('Task 6 Step 5 marker mismatch')
+          before, after = text.split(marker, 1)
+          before = before.replace('- [ ]', '- [x]')
+          text = before + marker + after
+          evidence = '''\n\n## Execution Evidence Through Real-Runtime Validation\n\n- Task 1 RED `33172019574`; GREEN `33172342769`.\n- Task 2 RED `33172549219`; final clean GREEN `33173012053` (`229 / 228 PASS / 0 FAIL / 1 existing SKIP`).\n- Task 3 RED `33173139671`; final clean GREEN `33173395676` (`233 / 232 PASS / 0 FAIL / 1 existing SKIP`).\n- Task 4 RED `33173596307`; final clean GREEN `33174081729` (`242 / 241 PASS / 0 FAIL / 1 existing SKIP`).\n- Task 5 RED `33174205525`; core GREEN `33174461081`; clean schema-inventory closure `33175052024` (`252 / 251 PASS / 0 FAIL / 1 existing SKIP`).\n- Task 6 exact-source export run `33175331352`, integration source `85797f524ecb79546280065fa4b7f0f44e426ccf`, artifact ZIP SHA-256 `e821659a5b4cf39a73a841d9d537078c4c80122f1b678dd6561b7fc26e0c521c`.\n- Task 6 real HDSRC v0.10 evidence replayed twice byte-for-byte; evidence SHA-256 `7f810af72aee6d165eb702a863542b871bca2883791e11e0ffd88105e5e990d7`.\n\nSteps 5–8 remain intentionally unchecked until final branch regression, authority audit, PR/merge, and post-merge `main` CI actually complete.\n'''
+          if '## Execution Evidence Through Real-Runtime Validation' not in text:
+              text = text.rstrip() + evidence
+          p.write_text(text, encoding='utf-8')
+          PY
+          git rm .github/workflows/hdsrc-v03-plan-closure.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/superpowers/plans/2026-08-28-hdsrc-runtime-manager-v03.md
+          git commit -m 'docs: record HDSRC v0.3 execution evidence'
+          git push origin HEAD:integration/hdsrc-runtime-manager-v0.3
