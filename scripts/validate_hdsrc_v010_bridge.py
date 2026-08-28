@@ -10,7 +10,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import time
 from pathlib import Path
 from typing import Any
 
@@ -82,22 +81,22 @@ class ProcessClient:
             self.proc.wait(timeout=3)
 
 
-def canonical_json(value: Any) -> bytes:
-    return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
-
-
-def build_fast_state(hdsrc_root: Path, output: Path) -> dict[str, Any]:
+def _build_compiled_state(hdsrc_root: Path, output: Path, *, nodes: int, dimension: int, k: int, seed: int) -> dict[str, Any]:
     sys.path.insert(0, str(hdsrc_root / 'src'))
     try:
         from hdsrc_exp.codec import encode_hds1
         from hdsrc_exp.compiler import compile_symbolic_state
         from hdsrc_exp.dataset import make_structured_corpus
 
-        corpus = make_structured_corpus(64, 64, 8, 8, 31001)
-        state = compile_symbolic_state(corpus, 4, 10000, 'hdsrc-rel/0.1')
-        payload = encode_hds1(state)
-        output.write_bytes(payload)
-        return {'dimension': state.dimension, 'nodeCount': len(state.vector_ids), 'relations': len(state.relations), 'k': state.k_neighbors}
+        corpus = make_structured_corpus(nodes, dimension, min(8, dimension), min(8, nodes), seed)
+        state = compile_symbolic_state(corpus, k, 10000, 'hdsrc-rel/0.1')
+        output.write_bytes(encode_hds1(state))
+        return {
+            'dimension': state.dimension,
+            'nodeCount': len(state.vector_ids),
+            'relations': len(state.relations),
+            'k': state.k_neighbors,
+        }
     finally:
         if sys.path and sys.path[0] == str(hdsrc_root / 'src'):
             sys.path.pop(0)
@@ -143,7 +142,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         temp = Path(temp_raw)
         fast_path = temp / 'fast.hds1'
         state_4096 = temp / 'state4096.hds1'
-        fast_stats = build_fast_state(hdsrc_root, fast_path)
+        changed_4096 = temp / 'changed4096.hds1'
+        fast_stats = _build_compiled_state(hdsrc_root, fast_path, nodes=64, dimension=64, k=4, seed=31001)
+        changed_stats = _build_compiled_state(hdsrc_root, changed_4096, nodes=72, dimension=4096, k=8, seed=92801)
         shutil.copyfile(source_4096, state_4096)
         registry = temp / 'registry.json'
         materialization_root = temp / 'materializations'
@@ -209,14 +210,27 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         finally:
             restarted.close()
 
-        stale_copy = state_4096.read_bytes()
-        state_4096.write_bytes(stale_copy + b'-changed')
+        original_4096 = state_4096.read_bytes()
+        state_4096.write_bytes(changed_4096.read_bytes())
         stale_client = ProcessClient(args.python, host_script, registry, hdsrc_root, materialization_root, hdsrc_root / 'src')
         try:
-            stale = expect_provider_error(lambda: stale_client.request('materialization', {'ref': high_ref, 'principalId': principal}), 'STALE_STATE')
+            stale = expect_provider_error(
+                lambda: stale_client.request('materialization', {'ref': high_ref, 'principalId': principal}),
+                'STALE_STATE',
+            )
         finally:
             stale_client.close()
-        state_4096.write_bytes(stale_copy)
+
+        state_4096.write_bytes(original_4096 + b'-malformed')
+        malformed_client = ProcessClient(args.python, host_script, registry, hdsrc_root, materialization_root, hdsrc_root / 'src')
+        try:
+            malformed = expect_provider_error(
+                lambda: malformed_client.request('state', {'ref': 'hdsrc://state/state:4096', 'principalId': principal}),
+                'INTEGRITY_FAILURE',
+            )
+        finally:
+            malformed_client.close()
+        state_4096.write_bytes(original_4096)
 
         identity = high_manifest['materializationId'].removeprefix('mat:')
         machine_path = materialization_root / identity / 'machine.hmbt1.tif'
@@ -224,7 +238,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         machine_path.write_bytes(original_machine + b'\x00')
         tamper_client = ProcessClient(args.python, host_script, registry, hdsrc_root, materialization_root, hdsrc_root / 'src')
         try:
-            tamper = expect_provider_error(lambda: tamper_client.request('read_resource', {'uri': high_machine_uri, 'principalId': principal}), 'INTEGRITY_FAILURE')
+            tamper = expect_provider_error(
+                lambda: tamper_client.request('read_resource', {'uri': high_machine_uri, 'principalId': principal}),
+                'INTEGRITY_FAILURE',
+            )
         finally:
             tamper_client.close()
 
@@ -249,8 +266,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 'compressedBytesRead': partial['compressedBytesRead'],
                 'carrierBytes': partial['carrierBytes'],
             }},
+            'changed4096State': changed_stats,
             'restartPersistence': True,
             'staleState': stale,
+            'malformedHds1': malformed,
             'tamperedCarrier': tamper,
             'canonicalMutation': False,
             'testStubRuntimeUsed': False,
