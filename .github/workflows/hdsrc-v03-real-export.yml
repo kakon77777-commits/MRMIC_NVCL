@@ -1,0 +1,34 @@
+name: HDSRC v0.3 real validation export
+
+on:
+  push:
+    branches:
+      - validation/hdsrc-runtime-manager-v03-real-20260828
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: 85797f524ecb79546280065fa4b7f0f44e426ccf
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hdsrc-runtime-manager-v03-exact-source
+          path: |
+            dist/
+            scripts/hdsrc_process_host.py
+            scripts/hdsrc_materialization_service.py
+            scripts/hdsrc_runtime_adapter.py
+            scripts/hdsrc_profile_bootstrap.py
+            scripts/validate_hdsrc_v010_bridge.py
+            scripts/validate_hdsrc_v010_rebinding.py
+            scripts/validate_hdsrc_v010_runtime_manager.mjs
