@@ -69,3 +69,21 @@ class StubBridgeRuntime:
             oracle_used=oracle_used,
             decision=plan.decision,
         )
+
+    def partial_relation_block_row(self, carrier_path: Path, block_row: int) -> dict:
+        row = int(block_row)
+        if row != 0:
+            raise ValueError('HMBT1 block row out of range')
+        carrier_bytes = carrier_path.stat().st_size
+        compressed = min(max(1, carrier_bytes // 4), carrier_bytes - 1)
+        return {
+            'blockRow': 0,
+            'srcStart': 0,
+            'srcLength': 4,
+            'relations': [
+                {'src': 0, 'dst': 1, 'kind': 'knn', 'qsim': 9000},
+                {'src': 1, 'dst': 2, 'kind': 'knn', 'qsim': 8500},
+            ],
+            'compressedBytesRead': compressed,
+            'carrierBytes': carrier_bytes,
+        }
