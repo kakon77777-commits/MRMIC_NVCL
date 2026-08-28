@@ -138,6 +138,42 @@ test('runtime discovery is side-effect free and does not start a provider', asyn
   manager.stop()
 })
 
+test('operation-triggered discovery failure leaves the manager undiscovered and does not construct a provider', async t => {
+  const { root } = await fixture(t)
+  const f = factoryFrom([{}])
+  const manager = new HdsrcRuntimeManager({
+    discovery: { explicitBindingPath: resolve(root, 'missing-runtime-binding.json') },
+    providerFactory: f.factory,
+  })
+
+  await assert.rejects(
+    () => manager.state(stateRef, context),
+    error => error instanceof HdsrcProviderError && error.code === 'PROVIDER_UNAVAILABLE',
+  )
+  assert.equal(manager.status().state, 'undiscovered')
+  assert.equal(manager.status().runtimeEpoch, 0)
+  assert.equal(f.created.length, 0)
+  manager.stop()
+})
+
+test('unsafe operation discovery failure also leaves the manager undiscovered without provider construction', async t => {
+  const { root } = await fixture(t)
+  const f = factoryFrom([{}])
+  const manager = new HdsrcRuntimeManager({
+    discovery: { explicitBindingPath: resolve(root, 'missing-runtime-binding.json') },
+    providerFactory: f.factory,
+  })
+
+  await assert.rejects(
+    () => manager.materializeResolved(request, context),
+    error => error instanceof HdsrcProviderError && error.code === 'PROVIDER_UNAVAILABLE',
+  )
+  assert.equal(manager.status().state, 'undiscovered')
+  assert.equal(manager.status().runtimeEpoch, 0)
+  assert.equal(f.created.length, 0)
+  manager.stop()
+})
+
 test('concurrent first operations share one lazy provider start and one runtime epoch', async t => {
   const { binding } = await fixture(t)
   let release
