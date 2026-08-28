@@ -116,6 +116,35 @@ test('tampered HMBT1 bytes fail closed on machine-resource read', async t => {
   )
 })
 
+test('rebound manifest digest cannot authorize tampered HMBT1 bytes or a rewritten materialization identity', async t => {
+  const runtime = await makeIsolatedRuntime(t)
+  const provider = providerFor(runtime)
+  t.after(() => provider.close())
+  const resolved = await provider.materializeResolved(request, context)
+  const identity = resolved.materialization.materializationId.slice('mat:'.length)
+  const folder = resolve(runtime.materializationRoot, identity)
+  const machinePath = resolve(folder, 'machine.hmbt1.tif')
+  const manifestPath = resolve(folder, 'manifest.json')
+  const original = await readFile(machinePath)
+  const tampered = new Uint8Array([...original, 0])
+  await writeFile(machinePath, tampered)
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+  manifest.materializationDigest = `sha256:${createHash('sha256').update(tampered).digest('hex')}`
+  manifest.materializationId = `mat:${'f'.repeat(64)}`
+  manifest.machineResourceUri = `${resolved.materializationRef}/machine`
+  manifest.previewResourceUri = `${resolved.materializationRef}/preview`
+  await writeFile(manifestPath, JSON.stringify(manifest))
+
+  await assert.rejects(
+    () => provider.materialization(resolved.materializationRef, context),
+    error => error?.code === 'INTEGRITY_FAILURE',
+  )
+  await assert.rejects(
+    () => provider.readResource(resolved.materialization.machineResourceUri, context),
+    error => error?.code === 'INTEGRITY_FAILURE',
+  )
+})
+
 test('partial relation block-row read returns canonical relation data without returning the whole carrier', async t => {
   const runtime = await makeIsolatedRuntime(t)
   const provider = providerFor(runtime)
