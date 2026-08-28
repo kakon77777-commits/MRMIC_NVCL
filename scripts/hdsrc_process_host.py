@@ -62,6 +62,7 @@ class HdsrcProcessHost:
             "materialize": self._materialize,
             "materialization": self._materialization,
             "read_resource": self._read_resource,
+            "partial_relation_block_row": self._partial_relation_block_row,
             "shutdown": self._shutdown,
         }
         self._shutdown_requested = False
@@ -166,6 +167,16 @@ class HdsrcProcessHost:
             )
         )
 
+    def _partial_relation_block_row(self, params: dict[str, Any]) -> dict[str, Any]:
+        ref = _required_text(params.get("ref"), "ref")
+        principal_id = _required_text(params.get("principalId"), "principalId")
+        block_row = _required_nonnegative_integer(params.get("blockRow"), "blockRow")
+        entry = self._entry_for_materialization_ref(ref)
+        self._authorize(entry, principal_id)
+        return self._service_call(
+            lambda: self._materializations.partial_relation_block_row(entry, ref, block_row)
+        )
+
     def _shutdown(self, params: dict[str, Any]) -> dict[str, Any]:
         self._shutdown_requested = True
         return {"shuttingDown": True}
@@ -238,6 +249,12 @@ def _optional_text(value: Any, label: str) -> str | None:
 def _required_object(value: Any, label: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ProviderError("INVALID_REQUEST", f"{label} must be an object")
+    return value
+
+
+def _required_nonnegative_integer(value: Any, label: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        raise ProviderError("INVALID_REQUEST", f"{label} must be a non-negative integer")
     return value
 
 
