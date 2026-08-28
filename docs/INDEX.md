@@ -18,6 +18,9 @@
 - [HDSRC Local Process Bridge Status v0.2](HDSRC_LOCAL_PROCESS_BRIDGE_STATUS_v0.2.md)
 - [HDSRC Local Process Bridge Validation v0.2](HDSRC_LOCAL_PROCESS_BRIDGE_VALIDATION_v0.2.md)
 - [HDSRC Local Process Bridge Rebinding Validation v0.2](HDSRC_LOCAL_PROCESS_BRIDGE_REBINDING_VALIDATION_v0.2.md)
+- [HDSRC Runtime Manager Status v0.3](HDSRC_RUNTIME_MANAGER_STATUS_v0.3.md)
+- [HDSRC Runtime Manager Validation v0.3](HDSRC_RUNTIME_MANAGER_VALIDATION_v0.3.md)
+- [HDSRC Runtime Manager Pre-Merge Review Closure v0.3](HDSRC_RUNTIME_MANAGER_REVIEW_CLOSURE_v0.3.md)
 
 ## Phase 13 目前狀態
 
@@ -43,6 +46,8 @@ ADR-001 至 ADR-012 位於本目錄，依編號記錄 SVG adapter、同步、MCP
 - [MVP acceptance matrix](MVP_ACCEPTANCE_MATRIX.md)
 - [HDSRC v0.2 real-runtime evidence](../artifacts/hdsrc-local-process-v0.2/real-v010-validation.json)
 - [HDSRC v0.2 real rebinding evidence](../artifacts/hdsrc-local-process-v0.2/real-v010-rebinding-validation.json)
+- [HDSRC v0.3 real runtime-manager evidence](../artifacts/hdsrc-runtime-manager-v0.3/real-v010-validation.json)
+- [HDSRC v0.3 routed-restart epoch evidence](../artifacts/hdsrc-runtime-manager-v0.3/real-v010-routed-restart-epoch.json)
 - 發布 manifest：[`../MANIFEST.json`](../MANIFEST.json)
 - 發布雜湊：[`../SHA256SUMS.txt`](../SHA256SUMS.txt)
 - 有界實驗證據位於 [`../artifacts/`](../artifacts/)

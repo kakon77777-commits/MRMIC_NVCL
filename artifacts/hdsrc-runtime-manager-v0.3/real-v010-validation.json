@@ -1,0 +1,68 @@
+{
+  "schema": "hdsrc-runtime-manager-real-validation/v0.3",
+  "lineage": {
+    "releaseZipSha256": "583659487a25cd76a7a3a32a35fda373074e630c3f7f60e47c618358bbb1c217",
+    "canonical4096Hds1Sha256": "ea48a90eddc727b1684cf72204ddeaa720c6b67fe036561e05537622b0c12f85"
+  },
+  "discovery": {
+    "explicitSource": "explicit",
+    "environmentSource": "environment",
+    "sameBinding": true,
+    "discoveryStartedProcess": false
+  },
+  "runtime": {
+    "firstEpoch": 1,
+    "restartEpoch": 2,
+    "boundedRestartObserved": true,
+    "hds1IdentityPreservedAcrossRestart": true,
+    "productionChildEnvironmentSanitized": true,
+    "canonicalMutation": false
+  },
+  "fastState": {
+    "dimension": 64,
+    "nodeCount": 64,
+    "relations": 256,
+    "k": 4,
+    "decision": "fast_path",
+    "oracleUsed": false,
+    "logicalScale": 8,
+    "spatializationId": "RCM_PP"
+  },
+  "state4096": {
+    "dimension": 4096,
+    "stateRevision": 10,
+    "decision": "oracle_fallback",
+    "decisionReason": "outside_current_trust_region",
+    "oracleUsed": true,
+    "logicalScale": 32,
+    "spatializationId": "RCM_PP",
+    "carrierBytes": 286313,
+    "partialCompressedBytesRead": 1272,
+    "partialCarrierBytes": 286313,
+    "partialRatio": 0.004442690342387527
+  },
+  "changed4096State": {
+    "dimension": 4096,
+    "nodeCount": 72,
+    "relations": 576,
+    "k": 8
+  },
+  "staleState": {
+    "code": "STALE_STATE",
+    "retryable": true
+  },
+  "malformedHds1": {
+    "code": "INTEGRITY_FAILURE",
+    "retryable": false
+  },
+  "rebinding": {
+    "metadataRebindingAccepted": true,
+    "structuralFailClosed": true,
+    "structuralCarrierRead": {
+      "code": "INTEGRITY_FAILURE",
+      "retryable": false
+    },
+    "testStubRuntimeUsed": false
+  },
+  "testStubRuntimeUsed": false
+}

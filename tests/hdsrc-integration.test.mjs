@@ -12,6 +12,8 @@ const schemaFiles = [
   'hdsrc-materialization-decision-v1.schema.json',
   'hdsrc-materialization-v1.schema.json',
   'hdsrc-provider-error-v1.schema.json',
+  'hdsrc-runtime-binding-v1.schema.json',
+  'hdsrc-observation-intent-v1.schema.json',
 ]
 
 const expectedIds = {
@@ -22,6 +24,8 @@ const expectedIds = {
   'hdsrc-materialization-decision-v1.schema.json': 'https://evemisslab.com/schemas/hdsrc-materialization-decision-v1.schema.json',
   'hdsrc-materialization-v1.schema.json': 'https://evemisslab.com/schemas/hdsrc-materialization-v1.schema.json',
   'hdsrc-provider-error-v1.schema.json': 'https://evemisslab.com/schemas/hdsrc-provider-error-v1.schema.json',
+  'hdsrc-runtime-binding-v1.schema.json': 'https://evemisslab.com/schemas/hdsrc-runtime-binding-v1.schema.json',
+  'hdsrc-observation-intent-v1.schema.json': 'https://evemisslab.com/schemas/hdsrc-observation-intent-v1.schema.json',
 }
 
 const readJson = async path => JSON.parse(await readFile(path, 'utf8'))
@@ -32,7 +36,7 @@ const NOW = '2026-08-27T00:00:00.000Z'
 const ACTOR = { actorType: 'agent', actorId: 'agent:integration-test' }
 const TRANSFORM = { x: 10, y: 20, width: 320, height: 180, rotation: 0, scaleX: 1, scaleY: 1, zIndex: 5 }
 
-test('HDSRC integration publishes seven versioned draft-2020-12 schemas', async () => {
+test('HDSRC integration publishes nine versioned draft-2020-12 schemas', async () => {
   for (const name of schemaFiles) {
     const schema = await readJson(`${CONTRACT_ROOT}/${name}`)
     assert.equal(schema.$schema, 'https://json-schema.org/draft/2020-12/schema', name)

@@ -19,6 +19,7 @@ async function makeHost(t) {
   const env = {
     ...process.env,
     PYTHONPATH: existingPythonPath ? `${stubRuntime}${delimiter}${existingPythonPath}` : stubRuntime,
+    HDSRC_TEST_STUB_RUNTIME: '1',
   }
   const client = new HdsrcJsonlProcessClient({
     executable: python,

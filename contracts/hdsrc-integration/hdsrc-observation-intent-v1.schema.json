@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/schemas/hdsrc-observation-intent-v1.schema.json",
+  "title": "HDSRC Observation Intent v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "stateRef", "goalClass", "observationMode"],
+  "properties": {
+    "schema": { "const": "hdsrc-observation-intent/v1" },
+    "stateRef": { "type": "string", "minLength": 1 },
+    "goalClass": { "type": "string", "minLength": 1 },
+    "observationMode": {
+      "enum": ["human_preview", "machine_carrier", "structured_manifest"]
+    },
+    "queryDirection": {
+      "enum": ["outgoing", "incoming", "block", "mixed"]
+    },
+    "expectedSpan": { "type": "integer", "minimum": 1 },
+    "expectedReuse": { "type": "integer", "minimum": 1 },
+    "latencyClass": { "enum": ["interactive", "batch"] },
+    "partialRelationBlockRow": { "type": "integer", "minimum": 0 }
+  },
+  "allOf": [
+    {
+      "if": { "required": ["partialRelationBlockRow"] },
+      "then": {
+        "properties": {
+          "observationMode": { "const": "machine_carrier" },
+          "queryDirection": { "const": "block" }
+        },
+        "required": ["queryDirection"]
+      }
+    }
+  ]
+}

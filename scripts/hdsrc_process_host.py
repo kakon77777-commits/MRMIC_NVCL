@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
-from hdsrc_exp.codec import decode_hds1
+from hdsrc_profile_bootstrap import decode_hds1
 from hdsrc_materialization_service import HdsrcMaterializationService, MaterializationServiceError
 
 
