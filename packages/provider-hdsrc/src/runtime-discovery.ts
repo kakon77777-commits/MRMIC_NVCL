@@ -67,7 +67,13 @@ export async function discoverHdsrcRuntime(
   }
 
   const environmentBinding = env.HDSRC_RUNTIME_BINDING
-  if (typeof environmentBinding === 'string' && environmentBinding.trim()) {
+  if (environmentBinding !== undefined) {
+    if (typeof environmentBinding !== 'string' || !environmentBinding.trim()) {
+      throw new HdsrcProviderError(
+        'INTEGRITY_FAILURE',
+        'HDSRC_RUNTIME_BINDING must select a non-empty binding path',
+      )
+    }
     return readSelectedRuntimeBinding('environment', environmentBinding)
   }
 
