@@ -1,0 +1,21 @@
+name: HDSRC v0.3 final real export
+
+on:
+  push:
+    branches:
+      - validation/hdsrc-v03-final-real-20260828
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hdsrc-v03-final-real-source
+          path: .
+          include-hidden-files: false
+          retention-days: 1
