@@ -52,6 +52,15 @@ export interface ResolvedHdsrcMaterialization {
   oracleUsed: boolean
 }
 
+export interface HdsrcPartialRelationBlockRow {
+  blockRow: number
+  srcStart: number
+  srcLength: number
+  relations: Array<{ src: number; dst: number; kind: string; qsim: number }>
+  compressedBytesRead: number
+  carrierBytes: number
+}
+
 export class LocalProcessHdsrcProvider implements HdsrcProviderClient {
   readonly #client: HdsrcJsonlProcessClient
   #ready?: Promise<void>
@@ -153,6 +162,43 @@ export class LocalProcessHdsrcProvider implements HdsrcProviderClient {
     return { uri: returnedUri, mimeType, bytes: decodeBase64(encoded) }
   }
 
+  async readPartialRelationBlockRow(
+    ref: string,
+    blockRow: number,
+    context: HdsrcAccessContext,
+  ): Promise<HdsrcPartialRelationBlockRow> {
+    preauthorize(context)
+    if (!Number.isInteger(blockRow) || blockRow < 0) {
+      throw new HdsrcProviderError('INVALID_REQUEST', 'blockRow must be a non-negative integer')
+    }
+    const payload = record(await this.#request('partial_relation_block_row', {
+      ref,
+      blockRow,
+      principalId: context.principalId,
+    }), 'HDSRC partial relation block row')
+    const relationsValue = payload.relations
+    if (!Array.isArray(relationsValue)) {
+      throw new HdsrcProviderError('INTEGRITY_FAILURE', 'partial relations must be an array')
+    }
+    const relations = relationsValue.map((value, index) => {
+      const relation = record(value, `partial.relations[${index}]`)
+      return {
+        src: integer(relation.src, `partial.relations[${index}].src`),
+        dst: integer(relation.dst, `partial.relations[${index}].dst`),
+        kind: nonemptyText(relation.kind, `partial.relations[${index}].kind`),
+        qsim: integer(relation.qsim, `partial.relations[${index}].qsim`),
+      }
+    })
+    return {
+      blockRow: nonnegativeInteger(payload.blockRow, 'partial.blockRow'),
+      srcStart: nonnegativeInteger(payload.srcStart, 'partial.srcStart'),
+      srcLength: positiveInteger(payload.srcLength, 'partial.srcLength'),
+      relations,
+      compressedBytesRead: positiveInteger(payload.compressedBytesRead, 'partial.compressedBytesRead'),
+      carrierBytes: positiveInteger(payload.carrierBytes, 'partial.carrierBytes'),
+    }
+  }
+
   async #request(method: string, params: Record<string, unknown>): Promise<unknown> {
     try {
       await this.#ensureReady()
@@ -173,7 +219,15 @@ export class LocalProcessHdsrcProvider implements HdsrcProviderClient {
           throw new Error('HDSRC process did not initialize as the required read-only protocol')
         }
         const methods = Array.isArray(payload.methods) ? payload.methods : []
-        for (const required of ['capabilities', 'state', 'plan_materialization', 'materialize', 'materialization', 'read_resource']) {
+        for (const required of [
+          'capabilities',
+          'state',
+          'plan_materialization',
+          'materialize',
+          'materialization',
+          'read_resource',
+          'partial_relation_block_row',
+        ]) {
           if (!methods.includes(required)) throw new Error(`HDSRC process is missing required method ${required}`)
         }
         if (methods.some(method => typeof method === 'string' && /(write|patch|mutat|register|replace|commit)/i.test(method))) {
@@ -246,6 +300,23 @@ function nonemptyText(value: unknown, label: string): string {
     throw new HdsrcProviderError('INTEGRITY_FAILURE', `${label} must be a non-empty string`)
   }
   return value.trim()
+}
+
+function integer(value: unknown, label: string): number {
+  if (!Number.isInteger(value)) throw new HdsrcProviderError('INTEGRITY_FAILURE', `${label} must be an integer`)
+  return value as number
+}
+
+function nonnegativeInteger(value: unknown, label: string): number {
+  const result = integer(value, label)
+  if (result < 0) throw new HdsrcProviderError('INTEGRITY_FAILURE', `${label} must be non-negative`)
+  return result
+}
+
+function positiveInteger(value: unknown, label: string): number {
+  const result = integer(value, label)
+  if (result <= 0) throw new HdsrcProviderError('INTEGRITY_FAILURE', `${label} must be positive`)
+  return result
 }
 
 function decodeBase64(value: string): Uint8Array {
