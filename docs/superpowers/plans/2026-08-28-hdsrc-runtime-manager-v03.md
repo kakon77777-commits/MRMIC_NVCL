@@ -1,6 +1,6 @@
 # HDSRC Runtime Discovery, Lifecycle, and NVCL Routing Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Let MRMIC/NVCL deterministically discover a configured local HDSRC v0.10 runtime, supervise its read-only process lifecycle, and route NVCL observation intent into verified HDSRC materializations without caller-supplied process paths.
 
@@ -44,7 +44,7 @@
   - `discoverHdsrcRuntime(options): Promise<HdsrcRuntimeDescriptor>`
   - `userLocalHdsrcBindingPath(options): string | undefined`
 
-- [ ] **Step 1: Write the failing discovery contract tests**
+- [x] **Step 1: Write the failing discovery contract tests**
 
 Add focused tests that create temporary binding files and assert exact precedence and path normalization:
 
@@ -71,7 +71,7 @@ await assert.rejects(
 
 Cover Windows `LOCALAPPDATA`, POSIX `XDG_CONFIG_HOME`, POSIX `HOME`, absent binding, unknown protocol, relative path resolution, and no fallback from a selected malformed/missing source.
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run:
 
@@ -81,7 +81,7 @@ npm run build && node --test tests/hdsrc-runtime-discovery.test.mjs
 
 Expected: FAIL because `runtime-discovery.js` and the binding schema do not exist.
 
-- [ ] **Step 3: Add the binding JSON Schema**
+- [x] **Step 3: Add the binding JSON Schema**
 
 The schema must require exactly:
 
@@ -100,7 +100,7 @@ The schema must require exactly:
 
 Optional `cwd`, `timeoutMs`, and `maxResourceBytes` must follow the approved spec; `additionalProperties` is false.
 
-- [ ] **Step 4: Implement `runtime-discovery.ts` minimally**
+- [x] **Step 4: Implement `runtime-discovery.ts` minimally**
 
 Use Node filesystem/path APIs only. The public descriptor shape is:
 
@@ -146,7 +146,7 @@ unsupported protocol -> UNSUPPORTED_PROFILE
 no configured source -> PROVIDER_UNAVAILABLE
 ```
 
-- [ ] **Step 5: Run focused discovery tests to GREEN**
+- [x] **Step 5: Run focused discovery tests to GREEN**
 
 Run:
 
@@ -156,7 +156,7 @@ npm run build && node --test tests/hdsrc-runtime-discovery.test.mjs
 
 Expected: PASS.
 
-- [ ] **Step 6: Run full regression and commit**
+- [x] **Step 6: Run full regression and commit**
 
 Run:
 
@@ -187,13 +187,13 @@ git commit -m "feat: add deterministic HDSRC runtime discovery"
 - Consumes: `LocalProcessHdsrcProviderOptions.profileRoot` and `hdsrc-process/0.1` host CLI.
 - Produces: host bootstrap that imports `hdsrc_exp` only after binding `<profileRoot>/src`, plus verification that the resolved package lives below that root.
 
-- [ ] **Step 1: Write failing profile-root authority tests**
+- [x] **Step 1: Write failing profile-root authority tests**
 
 Create tests with two module roots: a configured fixture root and a conflicting ambient same-name `hdsrc_exp`. Assert the configured root wins and that a missing configured `src/hdsrc_exp` fails closed.
 
 The normal local-process provider invocation must no longer require external `PYTHONPATH` to locate its configured runtime.
 
-- [ ] **Step 2: Run focused test to verify RED**
+- [x] **Step 2: Run focused test to verify RED**
 
 ```bash
 npm run build && node --test tests/hdsrc-runtime-profile-root.test.mjs
@@ -201,7 +201,7 @@ npm run build && node --test tests/hdsrc-runtime-profile-root.test.mjs
 
 Expected: FAIL because the v0.2 host imports `hdsrc_exp.codec` before `--profile-root` is applied.
 
-- [ ] **Step 3: Refactor host bootstrap without changing HDSRC semantics**
+- [x] **Step 3: Refactor host bootstrap without changing HDSRC semantics**
 
 Remove top-level canonical HDSRC imports from `hdsrc_process_host.py`. Parse `--profile-root`, then bind:
 
@@ -225,7 +225,7 @@ if module_root not in loaded.parents:
 
 Pass the delayed codec function into host/config state instead of depending on a pre-imported global.
 
-- [ ] **Step 4: Sanitize production manager/provider environment boundary**
+- [x] **Step 4: Sanitize production manager/provider environment boundary**
 
 Add a small helper usable by the later manager:
 
@@ -237,7 +237,7 @@ export function productionHdsrcProcessEnv(base = process.env): Record<string, st
 
 Do not change explicit v0.2 test fixtures that directly construct `LocalProcessHdsrcProvider` with a test env; the helper is for discovered production launches.
 
-- [ ] **Step 5: Run focused and existing process-host tests**
+- [x] **Step 5: Run focused and existing process-host tests**
 
 ```bash
 npm run build && node --test tests/hdsrc-runtime-profile-root.test.mjs tests/hdsrc-process-host.test.mjs tests/hdsrc-local-process-provider.test.mjs
@@ -245,7 +245,7 @@ npm run build && node --test tests/hdsrc-runtime-profile-root.test.mjs tests/hds
 
 Expected: PASS.
 
-- [ ] **Step 6: Run full regression and commit**
+- [x] **Step 6: Run full regression and commit**
 
 ```bash
 npm run check && npm test
@@ -273,7 +273,7 @@ git commit -m "fix: bind HDSRC host to configured profile root"
   - `HdsrcLocalProcessProviderError extends HdsrcProviderError` with `origin: 'transport' | 'contract' | 'remote_domain'`
 - Keeps the public `HdsrcProviderClient` interface and provider error codes unchanged.
 
-- [ ] **Step 1: Write failure-origin RED tests**
+- [x] **Step 1: Write failure-origin RED tests**
 
 Exercise one case from each class:
 
@@ -285,7 +285,7 @@ await assert.rejects(remoteStaleCall, error => error.origin === 'remote_domain' 
 
 Also assert a remote `PROVIDER_UNAVAILABLE` envelope is still `remote_domain`, not transport.
 
-- [ ] **Step 2: Run focused test to RED**
+- [x] **Step 2: Run focused test to RED**
 
 ```bash
 npm run build && node --test tests/hdsrc-runtime-failure-origin.test.mjs
@@ -293,7 +293,7 @@ npm run build && node --test tests/hdsrc-runtime-failure-origin.test.mjs
 
 Expected: FAIL because v0.2 collapses generic local failures to provider unavailable without origin metadata.
 
-- [ ] **Step 3: Add typed client failure classification**
+- [x] **Step 3: Add typed client failure classification**
 
 Use:
 
@@ -309,7 +309,7 @@ export class HdsrcProcessClientError extends Error {
 
 Classify spawn/stdio/exit/timeout/write as `transport`; malformed JSON, protocol mismatch, bad response id/envelope, and unknown response id as `contract`.
 
-- [ ] **Step 4: Preserve origin through `LocalProcessHdsrcProvider`**
+- [x] **Step 4: Preserve origin through `LocalProcessHdsrcProvider`**
 
 Add:
 
@@ -324,7 +324,7 @@ export class HdsrcLocalProcessProviderError extends HdsrcProviderError {
 
 Handshake mutation/method/schema violations are `contract`. `HdsrcProcessRemoteError` maps to `remote_domain`. `HdsrcProcessClientError` preserves its origin.
 
-- [ ] **Step 5: Run focused tests to GREEN**
+- [x] **Step 5: Run focused tests to GREEN**
 
 ```bash
 npm run build && node --test tests/hdsrc-runtime-failure-origin.test.mjs tests/hdsrc-process-client.test.mjs tests/hdsrc-local-process-provider.test.mjs
@@ -332,7 +332,7 @@ npm run build && node --test tests/hdsrc-runtime-failure-origin.test.mjs tests/h
 
 Expected: PASS.
 
-- [ ] **Step 6: Full regression and commit**
+- [x] **Step 6: Full regression and commit**
 
 ```bash
 npm run check && npm test
@@ -360,7 +360,7 @@ git commit -m "feat: preserve HDSRC process failure origin"
   - `HdsrcRuntimeManagerStatus`
   - `HdsrcRuntimeManager`
 
-- [ ] **Step 1: Write manager state/lifecycle RED tests**
+- [x] **Step 1: Write manager state/lifecycle RED tests**
 
 Inject a provider factory so tests count process/provider constructions without real OS processes:
 
@@ -388,7 +388,7 @@ assert.equal(manager.status().runtimeEpoch, 1)
 
 Cover transport -> degraded -> one-shot safe retry -> epoch 2; contract failure with no restart; remote stale/integrity/unauthorized while manager remains ready; unsafe `materializeResolved` transport failure with no automatic replay; explicit second call starts a fresh provider; and terminal stop.
 
-- [ ] **Step 2: Run focused test to RED**
+- [x] **Step 2: Run focused test to RED**
 
 ```bash
 npm run build && node --test tests/hdsrc-runtime-manager.test.mjs
@@ -396,7 +396,7 @@ npm run build && node --test tests/hdsrc-runtime-manager.test.mjs
 
 Expected: FAIL because `runtime-manager.js` does not exist.
 
-- [ ] **Step 3: Implement manager state machine and single-flight start**
+- [x] **Step 3: Implement manager state machine and single-flight start**
 
 The manager constructor accepts:
 
@@ -430,7 +430,7 @@ async #start(): Promise<LocalProcessHdsrcProvider> {
 
 Handshake uses `provider.capabilities()` so `ready` is impossible before the v0.2 read-only checks pass.
 
-- [ ] **Step 4: Implement operation wrappers and retry policy**
+- [x] **Step 4: Implement operation wrappers and retry policy**
 
 Preauthorize every context-bearing operation before `discover()` or `#start()`.
 
@@ -452,7 +452,7 @@ try {
 
 Do not recurse into the wrapper for the retry.
 
-- [ ] **Step 5: Run manager tests to GREEN**
+- [x] **Step 5: Run manager tests to GREEN**
 
 ```bash
 npm run build && node --test tests/hdsrc-runtime-manager.test.mjs
@@ -460,7 +460,7 @@ npm run build && node --test tests/hdsrc-runtime-manager.test.mjs
 
 Expected: PASS.
 
-- [ ] **Step 6: Full regression and commit**
+- [x] **Step 6: Full regression and commit**
 
 ```bash
 npm run check && npm test
@@ -491,7 +491,7 @@ git commit -m "feat: add bounded HDSRC runtime manager"
   - `routeHdsrcObservation(intent, context, manager)`
   - discriminated result union for `human_preview`, `structured_manifest`, `machine_carrier`, and `partial_relation_block_row`.
 
-- [ ] **Step 1: Write intent/router RED tests**
+- [x] **Step 1: Write intent/router RED tests**
 
 Intent validation must reject illegal partial combinations:
 
@@ -510,7 +510,7 @@ Assert exact workload mapping and prove no HDSRC policy field is added.
 
 Use a spy manager to assert unauthorized/trust failures make **zero manager calls**. For the partial route assert `materializeResolved` + `readPartialRelationBlockRow` are used and `readResource` is never called.
 
-- [ ] **Step 2: Run focused test to RED**
+- [x] **Step 2: Run focused test to RED**
 
 ```bash
 npm run build && node --test tests/hdsrc-observation-router.test.mjs
@@ -518,11 +518,11 @@ npm run build && node --test tests/hdsrc-observation-router.test.mjs
 
 Expected: FAIL because intent/router modules do not exist.
 
-- [ ] **Step 3: Add intent schema and validator**
+- [x] **Step 3: Add intent schema and validator**
 
 Schema fields follow the approved spec exactly. The TypeScript validator must enforce semantic cross-field legality for `partialRelationBlockRow` even if JSON Schema validation is not executed at runtime.
 
-- [ ] **Step 4: Implement deterministic request mapping**
+- [x] **Step 4: Implement deterministic request mapping**
 
 The mapping is only:
 
@@ -544,7 +544,7 @@ return {
 
 No carrier/block/spatialization fields are introduced.
 
-- [ ] **Step 5: Implement authorization-first routing**
+- [x] **Step 5: Implement authorization-first routing**
 
 Order:
 
@@ -566,7 +566,7 @@ machine_carrier partial -> manager.readPartialRelationBlockRow(materializationRe
 
 Return bounded `runtimeEpoch` and HDSRC decision evidence, never descriptor paths, registry content, principal id, or opposite-lane payloads.
 
-- [ ] **Step 6: Run router tests to GREEN**
+- [x] **Step 6: Run router tests to GREEN**
 
 ```bash
 npm run build && node --test tests/hdsrc-observation-router.test.mjs
@@ -574,7 +574,7 @@ npm run build && node --test tests/hdsrc-observation-router.test.mjs
 
 Expected: PASS.
 
-- [ ] **Step 7: Full regression and commit**
+- [x] **Step 7: Full regression and commit**
 
 ```bash
 npm run check && npm test
@@ -603,7 +603,7 @@ git commit -m "feat: route NVCL observation intent through HDSRC"
 - Consumes: the built TypeScript runtime manager/router, production Python host, exact HDSRC v0.10 source/profile lineage, and existing v0.2 validation helpers/evidence.
 - Produces: deterministic real-runtime evidence proving discovery, lifecycle, routing, partial I/O, and authority invariants.
 
-- [ ] **Step 1: Write the real validation script before generating evidence**
+- [x] **Step 1: Write the real validation script before generating evidence**
 
 The Node validator must create a temporary runtime binding and registry, then invoke the **discovered** runtime manager/router rather than constructing `LocalProcessHdsrcProvider` paths directly.
 
@@ -626,7 +626,7 @@ canonicalMutation = false
 HDSRC_TEST_STUB_RUNTIME is absent from the production child
 ```
 
-- [ ] **Step 2: Run real validation against the exact local HDSRC v0.10 source**
+- [x] **Step 2: Run real validation against the exact local HDSRC v0.10 source**
 
 Run from a clean branch source export/build with the known local HDSRC root:
 
@@ -639,13 +639,13 @@ node scripts/validate_hdsrc_v010_runtime_manager.mjs \
 
 Expected: exit 0 with `testStubRuntimeUsed=false` and all assertions true.
 
-- [ ] **Step 3: Replay real validation for determinism**
+- [x] **Step 3: Replay real validation for determinism**
 
 Run the same command a second time to a second output and compare normalized evidence byte-for-byte. Any deliberately volatile field must be excluded from the canonical evidence schema rather than post-processed away.
 
 Expected: identical SHA-256.
 
-- [ ] **Step 4: Store raw evidence and write validation/status docs**
+- [x] **Step 4: Store raw evidence and write validation/status docs**
 
 The report must distinguish:
 
@@ -686,3 +686,15 @@ PR evidence must include focused RED/GREEN runs, final test totals, real-runtime
 - [ ] **Step 8: Verify post-merge `main` CI**
 
 After squash merge, verify the `main` commit itself runs `npm install`, `npm run check`, and the complete test suite successfully. Record the exact merge SHA and Actions run in the final report.
+
+## Execution Evidence Through Real-Runtime Validation
+
+- Task 1 RED `33172019574`; GREEN `33172342769`.
+- Task 2 RED `33172549219`; final clean GREEN `33173012053` (`229 / 228 PASS / 0 FAIL / 1 existing SKIP`).
+- Task 3 RED `33173139671`; final clean GREEN `33173395676` (`233 / 232 PASS / 0 FAIL / 1 existing SKIP`).
+- Task 4 RED `33173596307`; final clean GREEN `33174081729` (`242 / 241 PASS / 0 FAIL / 1 existing SKIP`).
+- Task 5 RED `33174205525`; core GREEN `33174461081`; clean schema-inventory closure `33175052024` (`252 / 251 PASS / 0 FAIL / 1 existing SKIP`).
+- Task 6 exact-source export run `33175331352`, integration source `85797f524ecb79546280065fa4b7f0f44e426ccf`, artifact ZIP SHA-256 `e821659a5b4cf39a73a841d9d537078c4c80122f1b678dd6561b7fc26e0c521c`.
+- Task 6 real HDSRC v0.10 evidence replayed twice byte-for-byte; evidence SHA-256 `7f810af72aee6d165eb702a863542b871bca2883791e11e0ffd88105e5e990d7`.
+
+Steps 5–8 remain intentionally unchecked until final branch regression, authority audit, PR/merge, and post-merge `main` CI actually complete.
