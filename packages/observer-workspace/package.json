@@ -1,0 +1,6 @@
+{
+  "name": "@mrmic/observer-workspace",
+  "version": "0.15.0",
+  "private": true,
+  "type": "module"
+}

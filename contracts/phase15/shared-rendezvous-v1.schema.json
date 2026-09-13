@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/mrmic/contracts/phase15/shared-rendezvous-v1.schema.json",
+  "title": "MRMIC Shared Rendezvous v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "rendezvousId",
+    "worldId",
+    "canvasId",
+    "hostPrincipalId",
+    "invitedPrincipalIds",
+    "members",
+    "projections",
+    "state",
+    "revision",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "schema": { "const": "shared_rendezvous_v1" },
+    "rendezvousId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "worldId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "canvasId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "label": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "hostPrincipalId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "invitedPrincipalIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+    },
+    "members": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["principalId", "joinedAt"],
+        "properties": {
+          "principalId": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "semanticAgentId": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "joinedAt": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "projections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schema", "projectionId", "sourceViewId", "sourcePrincipalId", "portalId", "interaction", "createdAt"],
+        "properties": {
+          "schema": { "const": "shared_resource_projection_v1" },
+          "projectionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "sourceViewId": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "sourcePrincipalId": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "portalId": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "interaction": { "enum": ["inspect", "interact"] },
+          "createdAt": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "state": { "enum": ["active", "closed"] },
+    "revision": { "type": "integer", "minimum": 0 },
+    "createdAt": { "type": "string", "minLength": 1 },
+    "updatedAt": { "type": "string", "minLength": 1 }
+  }
+}
