@@ -9,5 +9,6 @@
 3. [MCP 原生遞歸多模態無限畫布](canonical/MCP原生遞歸多模態無限畫布_MRMIC_架構命題論文_v1.0.md)
 4. [MRMIC／NVCL MVP 技術白皮書](canonical/MRMIC_NVCL_MVP技術白皮書_v0.1.md)
 5. [視之一般算子論](canonical/視之基底系列_10_視之一般算子論_差異的場化位格化與回饋化_v1.0.md)
+6. [Observer-Relative Shared World 技術白皮書](canonical/MRMIC_NVCL_Observer_Relative_Shared_World_Whitepaper_v0.1.md)
 
-理論文件提出可檢驗命題與架構方向；目前 Runtime 能力、測試結果與非宣稱邊界以 [`../PHASE12_STATUS_REPORT.md`](../PHASE12_STATUS_REPORT.md) 和 [`../NEXT_PHASE.md`](../NEXT_PHASE.md) 為準。理論敘述不會自動成為已實作或已驗證的產品能力。
+理論文件提出可檢驗命題與架構方向；目前 Runtime 能力、測試結果與非宣稱邊界以各 Phase status / implementation 文件與測試為準。理論敘述不會自動成為已實作或已驗證的產品能力。
