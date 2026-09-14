@@ -31,6 +31,37 @@
       "uniqueItems": true,
       "items": { "type": "string", "minLength": 1, "maxLength": 256 }
     },
+    "nestedCanvasContexts": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "parentCanvasId",
+          "canvasId",
+          "portalObjectId",
+          "visibility",
+          "foregroundPortalIds",
+          "enteredAt"
+        ],
+        "properties": {
+          "schema": { "const": "observer_nested_canvas_v1" },
+          "parentCanvasId": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "canvasId": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "portalObjectId": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "visibility": { "enum": ["inherit", "hidden"] },
+          "foregroundPortalIds": {
+            "type": "array",
+            "maxItems": 128,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+          },
+          "enteredAt": { "type": "string", "minLength": 1, "maxLength": 128 }
+        }
+      }
+    },
     "revision": { "type": "integer", "minimum": 0 },
     "createdAt": { "type": "string", "minLength": 1 },
     "updatedAt": { "type": "string", "minLength": 1 }

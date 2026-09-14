@@ -9,6 +9,8 @@ import {
 } from '../../observer-workspace/src/durable-registry.js'
 import type {
   CreateObserverViewInput,
+  EnterObserverSubcanvasInput,
+  ObserverNestedVisibility,
   ObserverViewLifecycle,
   OpenRendezvousInput,
   SharedProjectionInteraction,
@@ -24,6 +26,10 @@ export type ObserverProtocolCommand =
   | { kind: 'create_view'; input: CreateObserverViewInput }
   | { kind: 'set_foreground'; viewId: string; portalIds: string[] }
   | { kind: 'set_lifecycle'; viewId: string; lifecycle: ObserverViewLifecycle }
+  | { kind: 'enter_subcanvas'; viewId: string; input: EnterObserverSubcanvasInput }
+  | { kind: 'leave_subcanvas'; viewId: string }
+  | { kind: 'set_nested_visibility'; viewId: string; canvasId: string; visibility: ObserverNestedVisibility }
+  | { kind: 'set_nested_foreground'; viewId: string; canvasId: string; portalIds: string[] }
   | { kind: 'open_rendezvous'; input: OpenRendezvousInput }
   | { kind: 'invite'; rendezvousId: string; invitedPrincipalId: string }
   | { kind: 'join'; rendezvousId: string }
@@ -55,6 +61,12 @@ function stringArray(value: unknown, label: string): string[] {
   return value.map((item, index) => text(item, `${label}[${index}]`))
 }
 
+function nestedVisibility(value: unknown, label: string): ObserverNestedVisibility {
+  const visibility = text(value, label) as ObserverNestedVisibility
+  if (visibility !== 'inherit' && visibility !== 'hidden') throw new Error(`${label} is invalid`)
+  return visibility
+}
+
 export function parseObserverProtocolCommand(value: unknown): ObserverProtocolCommand {
   const input = record(value, 'command')
   const kind = text(input.kind, 'command.kind')
@@ -68,6 +80,36 @@ export function parseObserverProtocolCommand(value: unknown): ObserverProtocolCo
       if (!['live', 'warm', 'frozen', 'sleeping'].includes(lifecycle)) throw new Error('command.lifecycle is invalid')
       return { kind, viewId: text(input.viewId, 'command.viewId'), lifecycle }
     }
+    case 'enter_subcanvas': {
+      const child = record(input.input, 'command.input')
+      const visibility = child.visibility === undefined ? undefined : nestedVisibility(child.visibility, 'command.input.visibility')
+      return {
+        kind,
+        viewId: text(input.viewId, 'command.viewId'),
+        input: {
+          parentCanvasId: text(child.parentCanvasId, 'command.input.parentCanvasId'),
+          childCanvasId: text(child.childCanvasId, 'command.input.childCanvasId'),
+          portalObjectId: text(child.portalObjectId, 'command.input.portalObjectId'),
+          ...(visibility ? { visibility } : {}),
+        },
+      }
+    }
+    case 'leave_subcanvas':
+      return { kind, viewId: text(input.viewId, 'command.viewId') }
+    case 'set_nested_visibility':
+      return {
+        kind,
+        viewId: text(input.viewId, 'command.viewId'),
+        canvasId: text(input.canvasId, 'command.canvasId'),
+        visibility: nestedVisibility(input.visibility, 'command.visibility'),
+      }
+    case 'set_nested_foreground':
+      return {
+        kind,
+        viewId: text(input.viewId, 'command.viewId'),
+        canvasId: text(input.canvasId, 'command.canvasId'),
+        portalIds: stringArray(input.portalIds, 'command.portalIds'),
+      }
     case 'open_rendezvous':
       return { kind, input: record(input.input, 'command.input') as unknown as OpenRendezvousInput }
     case 'invite':
@@ -108,6 +150,10 @@ export function executeObserverProtocolCommand(
     case 'create_view': return workspace.createPrivateView(command.input, principal)
     case 'set_foreground': return workspace.setForegroundStack(command.viewId, command.portalIds, principal)
     case 'set_lifecycle': return workspace.setViewLifecycle(command.viewId, command.lifecycle, principal)
+    case 'enter_subcanvas': return workspace.enterSubcanvas(command.viewId, command.input, principal)
+    case 'leave_subcanvas': return workspace.leaveSubcanvas(command.viewId, principal)
+    case 'set_nested_visibility': return workspace.setNestedVisibility(command.viewId, command.canvasId, command.visibility, principal)
+    case 'set_nested_foreground': return workspace.setNestedForegroundStack(command.viewId, command.canvasId, command.portalIds, principal)
     case 'open_rendezvous': return workspace.openRendezvous(command.input, principal)
     case 'invite': return workspace.invite(command.rendezvousId, command.invitedPrincipalId, principal)
     case 'join': return workspace.join(command.rendezvousId, principal)
@@ -289,8 +335,8 @@ export class ObserverProtocolGateway {
       sendJson(response, 200, rpcResult(rpc.id ?? null, {
         protocolVersion: OBSERVER_MCP_PROTOCOL_VERSION,
         capabilities: { tools: { listChanged: false }, resources: { subscribe: false, listChanged: false } },
-        serverInfo: { name: 'mrmic-observer-workspace', version: '0.15.2' },
-        instructions: 'Read only your authenticated observer snapshot and use observer.command for explicit private/shared workspace transitions.',
+        serverInfo: { name: 'mrmic-observer-workspace', version: '0.15.3' },
+        instructions: 'Read only your authenticated observer snapshot; nested subcanvas navigation is fail-closed against Canvas topology authority.',
       }), session.id)
       return true
     }
@@ -333,6 +379,13 @@ export class ObserverProtocolGateway {
             annotations: { readOnlyHint: true, destructiveHint: false },
           },
           {
+            name: 'observer.get_canvas_contexts',
+            title: 'Resolve nested observer canvas contexts',
+            description: 'Resolve root and nested Canvas contexts, active depth, independent foreground stacks and inherited effective visibility for one private view.',
+            inputSchema: { type: 'object', required: ['viewId'], properties: { viewId: { type: 'string' } }, additionalProperties: false },
+            annotations: { readOnlyHint: true, destructiveHint: false },
+          },
+          {
             name: 'observer.command',
             title: 'Apply observer workspace command',
             description: 'Apply one explicit observer-relative workspace transition under authenticated-principal authority.',
@@ -345,6 +398,9 @@ export class ObserverProtocolGateway {
           const name = text(params.name, 'params.name')
           const args = params.arguments === undefined ? {} : record(params.arguments, 'params.arguments')
           if (name === 'observer.get_snapshot') return rpcResult(id, toolEnvelope(true, this.#workspace.snapshotFor(principal)))
+          if (name === 'observer.get_canvas_contexts') {
+            return rpcResult(id, toolEnvelope(true, this.#workspace.getResolvedCanvasContexts(text(args.viewId, 'viewId'), principal)))
+          }
           if (name === 'observer.command') {
             try { return rpcResult(id, toolEnvelope(true, executeObserverProtocolCommand(this.#workspace, args.command, principal))) }
             catch (error) { return rpcResult(id, toolEnvelope(false, undefined, error instanceof Error ? error.message : String(error))) }
@@ -356,6 +412,7 @@ export class ObserverProtocolGateway {
         ] })
         case 'resources/templates/list': return rpcResult(id, { resourceTemplates: [
           { uriTemplate: 'mrmic://observer/rendezvous/{rendezvousId}', name: 'Visible observer rendezvous', mimeType: 'application/json', description: 'Read one rendezvous only when the authenticated principal is a member.' },
+          { uriTemplate: 'mrmic://observer/view/{viewId}/contexts', name: 'Observer nested canvas contexts', mimeType: 'application/json', description: 'Read effective visibility and layered foreground context only for the authenticated principal private view.' },
         ] })
         case 'resources/read': {
           const params = record(rpc.params, 'params')
@@ -363,11 +420,18 @@ export class ObserverProtocolGateway {
           if (uri === OBSERVER_SELF_RESOURCE_URI) {
             return rpcResult(id, { contents: [{ uri, mimeType: 'application/json', text: JSON.stringify(this.#workspace.snapshotFor(principal), null, 2) }] })
           }
-          const prefix = 'mrmic://observer/rendezvous/'
-          if (uri.startsWith(prefix)) {
-            const rendezvousId = decodeURIComponent(uri.slice(prefix.length))
+          const rendezvousPrefix = 'mrmic://observer/rendezvous/'
+          if (uri.startsWith(rendezvousPrefix)) {
+            const rendezvousId = decodeURIComponent(uri.slice(rendezvousPrefix.length))
             const room = this.#workspace.getRendezvous(rendezvousId, principal)
             return rpcResult(id, { contents: [{ uri, mimeType: 'application/json', text: JSON.stringify(room, null, 2) }] })
+          }
+          const viewPrefix = 'mrmic://observer/view/'
+          const viewSuffix = '/contexts'
+          if (uri.startsWith(viewPrefix) && uri.endsWith(viewSuffix)) {
+            const viewId = decodeURIComponent(uri.slice(viewPrefix.length, -viewSuffix.length))
+            const contexts = this.#workspace.getResolvedCanvasContexts(viewId, principal)
+            return rpcResult(id, { contents: [{ uri, mimeType: 'application/json', text: JSON.stringify({ viewId, contexts }, null, 2) }] })
           }
           return rpcError(id, -32602, `Observer resource not found: ${uri}`)
         }

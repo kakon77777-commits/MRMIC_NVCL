@@ -17,15 +17,60 @@
     "observerWorkspace"
   ],
   "properties": {
-    "schema": { "const": "mrmic-capabilities/v1" },
-    "mrmicVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
-    "canvasSchemaVersion": { "type": "string", "minLength": 1 },
-    "mcpProtocolProfile": { "type": "object", "required": ["protocolVersion", "profile"] },
-    "projectionModes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
-    "authModes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
-    "resourcePortal": { "type": "object", "required": ["supported", "schemaVersion"] },
-    "runtimePresence": { "type": "object", "required": ["supported", "schemaVersion", "durable"] },
-    "livePortalHost": { "type": "object", "required": ["supported", "stateVersion"] },
+    "schema": {
+      "const": "mrmic-capabilities/v1"
+    },
+    "mrmicVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "canvasSchemaVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mcpProtocolProfile": {
+      "type": "object",
+      "required": [
+        "protocolVersion",
+        "profile"
+      ]
+    },
+    "projectionModes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "authModes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "resourcePortal": {
+      "type": "object",
+      "required": [
+        "supported",
+        "schemaVersion"
+      ]
+    },
+    "runtimePresence": {
+      "type": "object",
+      "required": [
+        "supported",
+        "schemaVersion",
+        "durable"
+      ]
+    },
+    "livePortalHost": {
+      "type": "object",
+      "required": [
+        "supported",
+        "stateVersion"
+      ]
+    },
     "observerWorkspace": {
       "type": "object",
       "additionalProperties": false,
@@ -36,47 +81,123 @@
         "durableEventSchemaVersion",
         "durable",
         "authRequired",
+        "nestedCanvas",
         "http",
         "mcp",
         "referenceServer"
       ],
       "properties": {
-        "supported": { "const": true },
-        "viewSchemaVersion": { "const": "observer_view_v1" },
-        "rendezvousSchemaVersion": { "const": "shared_rendezvous_v1" },
-        "durableEventSchemaVersion": { "const": "observer_workspace_event_v1" },
-        "durable": { "const": true },
-        "authRequired": { "const": true },
+        "supported": {
+          "const": true
+        },
+        "viewSchemaVersion": {
+          "const": "observer_view_v1"
+        },
+        "rendezvousSchemaVersion": {
+          "const": "shared_rendezvous_v1"
+        },
+        "durableEventSchemaVersion": {
+          "const": "observer_workspace_event_v1"
+        },
+        "durable": {
+          "const": true
+        },
+        "authRequired": {
+          "const": true
+        },
+        "nestedCanvas": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "supported",
+            "contextSchemaVersion",
+            "visibilityModes",
+            "maxDepth",
+            "topologyAuthorityRequired"
+          ],
+          "properties": {
+            "supported": {
+              "const": true
+            },
+            "contextSchemaVersion": {
+              "const": "observer_nested_canvas_v1"
+            },
+            "visibilityModes": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "inherit",
+                  "hidden"
+                ]
+              }
+            },
+            "maxDepth": {
+              "const": 64
+            },
+            "topologyAuthorityRequired": {
+              "const": true
+            }
+          }
+        },
         "http": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["snapshotPath", "commandPath"],
+          "required": [
+            "snapshotPath",
+            "commandPath"
+          ],
           "properties": {
-            "snapshotPath": { "const": "/api/observer/snapshot" },
-            "commandPath": { "const": "/api/observer/command" }
+            "snapshotPath": {
+              "const": "/api/observer/snapshot"
+            },
+            "commandPath": {
+              "const": "/api/observer/command"
+            }
           }
         },
         "mcp": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["path", "selfResourceUri", "tools"],
+          "required": [
+            "path",
+            "selfResourceUri",
+            "tools"
+          ],
           "properties": {
-            "path": { "const": "/mcp/observer" },
-            "selfResourceUri": { "const": "mrmic://observer/self" },
+            "path": {
+              "const": "/mcp/observer"
+            },
+            "selfResourceUri": {
+              "const": "mrmic://observer/self"
+            },
             "tools": {
               "type": "array",
               "uniqueItems": true,
-              "items": { "enum": ["observer.get_snapshot", "observer.command"] }
+              "items": {
+                "enum": [
+                  "observer.get_snapshot",
+                  "observer.get_canvas_contexts",
+                  "observer.command"
+                ]
+              }
             }
           }
         },
         "referenceServer": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["command", "defaultPort"],
+          "required": [
+            "command",
+            "defaultPort"
+          ],
           "properties": {
-            "command": { "const": "npm run observer" },
-            "defaultPort": { "const": 4180 }
+            "command": {
+              "const": "npm run observer"
+            },
+            "defaultPort": {
+              "const": 4180
+            }
           }
         }
       }

@@ -3,7 +3,9 @@
   "$id": "https://evemisslab.com/mrmic/contracts/phase15/observer-protocol-command-v1.schema.json",
   "title": "MRMIC Observer Protocol Command v1",
   "type": "object",
-  "required": ["kind"],
+  "required": [
+    "kind"
+  ],
   "oneOf": [
     {
       "properties": {
@@ -26,8 +28,12 @@
     {
       "properties": {
         "kind": { "const": "set_foreground" },
-        "viewId": { "type": "string", "minLength": 1 },
-        "portalIds": { "type": "array", "items": { "type": "string", "minLength": 1 }, "maxItems": 128 }
+        "viewId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "portalIds": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "maxItems": 128
+        }
       },
       "required": ["kind", "viewId", "portalIds"],
       "additionalProperties": false
@@ -35,10 +41,61 @@
     {
       "properties": {
         "kind": { "const": "set_lifecycle" },
-        "viewId": { "type": "string", "minLength": 1 },
+        "viewId": { "type": "string", "minLength": 1, "maxLength": 256 },
         "lifecycle": { "enum": ["live", "warm", "frozen", "sleeping"] }
       },
       "required": ["kind", "viewId", "lifecycle"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
+        "kind": { "const": "enter_subcanvas" },
+        "viewId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "input": {
+          "type": "object",
+          "required": ["parentCanvasId", "childCanvasId", "portalObjectId"],
+          "properties": {
+            "parentCanvasId": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "childCanvasId": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "portalObjectId": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "visibility": { "enum": ["inherit", "hidden"] }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["kind", "viewId", "input"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
+        "kind": { "const": "leave_subcanvas" },
+        "viewId": { "type": "string", "minLength": 1, "maxLength": 256 }
+      },
+      "required": ["kind", "viewId"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
+        "kind": { "const": "set_nested_visibility" },
+        "viewId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "canvasId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "visibility": { "enum": ["inherit", "hidden"] }
+      },
+      "required": ["kind", "viewId", "canvasId", "visibility"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
+        "kind": { "const": "set_nested_foreground" },
+        "viewId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "canvasId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "portalIds": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "maxItems": 128
+        }
+      },
+      "required": ["kind", "viewId", "canvasId", "portalIds"],
       "additionalProperties": false
     },
     {
@@ -62,8 +119,8 @@
     {
       "properties": {
         "kind": { "const": "invite" },
-        "rendezvousId": { "type": "string", "minLength": 1 },
-        "invitedPrincipalId": { "type": "string", "minLength": 1 }
+        "rendezvousId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "invitedPrincipalId": { "type": "string", "minLength": 1, "maxLength": 256 }
       },
       "required": ["kind", "rendezvousId", "invitedPrincipalId"],
       "additionalProperties": false
@@ -71,7 +128,7 @@
     {
       "properties": {
         "kind": { "const": "join" },
-        "rendezvousId": { "type": "string", "minLength": 1 }
+        "rendezvousId": { "type": "string", "minLength": 1, "maxLength": 256 }
       },
       "required": ["kind", "rendezvousId"],
       "additionalProperties": false
@@ -79,14 +136,14 @@
     {
       "properties": {
         "kind": { "const": "project_portal" },
-        "rendezvousId": { "type": "string", "minLength": 1 },
+        "rendezvousId": { "type": "string", "minLength": 1, "maxLength": 256 },
         "input": {
           "type": "object",
           "required": ["projectionId", "sourceViewId", "portalId"],
           "properties": {
-            "projectionId": { "type": "string", "minLength": 1 },
-            "sourceViewId": { "type": "string", "minLength": 1 },
-            "portalId": { "type": "string", "minLength": 1 },
+            "projectionId": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "sourceViewId": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "portalId": { "type": "string", "minLength": 1, "maxLength": 256 },
             "interaction": { "enum": ["inspect", "interact"] }
           },
           "additionalProperties": false
@@ -98,8 +155,8 @@
     {
       "properties": {
         "kind": { "const": "remove_projection" },
-        "rendezvousId": { "type": "string", "minLength": 1 },
-        "projectionId": { "type": "string", "minLength": 1 }
+        "rendezvousId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "projectionId": { "type": "string", "minLength": 1, "maxLength": 256 }
       },
       "required": ["kind", "rendezvousId", "projectionId"],
       "additionalProperties": false
@@ -107,7 +164,7 @@
     {
       "properties": {
         "kind": { "const": "close_rendezvous" },
-        "rendezvousId": { "type": "string", "minLength": 1 }
+        "rendezvousId": { "type": "string", "minLength": 1, "maxLength": 256 }
       },
       "required": ["kind", "rendezvousId"],
       "additionalProperties": false

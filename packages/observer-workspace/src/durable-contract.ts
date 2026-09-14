@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto'
 import type { AuthenticatedPrincipal, PrincipalRole } from '../../identity-auth/src/index.js'
 import type {
   CreateObserverViewInput,
+  EnterObserverSubcanvasInput,
+  ObserverNestedVisibility,
   ObserverView,
   ObserverViewLifecycle,
   OpenRendezvousInput,
@@ -13,6 +15,10 @@ export type DurableObserverEventType =
   | 'view_created'
   | 'view_foreground_set'
   | 'view_lifecycle_set'
+  | 'view_subcanvas_entered'
+  | 'view_subcanvas_left'
+  | 'view_nested_visibility_set'
+  | 'view_nested_foreground_set'
   | 'rendezvous_opened'
   | 'rendezvous_invited'
   | 'rendezvous_joined'
@@ -36,6 +42,10 @@ export type DurableObserverCommand =
   | { kind: 'create_view'; input: CreateObserverViewInput }
   | { kind: 'set_foreground'; viewId: string; portalIds: string[] }
   | { kind: 'set_lifecycle'; viewId: string; lifecycle: ObserverViewLifecycle }
+  | { kind: 'enter_subcanvas'; viewId: string; input: EnterObserverSubcanvasInput }
+  | { kind: 'leave_subcanvas'; viewId: string }
+  | { kind: 'set_nested_visibility'; viewId: string; canvasId: string; visibility: ObserverNestedVisibility }
+  | { kind: 'set_nested_foreground'; viewId: string; canvasId: string; portalIds: string[] }
   | { kind: 'open_rendezvous'; input: OpenRendezvousInput }
   | { kind: 'invite'; rendezvousId: string; invitedPrincipalId: string }
   | { kind: 'join'; rendezvousId: string }
@@ -171,6 +181,10 @@ export function validateDurableObserverEvent(value: unknown): DurableObserverWor
     'view_created',
     'view_foreground_set',
     'view_lifecycle_set',
+    'view_subcanvas_entered',
+    'view_subcanvas_left',
+    'view_nested_visibility_set',
+    'view_nested_foreground_set',
     'rendezvous_opened',
     'rendezvous_invited',
     'rendezvous_joined',
@@ -187,6 +201,10 @@ export function validateDurableObserverEvent(value: unknown): DurableObserverWor
     view_created: 'create_view',
     view_foreground_set: 'set_foreground',
     view_lifecycle_set: 'set_lifecycle',
+    view_subcanvas_entered: 'enter_subcanvas',
+    view_subcanvas_left: 'leave_subcanvas',
+    view_nested_visibility_set: 'set_nested_visibility',
+    view_nested_foreground_set: 'set_nested_foreground',
     rendezvous_opened: 'open_rendezvous',
     rendezvous_invited: 'invite',
     rendezvous_joined: 'join',
@@ -195,7 +213,15 @@ export function validateDurableObserverEvent(value: unknown): DurableObserverWor
     rendezvous_closed: 'close_rendezvous',
   }
   if (command.kind !== expectedCommandKind[eventType]) throw new Error('durable observer event type does not match command')
-  const viewEvent = eventType === 'view_created' || eventType === 'view_foreground_set' || eventType === 'view_lifecycle_set'
+  const viewEvent = [
+    'view_created',
+    'view_foreground_set',
+    'view_lifecycle_set',
+    'view_subcanvas_entered',
+    'view_subcanvas_left',
+    'view_nested_visibility_set',
+    'view_nested_foreground_set',
+  ].includes(eventType)
   if ((input.entityKind === 'observer_view') !== viewEvent) throw new Error('durable observer entity kind does not match event type')
   const event: DurableObserverWorkspaceEvent = {
     schema: 'observer_workspace_event_v1',

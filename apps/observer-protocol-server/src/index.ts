@@ -3,12 +3,14 @@ import { resolve } from 'node:path'
 import { createIdentityResolverFromEnv } from '../../../packages/identity-auth/src/index.js'
 import { DurableObserverWorkspaceRegistry } from '../../../packages/observer-workspace/src/durable-registry.js'
 import { SqliteObserverWorkspaceEventStore } from '../../../packages/observer-workspace/src/durable-store.js'
+import type { ObserverCanvasTopologyResolver } from '../../../packages/observer-workspace/src/topology.js'
 import { ObserverProtocolGateway } from '../../../packages/observer-protocol/src/index.js'
 
 export interface ObserverProtocolServerOptions {
   host?: string
   port?: number
   databasePath?: string
+  topology?: ObserverCanvasTopologyResolver
 }
 
 export function createObserverProtocolServer(options: ObserverProtocolServerOptions = {}) {
@@ -16,7 +18,7 @@ export function createObserverProtocolServer(options: ObserverProtocolServerOpti
   if (!identityResolver) throw new Error('MRMIC_PMW_BINDINGS_JSON is required for the observer protocol server')
   const databasePath = options.databasePath ?? process.env.MRMIC_OBSERVER_DATABASE_PATH ?? resolve(process.cwd(), 'data/observer-workspace.sqlite')
   const store = new SqliteObserverWorkspaceEventStore(databasePath)
-  const workspace = new DurableObserverWorkspaceRegistry(store)
+  const workspace = new DurableObserverWorkspaceRegistry(store, undefined, options.topology)
   const gateway = new ObserverProtocolGateway({ workspace, identityResolver })
   const host = options.host ?? '127.0.0.1'
   const port = options.port ?? Number(process.env.MRMIC_OBSERVER_PORT ?? 4180)

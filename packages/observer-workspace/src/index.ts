@@ -1,14 +1,44 @@
 import type { AuthenticatedPrincipal } from '../../identity-auth/src/index.js'
+import type { ObserverCanvasTopologyResolver } from './topology.js'
 
 export type ObserverViewLifecycle = 'live' | 'warm' | 'frozen' | 'sleeping'
 export type RendezvousState = 'active' | 'closed'
 export type SharedProjectionInteraction = 'inspect' | 'interact'
+export type ObserverNestedVisibility = 'inherit' | 'hidden'
 
 export interface CreateObserverViewInput {
   viewId: string
   worldId: string
   canvasId: string
   label?: string
+}
+
+export interface ObserverNestedCanvasContext {
+  schema: 'observer_nested_canvas_v1'
+  parentCanvasId: string
+  canvasId: string
+  portalObjectId: string
+  visibility: ObserverNestedVisibility
+  foregroundPortalIds: string[]
+  enteredAt: string
+}
+
+export interface ObserverResolvedCanvasContext {
+  canvasId: string
+  parentCanvasId?: string
+  portalObjectId?: string
+  depth: number
+  visibility: 'root' | ObserverNestedVisibility
+  effectiveVisible: boolean
+  active: boolean
+  foregroundPortalIds: string[]
+}
+
+export interface EnterObserverSubcanvasInput {
+  parentCanvasId: string
+  childCanvasId: string
+  portalObjectId: string
+  visibility?: ObserverNestedVisibility
 }
 
 export interface ObserverView {
@@ -21,6 +51,7 @@ export interface ObserverView {
   observerSemanticAgentId?: string
   lifecycle: ObserverViewLifecycle
   foregroundPortalIds: string[]
+  nestedCanvasContexts?: ObserverNestedCanvasContext[]
   revision: number
   createdAt: string
   updatedAt: string
@@ -112,13 +143,55 @@ function clone<T>(value: T): T {
   return structuredClone(value)
 }
 
+function nestedContexts(view: ObserverView): ObserverNestedCanvasContext[] {
+  return view.nestedCanvasContexts ? clone(view.nestedCanvasContexts) : []
+}
+
+export function activeObserverCanvasId(view: ObserverView): string {
+  const contexts = view.nestedCanvasContexts ?? []
+  return contexts.at(-1)?.canvasId ?? view.canvasId
+}
+
+export function resolveObserverCanvasContexts(view: ObserverView): ObserverResolvedCanvasContext[] {
+  const nested = view.nestedCanvasContexts ?? []
+  const result: ObserverResolvedCanvasContext[] = [{
+    canvasId: view.canvasId,
+    depth: 0,
+    visibility: 'root',
+    effectiveVisible: true,
+    active: nested.length === 0,
+    foregroundPortalIds: [...view.foregroundPortalIds],
+  }]
+  let parentVisible = true
+  for (const [index, context] of nested.entries()) {
+    const effectiveVisible: boolean = parentVisible && context.visibility !== 'hidden'
+    result.push({
+      canvasId: context.canvasId,
+      parentCanvasId: context.parentCanvasId,
+      portalObjectId: context.portalObjectId,
+      depth: index + 1,
+      visibility: context.visibility,
+      effectiveVisible,
+      active: index === nested.length - 1,
+      foregroundPortalIds: [...context.foregroundPortalIds],
+    })
+    parentVisible = effectiveVisible
+  }
+  return result
+}
+
 export class ObserverWorkspaceRegistry {
   readonly #views = new Map<string, ObserverView>()
   readonly #rendezvous = new Map<string, RendezvousRoom>()
   readonly #now: () => string
+  readonly #topology?: ObserverCanvasTopologyResolver
 
-  constructor(now: () => string = () => new Date().toISOString()) {
+  constructor(
+    now: () => string = () => new Date().toISOString(),
+    topology?: ObserverCanvasTopologyResolver,
+  ) {
     this.#now = now
+    this.#topology = topology
   }
 
   createPrivateView(input: CreateObserverViewInput, principal: AuthenticatedPrincipal): ObserverView {
@@ -149,6 +222,10 @@ export class ObserverWorkspaceRegistry {
     return clone(view)
   }
 
+  getResolvedCanvasContexts(viewId: string, principal: AuthenticatedPrincipal): ObserverResolvedCanvasContext[] {
+    return resolveObserverCanvasContexts(this.#requireOwnedView(viewId, principal))
+  }
+
   setForegroundStack(viewId: string, portalIds: string[], principal: AuthenticatedPrincipal): ObserverView {
     requireMutationPrincipal(principal)
     const view = this.#requireOwnedView(viewId, principal)
@@ -164,6 +241,100 @@ export class ObserverWorkspaceRegistry {
     if (!['live', 'warm', 'frozen', 'sleeping'].includes(lifecycle)) throw new Error('invalid observer view lifecycle')
     const view = this.#requireOwnedView(viewId, principal)
     const next = this.#touchView(view, { lifecycle })
+    this.#views.set(next.viewId, clone(next))
+    return clone(next)
+  }
+
+  enterSubcanvas(viewId: string, input: EnterObserverSubcanvasInput, principal: AuthenticatedPrincipal): ObserverView {
+    requireMutationPrincipal(principal)
+    const view = this.#requireOwnedView(viewId, principal)
+    if (!this.#topology) throw new Error('observer subcanvas topology authority is not configured')
+    const parentCanvasId = required(input.parentCanvasId, 'parentCanvasId')
+    const childCanvasId = required(input.childCanvasId, 'childCanvasId')
+    const portalObjectId = required(input.portalObjectId, 'portalObjectId')
+    const expectedParent = activeObserverCanvasId(view)
+    if (parentCanvasId !== expectedParent) {
+      throw new Error(`observer subcanvas parent must be active canvas ${expectedParent}`)
+    }
+    const contexts = nestedContexts(view)
+    if (contexts.length >= 64) throw new Error('observer nested canvas depth exceeds 64')
+    const visited = new Set([view.canvasId, ...contexts.map(context => context.canvasId)])
+    if (visited.has(childCanvasId)) throw new Error('observer subcanvas lineage cannot contain a cycle')
+    const resolved = this.#topology.resolveSubcanvasLink({ parentCanvasId, childCanvasId, portalObjectId })
+    if (!resolved) throw new Error('observer subcanvas link is not authorized by Canvas topology')
+    if (
+      resolved.parentCanvasId !== parentCanvasId
+      || resolved.childCanvasId !== childCanvasId
+      || resolved.portalObjectId !== portalObjectId
+    ) throw new Error('Canvas topology resolver returned a mismatched subcanvas link')
+    const visibility = input.visibility ?? 'inherit'
+    if (visibility !== 'inherit' && visibility !== 'hidden') throw new Error('invalid observer nested visibility')
+    const timestamp = this.#now()
+    contexts.push({
+      schema: 'observer_nested_canvas_v1',
+      parentCanvasId,
+      canvasId: childCanvasId,
+      portalObjectId,
+      visibility,
+      foregroundPortalIds: [],
+      enteredAt: timestamp,
+    })
+    const next = this.#touchViewAt(view, { nestedCanvasContexts: contexts }, timestamp)
+    this.#views.set(next.viewId, clone(next))
+    return clone(next)
+  }
+
+  leaveSubcanvas(viewId: string, principal: AuthenticatedPrincipal): ObserverView {
+    requireMutationPrincipal(principal)
+    const view = this.#requireOwnedView(viewId, principal)
+    const contexts = nestedContexts(view)
+    if (!contexts.length) throw new Error('observer view is already at its root canvas')
+    contexts.pop()
+    const next = this.#touchView(view, { nestedCanvasContexts: contexts })
+    this.#views.set(next.viewId, clone(next))
+    return clone(next)
+  }
+
+  setNestedVisibility(
+    viewId: string,
+    canvasId: string,
+    visibility: ObserverNestedVisibility,
+    principal: AuthenticatedPrincipal,
+  ): ObserverView {
+    requireMutationPrincipal(principal)
+    if (visibility !== 'inherit' && visibility !== 'hidden') throw new Error('invalid observer nested visibility')
+    const view = this.#requireOwnedView(viewId, principal)
+    const target = required(canvasId, 'canvasId')
+    const contexts = nestedContexts(view)
+    const index = contexts.findIndex(context => context.canvasId === target)
+    if (index < 0) throw new Error(`observer nested canvas ${target} not found`)
+    const current = contexts[index]
+    if (!current) throw new Error(`observer nested canvas ${target} not found`)
+    contexts[index] = { ...current, visibility }
+    const next = this.#touchView(view, { nestedCanvasContexts: contexts })
+    this.#views.set(next.viewId, clone(next))
+    return clone(next)
+  }
+
+  setNestedForegroundStack(
+    viewId: string,
+    canvasId: string,
+    portalIds: string[],
+    principal: AuthenticatedPrincipal,
+  ): ObserverView {
+    requireMutationPrincipal(principal)
+    const view = this.#requireOwnedView(viewId, principal)
+    const target = required(canvasId, 'canvasId')
+    const contexts = nestedContexts(view)
+    const index = contexts.findIndex(context => context.canvasId === target)
+    if (index < 0) throw new Error(`observer nested canvas ${target} not found`)
+    const current = contexts[index]
+    if (!current) throw new Error(`observer nested canvas ${target} not found`)
+    contexts[index] = {
+      ...current,
+      foregroundPortalIds: uniqueRequiredStrings(portalIds, 'portalIds'),
+    }
+    const next = this.#touchView(view, { nestedCanvasContexts: contexts })
     this.#views.set(next.viewId, clone(next))
     return clone(next)
   }
@@ -309,12 +480,23 @@ export class ObserverWorkspaceRegistry {
     if (room.state !== 'active') throw new Error('rendezvous is closed')
   }
 
-  #touchView(view: ObserverView, changes: Partial<Pick<ObserverView, 'foregroundPortalIds' | 'lifecycle'>>): ObserverView {
+  #touchView(
+    view: ObserverView,
+    changes: Partial<Pick<ObserverView, 'foregroundPortalIds' | 'lifecycle' | 'nestedCanvasContexts'>>,
+  ): ObserverView {
+    return this.#touchViewAt(view, changes, this.#now())
+  }
+
+  #touchViewAt(
+    view: ObserverView,
+    changes: Partial<Pick<ObserverView, 'foregroundPortalIds' | 'lifecycle' | 'nestedCanvasContexts'>>,
+    timestamp: string,
+  ): ObserverView {
     return {
       ...clone(view),
       ...clone(changes),
       revision: view.revision + 1,
-      updatedAt: this.#now(),
+      updatedAt: timestamp,
     }
   }
 

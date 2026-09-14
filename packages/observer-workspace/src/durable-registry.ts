@@ -2,6 +2,9 @@ import type { AuthenticatedPrincipal } from '../../identity-auth/src/index.js'
 import {
   ObserverWorkspaceRegistry,
   type CreateObserverViewInput,
+  type EnterObserverSubcanvasInput,
+  type ObserverNestedVisibility,
+  type ObserverResolvedCanvasContext,
   type ObserverSnapshot,
   type ObserverView,
   type ObserverViewLifecycle,
@@ -9,6 +12,7 @@ import {
   type RendezvousRoom,
   type SharedProjectionInteraction,
 } from './index.js'
+import type { ObserverCanvasTopologyResolver } from './topology.js'
 import {
   canonicalJson,
   clone,
@@ -96,6 +100,18 @@ function applyEvent(
     case 'set_lifecycle':
       result = registry.setViewLifecycle(command.viewId, command.lifecycle, principal)
       break
+    case 'enter_subcanvas':
+      result = registry.enterSubcanvas(command.viewId, command.input, principal)
+      break
+    case 'leave_subcanvas':
+      result = registry.leaveSubcanvas(command.viewId, principal)
+      break
+    case 'set_nested_visibility':
+      result = registry.setNestedVisibility(command.viewId, command.canvasId, command.visibility, principal)
+      break
+    case 'set_nested_foreground':
+      result = registry.setNestedForegroundStack(command.viewId, command.canvasId, command.portalIds, principal)
+      break
     case 'open_rendezvous':
       result = registry.openRendezvous(command.input, principal)
       break
@@ -125,14 +141,17 @@ function applyEvent(
 export class DurableObserverWorkspaceRegistry {
   readonly #store: DurableObserverWorkspaceEventStore
   readonly #now: () => string
+  readonly #topology?: ObserverCanvasTopologyResolver
   #registry: ObserverWorkspaceRegistry
 
   constructor(
     store: DurableObserverWorkspaceEventStore,
     now: () => string = () => new Date().toISOString(),
+    topology?: ObserverCanvasTopologyResolver,
   ) {
     this.#store = store
     this.#now = now
+    this.#topology = topology
     this.#registry = this.#recover()
   }
 
@@ -156,6 +175,10 @@ export class DurableObserverWorkspaceRegistry {
     return this.#registry.getPrivateView(viewId, principal)
   }
 
+  getResolvedCanvasContexts(viewId: string, principal: AuthenticatedPrincipal): ObserverResolvedCanvasContext[] {
+    return this.#registry.getResolvedCanvasContexts(viewId, principal)
+  }
+
   setForegroundStack(viewId: string, portalIds: string[], principal: AuthenticatedPrincipal): ObserverView {
     const result = this.#registry.setForegroundStack(viewId, portalIds, principal)
     return this.#persist(
@@ -175,6 +198,78 @@ export class DurableObserverWorkspaceRegistry {
       result,
       principal,
       { kind: 'set_lifecycle', viewId: result.viewId, lifecycle: result.lifecycle },
+    ) as ObserverView
+  }
+
+  enterSubcanvas(viewId: string, input: EnterObserverSubcanvasInput, principal: AuthenticatedPrincipal): ObserverView {
+    const result = this.#registry.enterSubcanvas(viewId, input, principal)
+    const context = result.nestedCanvasContexts?.at(-1)
+    if (!context) throw new Error('entered subcanvas is missing from observer view state')
+    return this.#persist(
+      'view_subcanvas_entered',
+      'observer_view',
+      result,
+      principal,
+      {
+        kind: 'enter_subcanvas',
+        viewId: result.viewId,
+        input: {
+          parentCanvasId: context.parentCanvasId,
+          childCanvasId: context.canvasId,
+          portalObjectId: context.portalObjectId,
+          visibility: context.visibility,
+        },
+      },
+    ) as ObserverView
+  }
+
+  leaveSubcanvas(viewId: string, principal: AuthenticatedPrincipal): ObserverView {
+    const result = this.#registry.leaveSubcanvas(viewId, principal)
+    return this.#persist(
+      'view_subcanvas_left',
+      'observer_view',
+      result,
+      principal,
+      { kind: 'leave_subcanvas', viewId: result.viewId },
+    ) as ObserverView
+  }
+
+  setNestedVisibility(
+    viewId: string,
+    canvasId: string,
+    visibility: ObserverNestedVisibility,
+    principal: AuthenticatedPrincipal,
+  ): ObserverView {
+    const result = this.#registry.setNestedVisibility(viewId, canvasId, visibility, principal)
+    return this.#persist(
+      'view_nested_visibility_set',
+      'observer_view',
+      result,
+      principal,
+      { kind: 'set_nested_visibility', viewId: result.viewId, canvasId: canvasId.trim(), visibility },
+    ) as ObserverView
+  }
+
+  setNestedForegroundStack(
+    viewId: string,
+    canvasId: string,
+    portalIds: string[],
+    principal: AuthenticatedPrincipal,
+  ): ObserverView {
+    const result = this.#registry.setNestedForegroundStack(viewId, canvasId, portalIds, principal)
+    const context = result.nestedCanvasContexts?.find(item => item.canvasId === canvasId.trim())
+    if (!context) throw new Error('nested foreground target is missing from observer view state')
+    return this.#persist(
+      'view_nested_foreground_set',
+      'observer_view',
+      result,
+      principal,
+      {
+        kind: 'set_nested_foreground',
+        viewId: result.viewId,
+        canvasId: context.canvasId,
+        portalIds: [...context.foregroundPortalIds],
+      },
     ) as ObserverView
   }
 
@@ -314,7 +409,7 @@ export class DurableObserverWorkspaceRegistry {
 
   #recover(): ObserverWorkspaceRegistry {
     const clock = new ReplayClock(this.#now)
-    const registry = new ObserverWorkspaceRegistry(clock.now)
+    const registry = new ObserverWorkspaceRegistry(clock.now, this.#topology)
     const events = this.#store.listObserverWorkspaceEvents().map(validateDurableObserverEvent)
     const lastRevision = new Map<string, number>()
     const seenEventIds = new Set<string>()

@@ -1,10 +1,10 @@
 # Phase 15 - Observer-Relative Workspace
 
-Status: 15.2 authenticated durable re-entry baseline.
+Status: 15.3 topology-authorized nested observer baseline.
 
 Phase 15 adds an observer-relative coordination layer above the existing Canvas, identity, resource portal, recursive Canvas, runtime-presence and durable-event authorities.
 
-The phase does not replace Windows, provider runtimes, or existing portal ownership. It defines how authenticated human and AI principals can keep private views of one shared world, selectively converge on a shared rendezvous Canvas, recover that coordination state across process/conversation boundaries, and safely re-enter it through authenticated HTTP/MCP surfaces.
+The phase does not replace Windows, provider runtimes, or existing portal ownership. It defines how authenticated human and AI principals can keep private views of one shared world, selectively converge on a shared rendezvous Canvas, recover that coordination state across process/conversation boundaries, safely re-enter it through authenticated HTTP/MCP surfaces, and navigate existing recursive Canvas topology without creating a second competing world tree.
 
 ## Delivered in 15.0
 
@@ -40,10 +40,27 @@ The phase does not replace Windows, provider runtimes, or existing portal owners
 - Network E2E closes the loop: authenticated HTTP creates/reads a view, then a fresh MCP session reads the same principal-filtered durable world.
 - ADR-014 records protocol, privacy and deployment boundaries.
 
-## Explicit non-goals through 15.2
+## Delivered in 15.3
+
+- `observer_nested_canvas_v1`: optional nested context stack inside an existing private observer view.
+- Nested contexts reference existing Canvas topology by `parentCanvasId + childCanvasId + portalObjectId`; they do not create a second topology.
+- `CanvasAuthorityTopologyResolver` validates both directions of the existing recursive Canvas relation: the child document must point to the parent/portal and the parent `subcanvas` object must point to the child.
+- Nested navigation fails closed when topology authority is absent, mismatched, skipped or cyclic.
+- Each nested context has an independent `foregroundPortalIds` stack while the root view keeps its existing foreground stack.
+- Visibility is intentionally restrictive: nested contexts support only `inherit` and `hidden`; effective visibility is monotonic downward, so a hidden ancestor cannot be bypassed by a descendant.
+- Maximum observer nesting depth is 64.
+- Durable events add enter/leave, nested visibility and nested foreground transitions; deterministic replay requires the same topology authority for histories containing nested navigation.
+- Observer MCP adds `observer.get_canvas_contexts` and `mrmic://observer/view/{viewId}/contexts` for principal-filtered resolved context/visibility reads.
+- The standalone observer reference server accepts an injected topology resolver for integration tests and future unified runtime composition. With no resolver it remains root-only for nested navigation.
+- Capability discovery advertises nested context schema, visibility modes, maximum depth and `topologyAuthorityRequired=true`.
+- ADR-015 records the single-topology and visibility-inheritance boundary.
+
+## Explicit non-goals through 15.3
 
 - Windows Graphics Capture, UI Automation, virtual desktops, remote sessions, or GPU transport.
 - Treating recovered `live` lifecycle intent as proof that a provider process is alive.
+- Letting observer state create, rewrite or own canonical Canvas parent/child topology.
+- Allowing a child context to broaden visibility beyond a hidden ancestor.
 - A new resource ownership system.
 - Bypassing Phase 13 `controlOwner`, provider authorization, or secure-mode principal checks.
 - Public unauthenticated access to raw private observer event history.
@@ -52,8 +69,7 @@ The phase does not replace Windows, provider runtimes, or existing portal owners
 
 ## Next implementation slices
 
-1. Add nested observer subcanvas projection and visibility inheritance.
-2. Add provider adapters for Windows application capture and structured control.
-3. Add lifecycle scheduling so inactive AI views can become warm/frozen/sleeping without destroying provider resources.
-4. Add a unified routing/front-door option after the independent authorities are stable.
-5. Add HDUS bridge contracts only after MRMIC semantics are stable.
+1. Add provider adapters for Windows application capture and structured control.
+2. Add lifecycle scheduling so inactive AI views can become warm/frozen/sleeping without destroying provider resources.
+3. Add a unified routing/front-door option after the independent authorities are stable.
+4. Add HDUS bridge contracts only after MRMIC semantics are stable.
