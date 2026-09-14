@@ -2,10 +2,13 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
-test('Phase 15.7 native helper keeps WGC callback bounded and moves readback into a transport worker', async () => {
+test('Phase 15.8 keeps WGC callback bounded and projects transported frames through ephemeral observer-gated render copies', async () => {
   const manager = await readFile('native/windows-bridge-csharp/CaptureSessionManager.cs', 'utf8')
   const transport = await readFile('native/windows-bridge-csharp/BoundedPngFrameTransport.cs', 'utf8')
   const program = await readFile('native/windows-bridge-csharp/Program.cs', 'utf8')
+  const visual = await readFile('packages/portal-overlay/src/visual.ts', 'utf8')
+  const windowsHost = await readFile('packages/provider-windows/src/visual-host.ts', 'utf8')
+  const observerGate = await readFile('packages/observer-workspace/src/projection.ts', 'utf8')
 
   for (const token of [
     'IGraphicsCaptureItemInterop',
@@ -37,7 +40,16 @@ test('Phase 15.7 native helper keeps WGC callback bounded and moves readback int
   assert.ok(program.includes('case "capture.snapshot"'))
   assert.ok(program.includes('frameTransportSupported = true'))
   assert.ok(program.includes('frameTransport = BoundedPngFrameTransport.TransportName'))
-  assert.ok(program.includes('supported = false'), 'portal-level capture must remain unclaimed in Phase 15.7')
+  assert.ok(program.includes('supported = true'), 'Phase 15.8 must advertise snapshot-backed portal capture support')
+
+  for (const token of ['snapshotPortalVisualFrame', 'projectPortalVisualFrame', 'livePortalVisualFrameDataUri']) {
+    assert.ok(visual.includes(token), `missing portal visual projection primitive: ${token}`)
+  }
+  assert.ok(windowsHost.includes('class WindowsSnapshotLivePortalHost'))
+  assert.ok(windowsHost.includes('snapshotCapture'))
+  assert.ok(observerGate.includes('observerAllowsPortalVisual'))
+  assert.ok(observerGate.includes('room.projections.some'))
+  assert.ok(observerGate.includes('active.foregroundPortalIds.includes'))
 
   const callbackStart = manager.indexOf('private void OnFrameArrived')
   const callbackEnd = manager.indexOf('private async Task RecreateAfterDrainAsync', callbackStart)
@@ -47,7 +59,7 @@ test('Phase 15.7 native helper keeps WGC callback bounded and moves readback int
   assert.ok(!callback.includes('BitmapEncoder'), 'FrameArrived must not encode PNG bytes')
 })
 
-test('Phase 15.7 Windows project targets current SDK while retaining Win10 1903 minimum support', async () => {
+test('Phase 15.8 Windows project targets current SDK while retaining Win10 1903 minimum support', async () => {
   const project = await readFile('native/windows-bridge-csharp/MRMIC.WindowsBridge.csproj', 'utf8')
   assert.ok(project.includes('<TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>'))
   assert.ok(project.includes('<SupportedOSPlatformVersion>10.0.18362.0</SupportedOSPlatformVersion>'))

@@ -41,11 +41,11 @@ export interface MrmicCapabilitiesV1 {
       protocolVersion: 'mrmic-windows-native-bridge/v1'
       referenceImplementation: true
       referenceProject: 'native/windows-bridge-csharp'
-      scope: 'wgc_bounded_snapshot_transport'
+      scope: 'observer_gated_snapshot_portal'
       discoveryImplemented: true
       captureSessionImplemented: true
       frameTransportImplemented: true
-      captureImplemented: false
+      captureImplemented: true
       automationImplemented: false
     }
     capture: {
@@ -54,6 +54,9 @@ export interface MrmicCapabilitiesV1 {
       minimumBuild: 18362
       sessionLifecycleSupported: true
       frameTransport: 'png_base64_snapshot_v1'
+      portalProjection: 'ephemeral_render_copy_v1'
+      observerGated: true
+      canonicalPixelsDurable: false
       maxActiveMounts: 4
       frameQueueCapacity: 2
       maxSnapshotPixels: 8294400
@@ -79,6 +82,7 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
     'observer_relative_view_v1',
     'observer_nested_canvas_v1',
     'windows_desktop_window_v1',
+    'windows_snapshot_portal_v1',
   ],
   authModes: ['legacy_local', 'bearer_principal_v1'],
   resourcePortal: { supported: true, schemaVersion: 'native_resource_portal_v1' },
@@ -119,11 +123,11 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
       protocolVersion: 'mrmic-windows-native-bridge/v1',
       referenceImplementation: true,
       referenceProject: 'native/windows-bridge-csharp',
-      scope: 'wgc_bounded_snapshot_transport',
+      scope: 'observer_gated_snapshot_portal',
       discoveryImplemented: true,
       captureSessionImplemented: true,
       frameTransportImplemented: true,
-      captureImplemented: false,
+      captureImplemented: true,
       automationImplemented: false,
     },
     capture: {
@@ -132,6 +136,9 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
       minimumBuild: 18362,
       sessionLifecycleSupported: true,
       frameTransport: 'png_base64_snapshot_v1',
+      portalProjection: 'ephemeral_render_copy_v1',
+      observerGated: true,
+      canonicalPixelsDurable: false as const,
       maxActiveMounts: 4,
       frameQueueCapacity: 2,
       maxSnapshotPixels: 8294400,

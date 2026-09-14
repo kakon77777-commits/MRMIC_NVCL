@@ -1,8 +1,8 @@
-# MRMIC Windows Native Bridge — Phase 15.7 Bounded Snapshot Transport
+# MRMIC Windows Native Bridge — Phase 15.8 Snapshot-Backed Portal Integration
 
 This Windows-only helper is the reference native process behind the `WindowsNativeBridge` boundary.
 
-Phase 15.5 established Win32/DWM window discovery. Phase 15.6 added HWND-bound Windows Graphics Capture sessions. Phase 15.7 adds the first bounded frame transport across the native-process boundary while deliberately stopping before Canvas portal rendering.
+Phase 15.5 established Win32/DWM window discovery. Phase 15.6 added HWND-bound Windows Graphics Capture sessions. Phase 15.7 added bounded PNG snapshot transport. Phase 15.8 keeps the helper provider-owned while the MRMIC TypeScript layer projects those snapshots into observer-authorized ephemeral resource-portal render copies.
 
 ## Implemented native surface
 
@@ -49,12 +49,31 @@ If the queue is saturated, older pending frames are disposed and dropped. This t
 
 On a WGC content-size change, new frames are temporarily dropped, pending transport frames are drained, and only then is `Direct3D11CaptureFramePool.Recreate` called.
 
-## Capability boundary
+## Phase 15.8 portal boundary
 
-Phase 15.7 reports:
+The native helper now reports `capture.supported=true` because the reference MRMIC stack has an actual bounded projection path for its snapshots.
+
+That projection path remains outside the helper:
 
 ```text
-capture.supported = false
+windows_capture_snapshot_v1
+  -> WindowsSnapshotLivePortalHost
+  -> live_portal_visual_frame_v1
+  -> observer gate
+  -> ephemeral Canvas render copy
+  -> existing resource_portal SVG/image rendering
+```
+
+The helper does **not** know observer identities, private views, rendezvous membership, Canvas object durability or `controlOwner`.
+
+MRMIC performs observer authorization before provider snapshot I/O. The provider visual frame is then checked against canonical `portalObjectId + provider + providerResourceId`. Only an ephemeral clone receives the `data:image/png;base64,...` preview; canonical Canvas state retains the provider URI and stores no pixels.
+
+## Capability boundary
+
+Phase 15.8 native capabilities report:
+
+```text
+capture.supported = true
 capture.sessionLifecycleSupported = true
 capture.frameTransportSupported = true
 capture.frameTransport = png_base64_snapshot_v1
@@ -65,7 +84,7 @@ capture.maxSnapshotBytes = 16777216
 automation.supported = false
 ```
 
-`capture.supported=false` is intentional. Pixels can now cross the native helper boundary, but the reference transport is not yet wired into MRMIC Canvas/live portal rendering.
+`capture.supported=true` means snapshot-backed resource-portal rendering exists in the reference MRMIC stack. It does not mean high-FPS live streaming, zero-copy compositor integration or UI Automation is complete.
 
 ## JSONL protocol
 
@@ -114,6 +133,8 @@ The repository keeps portable Node/TypeScript validation and Windows-native vali
 
 Windows CI builds the CsWinRT helper and launches the resulting process for real `capabilities` and `window.enumerate` JSONL smoke requests. Hosted CI is not treated as authoritative interactive-desktop WGC capture E2E evidence.
 
+Portable tests exercise observer-gated private/shared projection and verify that denied views do not trigger provider snapshot I/O.
+
 ## Security and authority boundary
 
 The helper does not:
@@ -124,6 +145,7 @@ The helper does not:
 - own MRMIC observer identity, Canvas topology or `controlOwner`;
 - persist HWND/capture identity across provider restart;
 - retain an unbounded frame history;
-- claim completed Canvas rendering.
+- decide which observer or rendezvous may see a frame;
+- persist frame bytes into canonical Canvas state.
 
 Stdout is protocol-only. Diagnostics belong on stderr so malformed stdout remains a fail-closed contract violation.

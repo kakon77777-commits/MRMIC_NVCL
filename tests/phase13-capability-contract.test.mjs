@@ -22,7 +22,7 @@ test('HTTP and MCP expose one versioned provider-neutral capability document', a
   }
 })
 
-test('capability schema advertises observer re-entry and bounded Windows WGC snapshot transport', async () => {
+test('capability schema advertises observer-gated Windows snapshot portal projection', async () => {
   const schema = JSON.parse(await readFile('contracts/phase13/mrmic-capabilities-v1.schema.json', 'utf8'))
   assert.equal(schema.$id, 'https://evemisslab.com/schemas/mrmic-capabilities-v1.schema.json')
   assert.deepEqual(schema.required, [
@@ -34,6 +34,7 @@ test('capability schema advertises observer re-entry and bounded Windows WGC sna
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('native_resource_portal_v1'))
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('observer_relative_view_v1'))
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_desktop_window_v1'))
+  assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_snapshot_portal_v1'))
   assert.equal(MRMIC_CAPABILITIES.resourcePortal.supported, true)
   assert.equal(MRMIC_CAPABILITIES.runtimePresence.supported, true)
   assert.equal(MRMIC_CAPABILITIES.observerWorkspace.supported, true)
@@ -44,14 +45,17 @@ test('capability schema advertises observer re-entry and bounded Windows WGC sna
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.minimumBuild, 18362)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.sessionLifecycleSupported, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.frameTransport, 'png_base64_snapshot_v1')
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.portalProjection, 'ephemeral_render_copy_v1')
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.observerGated, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.canonicalPixelsDurable, false)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.maxActiveMounts, 4)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.frameQueueCapacity, 2)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.maxSnapshotPixels, 8294400)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.maxSnapshotBytes, 16777216)
-  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.scope, 'wgc_bounded_snapshot_transport')
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.scope, 'observer_gated_snapshot_portal')
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.discoveryImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.captureSessionImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.frameTransportImplemented, true)
-  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.captureImplemented, false)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.captureImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.automationImplemented, false)
 })

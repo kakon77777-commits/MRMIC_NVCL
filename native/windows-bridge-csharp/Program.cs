@@ -109,7 +109,7 @@ internal static class Program
                     break;
                 case "uia.inspect":
                 case "uia.action":
-                    WriteFailure(requestId, "UIA_NOT_IMPLEMENTED", "Phase 15.7 does not implement UI Automation yet");
+                    WriteFailure(requestId, "UIA_NOT_IMPLEMENTED", "Phase 15.8 does not implement UI Automation yet");
                     break;
                 default:
                     WriteFailure(requestId, "METHOD_NOT_FOUND", $"Unsupported Windows bridge method: {method}");
@@ -135,7 +135,7 @@ internal static class Program
         capture = new
         {
             api = "windows_graphics_capture",
-            supported = false,
+            supported = true,
             sessionLifecycleSupported = true,
             frameTransport = BoundedPngFrameTransport.TransportName,
             frameTransportSupported = true,

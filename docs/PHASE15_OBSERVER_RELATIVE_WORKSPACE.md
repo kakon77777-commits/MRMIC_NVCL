@@ -1,6 +1,6 @@
 # Phase 15 - Observer-Relative Workspace
 
-Status: 15.7 bounded Windows Graphics Capture snapshot transport baseline.
+Status: 15.8 observer-gated Windows snapshot portal projection baseline.
 
 Phase 15 adds an observer-relative coordination layer above the existing Canvas, identity, resource-portal, recursive-Canvas, runtime-presence and durable-event authorities. It does not replace Windows or provider runtimes: Windows remains a resource host, while MRMIC owns spatial projection, authenticated observer views, selective convergence and resource-control boundaries.
 
@@ -89,29 +89,54 @@ Authenticated human and AI principals may keep different private views of one ca
 - Resize waits for transport-owned frames to drain before `FramePool.Recreate`.
 - Native protocol adds `capture.snapshot` and `windows_capture_snapshot_v1`.
 - TypeScript revalidates mount/resource identity, dimensions, pixel count, Base64 length, decoded byte count, SHA-256, MIME and transport identifier.
-- Capability discovery reports `frameTransportImplemented=true` and `frameTransport=png_base64_snapshot_v1` while keeping `captureImplemented=false`.
-- Provider-level `capture.supported` remains false until the snapshot bytes are wired into an actual MRMIC portal rendering surface.
 - ADR-019 records the latest-only bounded transport and trust boundary.
 
-## Authority model after 15.7
+## Delivered in 15.8 - observer-gated Windows portal projection
+
+- `live_portal_visual_frame_v1` defines a provider-neutral ephemeral visual frame bound to `portalObjectId + provider + providerResourceId`.
+- `LivePortalHost` gains optional `snapshot(handle)` without changing mount/update/unmount semantics for providers that do not expose visual frames.
+- `WindowsSnapshotLivePortalHost` adapts validated `windows_capture_snapshot_v1` into the provider-neutral live-portal visual frame.
+- `observerAllowsPortalVisual` gates visual access from a principal-filtered observer snapshot.
+- Private view access requires the semantic `portalId` in the active effectively-visible foreground stack; sleeping or hidden contexts do not receive pixels.
+- Rendezvous membership alone is insufficient. Pixels become eligible only after an explicit `SharedResourceProjection` for the semantic `portalId`.
+- `projectPortalForObserver` performs the observer gate **before** provider snapshot I/O. A denied observer does not trigger `host.snapshot()`.
+- `snapshotPortalVisualFrame` independently checks canonical `portalObjectId`, provider and provider-resource identity.
+- `projectPortalVisualFrame` creates only an ephemeral structured clone and injects a `data:image/png;base64,...` preview URI into that clone.
+- The canonical resource portal keeps its provider URI and never stores captured pixels or data URIs.
+- Existing SVG rendering already accepts `data:` preview URIs, so no parallel renderer is introduced.
+- Semantic `portalId` and canonical `portalObjectId` are explicitly distinct identities and are checked by different authorities.
+- Windows native `capture.supported=true` and global `captureImplemented=true` now mean the bounded snapshot can reach an authorized MRMIC resource-portal rendering path.
+- Capability discovery also fixes `portalProjection=ephemeral_render_copy_v1`, `observerGated=true` and `canonicalPixelsDurable=false`.
+- ADR-020 records the provider/observer/Canvas authority split.
+
+## Authority model after 15.8
 
 Durable world authority:
 
-- observer views, rendezvous membership, selective projection and nested Canvas context are durable.
+- observer views, rendezvous membership, selective projection and nested Canvas context are durable;
+- canonical Canvas stores portal geometry and bounded provider/resource identity.
 
 Ephemeral provider/runtime authority:
 
-- HWND liveness, WGC sessions, frame queues, encoded snapshots, runtime focus and control remain provider/runtime state.
+- HWND liveness, WGC sessions, frame queues, encoded snapshots, runtime focus and control remain provider/runtime state;
+- observer-authorized render copies may contain pixels but are not persisted as canonical Canvas state.
 
-Canvas stores geometry and bounded provider identity. Windows continues to own the native window. A capture snapshot is visual evidence, not canonical Canvas state and not ownership transfer.
+Visibility authority:
 
-## Explicit non-goals through 15.7
+- the provider proves which resource a frame belongs to;
+- the observer snapshot decides which principal/view/room may see the semantic portal;
+- the renderer consumes only the resulting ephemeral copy.
 
-- Claiming completed Windows pixels-to-Canvas portal rendering. Phase 15.7 crosses the native process boundary but does not yet bind snapshots to the Canvas surface.
-- Claiming high-FPS streaming, zero-copy cross-process GPU sharing, video recording or archival frame completeness.
+Windows continues to own the native window. Visual projection is neither ownership transfer nor durable world mutation.
+
+## Explicit non-goals through 15.8
+
+- Claiming high-FPS continuous compositor streaming or zero-copy cross-process GPU sharing. Phase 15.8 is snapshot-backed.
 - Claiming authoritative interactive WGC E2E from GitHub-hosted Windows runners.
 - UI Automation inspection or semantic actions in the reference helper.
 - Keyboard/pointer injection, UAC/secure-desktop bypass or credential access.
+- Persisting captured Windows pixels into Canvas, observer durable events or resource metadata.
+- Exposing a private observer foreground to another principal merely because both principals joined a rendezvous.
 - Treating recovered observer lifecycle intent as proof that a provider process, HWND or WGC session is alive.
 - Treating a reused HWND as the same resource after a provider epoch changes.
 - Letting observer state own or rewrite canonical Canvas topology.
@@ -120,10 +145,10 @@ Canvas stores geometry and bounded provider identity. Windows continues to own t
 
 ## Next implementation slices
 
-1. Phase 15.8: project `png_base64_snapshot_v1` into the existing resource-portal/live-host path under observer-relative visibility.
-2. Validate capture + snapshot + portal rendering on an interactive Windows desktop target.
+1. Phase 15.9: add a bounded refresh/compositor loop over the same observer-gated projection contract without making frame state durable.
+2. Validate capture + transport + observer-gated portal rendering on an interactive Windows desktop target.
 3. Add read-only UI Automation inspection, followed by semantic UIA actions behind existing control authority.
-4. Validate multi-observer Windows portal isolation and selective convergence end-to-end.
+4. Validate multi-observer Windows portal isolation and selective convergence under sustained refresh.
 5. Add warm/frozen/sleeping scheduling for inactive AI workspaces.
 6. Consider higher-throughput or zero-copy frame transport only after the correctness path is closed.
 7. Add HDUS bridge contracts after MRMIC semantics are stable.
