@@ -14,6 +14,7 @@
 - [MCP compatibility](MCP_COMPATIBILITY.md)
 - [Phase 15 Observer-Relative Workspace](PHASE15_OBSERVER_RELATIVE_WORKSPACE.md)
 - [ADR-013 Durable Observer Workspace Event Stream](ADR-013_OBSERVER_WORKSPACE_EVENT_DURABILITY.md)
+- [ADR-014 Authenticated Observer Re-entry Protocol](ADR-014_OBSERVER_PROTOCOL_GATEWAY.md)
 - [HDSRC × MRMIC/NVCL Integration Architecture v0.1](HDSRC_MRMIC_NVCL_INTEGRATION_ARCHITECTURE_v0.1.md)
 - [HDSRC × MRMIC/NVCL Authority Matrix v0.1](HDSRC_MRMIC_NVCL_AUTHORITY_MATRIX_v0.1.md)
 - [HDSRC × MRMIC/NVCL Integration Status v0.1](HDSRC_MRMIC_NVCL_INTEGRATION_STATUS_v0.1.md)
@@ -26,8 +27,9 @@
 
 ## Phase 15 目前狀態
 
-- [Observer-relative workspace and durability status](PHASE15_OBSERVER_RELATIVE_WORKSPACE.md)
-- `contracts/phase15/` contains observer view, rendezvous, and durable observer event schemas.
+- [Observer-relative workspace, durability and protocol status](PHASE15_OBSERVER_RELATIVE_WORKSPACE.md)
+- `contracts/phase15/` contains observer view, rendezvous, durable observer event and external observer command schemas.
+- Reference re-entry server: `npm run observer` (default `127.0.0.1:4180`).
 
 ## Phase 13 目前狀態
 
@@ -46,7 +48,7 @@
 
 ## 設計決策
 
-ADR-001 至 ADR-013 位於本目錄。ADR-013 固定 observer-relative workspace 的 durable event stream、recovery fail-closed 規則，以及 durable workspace intention 與 ephemeral runtime truth 的分界。Phase 13 是 Canvas-first 安全收斂與跨專案契約層；Phase 15 在其上加入多觀察者私有視圖與選擇性會合。
+ADR-001 至 ADR-014 位於本目錄。ADR-013 固定 observer-relative workspace 的 durable event stream 與 durable/ephemeral 分界；ADR-014 固定 authenticated re-entry、principal-pinned MCP session、private snapshot 與 raw-event non-exposure 邊界。Phase 13 是 Canvas-first 安全收斂與跨專案契約層；Phase 15 在其上加入多觀察者私有視圖、持久化與選擇性會合。
 
 ## 驗收與證據
 

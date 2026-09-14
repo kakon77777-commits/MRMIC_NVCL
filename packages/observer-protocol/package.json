@@ -1,0 +1,6 @@
+{
+  "name": "@mrmic/observer-protocol",
+  "version": "0.15.2",
+  "private": true,
+  "type": "module"
+}

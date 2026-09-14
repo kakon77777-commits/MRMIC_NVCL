@@ -4,7 +4,18 @@
   "title": "MRMIC Capabilities v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "mrmicVersion", "canvasSchemaVersion", "mcpProtocolProfile", "projectionModes", "authModes", "resourcePortal", "runtimePresence", "livePortalHost"],
+  "required": [
+    "schema",
+    "mrmicVersion",
+    "canvasSchemaVersion",
+    "mcpProtocolProfile",
+    "projectionModes",
+    "authModes",
+    "resourcePortal",
+    "runtimePresence",
+    "livePortalHost",
+    "observerWorkspace"
+  ],
   "properties": {
     "schema": { "const": "mrmic-capabilities/v1" },
     "mrmicVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
@@ -14,6 +25,61 @@
     "authModes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
     "resourcePortal": { "type": "object", "required": ["supported", "schemaVersion"] },
     "runtimePresence": { "type": "object", "required": ["supported", "schemaVersion", "durable"] },
-    "livePortalHost": { "type": "object", "required": ["supported", "stateVersion"] }
+    "livePortalHost": { "type": "object", "required": ["supported", "stateVersion"] },
+    "observerWorkspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supported",
+        "viewSchemaVersion",
+        "rendezvousSchemaVersion",
+        "durableEventSchemaVersion",
+        "durable",
+        "authRequired",
+        "http",
+        "mcp",
+        "referenceServer"
+      ],
+      "properties": {
+        "supported": { "const": true },
+        "viewSchemaVersion": { "const": "observer_view_v1" },
+        "rendezvousSchemaVersion": { "const": "shared_rendezvous_v1" },
+        "durableEventSchemaVersion": { "const": "observer_workspace_event_v1" },
+        "durable": { "const": true },
+        "authRequired": { "const": true },
+        "http": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["snapshotPath", "commandPath"],
+          "properties": {
+            "snapshotPath": { "const": "/api/observer/snapshot" },
+            "commandPath": { "const": "/api/observer/command" }
+          }
+        },
+        "mcp": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "selfResourceUri", "tools"],
+          "properties": {
+            "path": { "const": "/mcp/observer" },
+            "selfResourceUri": { "const": "mrmic://observer/self" },
+            "tools": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "enum": ["observer.get_snapshot", "observer.command"] }
+            }
+          }
+        },
+        "referenceServer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["command", "defaultPort"],
+          "properties": {
+            "command": { "const": "npm run observer" },
+            "defaultPort": { "const": 4180 }
+          }
+        }
+      }
+    }
   }
 }

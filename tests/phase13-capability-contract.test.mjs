@@ -22,16 +22,23 @@ test('HTTP and MCP expose one versioned provider-neutral capability document', a
   }
 })
 
-test('capability schema and document advertise the required Phase 13 contract surface', async () => {
+test('capability schema and document advertise Phase 13 plus observer-relative Phase 15 re-entry', async () => {
   const schema = JSON.parse(await readFile('contracts/phase13/mrmic-capabilities-v1.schema.json', 'utf8'))
   assert.equal(schema.$id, 'https://evemisslab.com/schemas/mrmic-capabilities-v1.schema.json')
   assert.deepEqual(schema.required, [
     'schema', 'mrmicVersion', 'canvasSchemaVersion', 'mcpProtocolProfile', 'projectionModes',
-    'authModes', 'resourcePortal', 'runtimePresence', 'livePortalHost',
+    'authModes', 'resourcePortal', 'runtimePresence', 'livePortalHost', 'observerWorkspace',
   ])
   assert.equal(MRMIC_CAPABILITIES.schema, 'mrmic-capabilities/v1')
   assert.equal(MRMIC_CAPABILITIES.mrmicVersion, '0.14.0')
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('native_resource_portal_v1'))
+  assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('observer_relative_view_v1'))
   assert.equal(MRMIC_CAPABILITIES.resourcePortal.supported, true)
   assert.equal(MRMIC_CAPABILITIES.runtimePresence.supported, true)
+  assert.equal(MRMIC_CAPABILITIES.observerWorkspace.supported, true)
+  assert.equal(MRMIC_CAPABILITIES.observerWorkspace.durable, true)
+  assert.equal(MRMIC_CAPABILITIES.observerWorkspace.authRequired, true)
+  assert.equal(MRMIC_CAPABILITIES.observerWorkspace.http.snapshotPath, '/api/observer/snapshot')
+  assert.equal(MRMIC_CAPABILITIES.observerWorkspace.mcp.path, '/mcp/observer')
+  assert.equal(MRMIC_CAPABILITIES.observerWorkspace.mcp.selfResourceUri, 'mrmic://observer/self')
 })
