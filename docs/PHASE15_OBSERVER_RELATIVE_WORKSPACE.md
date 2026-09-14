@@ -1,6 +1,6 @@
 # Phase 15 - Observer-Relative Workspace
 
-Status: 15.5 Windows native discovery bridge baseline.
+Status: 15.6 HWND-bound Windows Graphics Capture session baseline.
 
 Phase 15 adds an observer-relative coordination layer above the existing Canvas, identity, resource portal, recursive Canvas, runtime-presence and durable-event authorities.
 
@@ -76,17 +76,31 @@ The phase does not replace Windows, provider runtimes, or existing portal owners
 - Native discovery implements top-level `EnumWindows`, visibility, DWM cloaking state, minimized state, PID/TID, title, class and normalized HWND facts.
 - Adds a TypeScript JSONL bridge client with request correlation, timeout, malformed-output and unexpected-exit fail-closed behavior.
 - Native discovery facts continue to flow through the existing Windows provider catalog; the helper does not own Canvas, observer state or `controlOwner`.
-- Capability discovery now advertises `referenceImplementation=true` only together with `scope=discovery_only`, `discoveryImplemented=true`, `captureImplemented=false` and `automationImplemented=false`.
-- Capture/UIA native commands fail explicitly rather than fabricating fallback success.
-- CI compiles the C# helper with .NET 8 and warnings-as-errors in addition to `npm ci`, strict TypeScript and the complete Node test suite.
+- Capability discovery advertises `referenceImplementation=true` together with the bounded implemented scope.
+- Capture/UIA native commands failed explicitly rather than fabricating fallback success in this slice.
 - ADR-017 records the native process, scope and authority boundaries.
 
-## Explicit non-goals through 15.5
+## Delivered in 15.6
 
-- Claiming real Windows-host discovery E2E evidence before the helper is actually run on a Windows desktop.
-- Claiming that Windows Graphics Capture frame acquisition, D3D transport, UIA inspection or UIA semantic mutation is implemented in the reference helper.
+- Adds a real HWND-bound Windows Graphics Capture session manager to the reference native helper.
+- `capture.mount` validates `providerEpoch + providerResourceId + PID + HWND`, verifies the HWND is still live and owned by the expected process, rejects minimized windows, then creates a WGC capture item with `IGraphicsCaptureItemInterop.CreateForWindow(HWND)`.
+- The native helper creates a BGRA-capable D3D11 device, projects it into `IDirect3DDevice`, creates a free-threaded `Direct3D11CaptureFramePool`, creates a `GraphicsCaptureSession`, and calls `StartCapture`.
+- `FrameArrived` dequeues the next frame, records frame count/time/content size, recreates the frame pool on a content-size change, and releases the frame without synchronous pixel conversion or encoding.
+- `capture.update` returns bounded provider-runtime session facts; `capture.unmount` verifies resource identity and disposes the native WGC session.
+- Capability discovery separates session lifecycle from full visual transport: `captureSessionImplemented=true`, `frameTransportImplemented=false`, `captureImplemented=false`, `sessionLifecycleSupported=true`, `frameTransport=none`.
+- The helper still reports provider-level `capture.supported=false`, because MRMIC does not yet have a reference frame transport into a live/snapshot portal.
+- CI now separates the portable Node/TypeScript test job from a Windows-native job. The native project compiles against a current Windows SDK while declaring Windows 10 build 18362 as its minimum supported OS platform.
+- Windows-native CI launches the built helper and sends real `capabilities` and `window.enumerate` JSONL requests, closing the Phase 15.5 native-process discovery smoke gap.
+- ADR-018 records the WGC session lifecycle / frame transport boundary.
+
+## Explicit non-goals through 15.6
+
+- Claiming a completed WGC pixel/frame transport or live Canvas rendering path. A native session is not the same thing as transported pixels.
+- Claiming real interactive WGC session E2E before it is validated against an interactive Windows desktop target.
+- Performing synchronous GPU readback, `SoftwareBitmap` conversion, PNG encoding or Canvas mutation inside the WGC `FrameArrived` callback.
+- UI Automation inspection or UIA semantic mutation in the reference helper.
 - UAC/secure-desktop automation, credential extraction, privileged desktop bypass, or unrestricted raw input injection.
-- Treating recovered `live` lifecycle intent as proof that a provider process or HWND is alive.
+- Treating recovered `live` lifecycle intent as proof that a provider process, HWND or WGC session is alive.
 - Treating a reused HWND as the same native resource after a provider epoch changes.
 - Letting observer state create, rewrite or own canonical Canvas parent/child topology.
 - Allowing a child context to broaden visibility beyond a hidden ancestor.
@@ -98,8 +112,8 @@ The phase does not replace Windows, provider runtimes, or existing portal owners
 
 ## Next implementation slices
 
-1. Run and validate the reference discovery helper on a real Windows host.
-2. Implement HWND-bound `Windows.Graphics.Capture` frame acquisition and bounded frame transport.
+1. Implement bounded WGC frame transport/readback outside the `FrameArrived` callback and connect it to snapshot/live portal projection.
+2. Validate the WGC session and frame transport on an interactive Windows desktop target.
 3. Add read-only UI Automation inspection, then semantic UIA actions behind the existing `controlOwner` authority.
 4. Validate multi-observer Windows portal isolation end-to-end.
 5. Add lifecycle scheduling so inactive AI views can become warm/frozen/sleeping without destroying provider resources unnecessarily.

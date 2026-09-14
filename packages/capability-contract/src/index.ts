@@ -41,12 +41,20 @@ export interface MrmicCapabilitiesV1 {
       protocolVersion: 'mrmic-windows-native-bridge/v1'
       referenceImplementation: true
       referenceProject: 'native/windows-bridge-csharp'
-      scope: 'discovery_only'
+      scope: 'discovery_and_capture_session'
       discoveryImplemented: true
+      captureSessionImplemented: true
+      frameTransportImplemented: false
       captureImplemented: false
       automationImplemented: false
     }
-    capture: { api: 'windows_graphics_capture'; target: 'hwnd'; minimumBuild: 18362 }
+    capture: {
+      api: 'windows_graphics_capture'
+      target: 'hwnd'
+      minimumBuild: 18362
+      sessionLifecycleSupported: true
+      frameTransport: 'none'
+    }
     automation: {
       api: 'uia'
       semanticPatternsPreferred: true
@@ -107,12 +115,20 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
       protocolVersion: 'mrmic-windows-native-bridge/v1',
       referenceImplementation: true,
       referenceProject: 'native/windows-bridge-csharp',
-      scope: 'discovery_only',
+      scope: 'discovery_and_capture_session',
       discoveryImplemented: true,
+      captureSessionImplemented: true,
+      frameTransportImplemented: false,
       captureImplemented: false,
       automationImplemented: false,
     },
-    capture: { api: 'windows_graphics_capture', target: 'hwnd', minimumBuild: 18362 },
+    capture: {
+      api: 'windows_graphics_capture',
+      target: 'hwnd',
+      minimumBuild: 18362,
+      sessionLifecycleSupported: true,
+      frameTransport: 'none',
+    },
     automation: {
       api: 'uia',
       semanticPatternsPreferred: true,

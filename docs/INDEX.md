@@ -18,6 +18,7 @@
 - [ADR-015 Observer Nested Canvas Topology](ADR-015_OBSERVER_NESTED_CANVAS_TOPOLOGY.md)
 - [ADR-016 Windows Desktop Window Provider](ADR-016_WINDOWS_DESKTOP_WINDOW_PROVIDER.md)
 - [ADR-017 Windows Native Discovery Bridge](ADR-017_WINDOWS_NATIVE_DISCOVERY_BRIDGE.md)
+- [ADR-018 Windows WGC Session Lifecycle](ADR-018_WINDOWS_WGC_SESSION_LIFECYCLE.md)
 - [HDSRC × MRMIC/NVCL Integration Architecture v0.1](HDSRC_MRMIC_NVCL_INTEGRATION_ARCHITECTURE_v0.1.md)
 - [HDSRC × MRMIC/NVCL Authority Matrix v0.1](HDSRC_MRMIC_NVCL_AUTHORITY_MATRIX_v0.1.md)
 - [HDSRC × MRMIC/NVCL Integration Status v0.1](HDSRC_MRMIC_NVCL_INTEGRATION_STATUS_v0.1.md)
@@ -34,7 +35,7 @@
 - `contracts/phase15/` contains observer view/nested Canvas, rendezvous, durable observer event, external observer command, Windows provider capability/window resource and Windows native bridge schemas.
 - Reference re-entry server: `npm run observer` (default `127.0.0.1:4180`). The standalone server is root-view capable by default; nested entry requires an injected canonical Canvas topology authority.
 - `@mrmic/provider-windows` remains the Windows provider adapter boundary.
-- `native/windows-bridge-csharp/` is the Phase 15.5 reference native bridge. Its implemented scope is discovery only; capture and UI Automation remain explicitly unimplemented.
+- `native/windows-bridge-csharp/` is the reference native bridge. Phase 15.6 implements Win32 discovery plus HWND-bound WGC session lifecycle; frame transport and UI Automation remain explicitly unimplemented.
 
 ## Phase 13 目前狀態
 
@@ -53,7 +54,7 @@
 
 ## 設計決策
 
-ADR-001 至 ADR-017 位於本目錄。ADR-013 固定 observer-relative workspace 的 durable event stream 與 durable/ephemeral 分界；ADR-014 固定 authenticated re-entry、principal-pinned MCP session、private snapshot 與 raw-event non-exposure 邊界；ADR-015 固定 nested observer context 必須服從既有 Canvas topology authority，並採只能向下收斂的 visibility inheritance；ADR-016 固定 Windows desktop window 的 provider-owned identity、Graphics Capture/UIA 邊界，以及既有 `controlOwner` 的單一控制權責任；ADR-017 固定 Windows native discovery helper 的獨立 process authority、JSONL protocol、discovery-only scope 與 fail-closed failure semantics。Phase 13 是 Canvas-first 安全收斂與跨專案契約層；Phase 15 在其上加入多觀察者私有視圖、持久化、選擇性會合、遞歸 Canvas 導航與 Windows provider projection/native discovery。
+ADR-001 至 ADR-018 位於本目錄。ADR-013 固定 observer-relative workspace 的 durable event stream 與 durable/ephemeral 分界；ADR-014 固定 authenticated re-entry、principal-pinned MCP session、private snapshot 與 raw-event non-exposure 邊界；ADR-015 固定 nested observer context 必須服從既有 Canvas topology authority，並採只能向下收斂的 visibility inheritance；ADR-016 固定 Windows desktop window 的 provider-owned identity、Graphics Capture/UIA 邊界，以及既有 `controlOwner` 的單一控制權責任；ADR-017 固定 Windows native discovery helper 的獨立 process authority、JSONL protocol 與 fail-closed failure semantics；ADR-018 固定 HWND-bound WGC session lifecycle 與 frame transport 的分離，以及 FrameArrived callback 不承擔同步 pixel readback/encoding。Phase 13 是 Canvas-first 安全收斂與跨專案契約層；Phase 15 在其上加入多觀察者私有視圖、持久化、選擇性會合、遞歸 Canvas 導航與 Windows provider projection/native runtime。
 
 ## 驗收與證據
 

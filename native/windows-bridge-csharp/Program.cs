@@ -51,16 +51,17 @@ internal static class Program
             return 2;
         }
 
+        using var captures = new WindowsCaptureSessionManager(ProviderEpoch);
         string? line;
         while ((line = Console.ReadLine()) is not null)
         {
             if (string.IsNullOrWhiteSpace(line)) continue;
-            HandleLine(line);
+            HandleLine(line, captures);
         }
         return 0;
     }
 
-    private static void HandleLine(string line)
+    private static void HandleLine(string line, WindowsCaptureSessionManager captures)
     {
         string requestId = "unknown";
         try
@@ -75,6 +76,7 @@ internal static class Program
                 return;
             }
             var method = RequiredString(root, "method");
+            var parameters = RequiredObject(root, "params");
             switch (method)
             {
                 case "capabilities":
@@ -84,18 +86,34 @@ internal static class Program
                     WriteSuccess(requestId, EnumerateWindows());
                     break;
                 case "capture.mount":
+                    WriteSuccess(requestId, captures.Mount(
+                        RequiredString(parameters, "providerResourceId"),
+                        RequiredString(parameters, "providerEpoch"),
+                        RequiredString(parameters, "hwndHex"),
+                        RequiredUInt32(parameters, "processId")));
+                    break;
                 case "capture.update":
+                    WriteSuccess(requestId, captures.Update(
+                        RequiredString(parameters, "mountId"),
+                        RequiredString(parameters, "providerResourceId")));
+                    break;
                 case "capture.unmount":
-                    WriteFailure(requestId, "CAPTURE_NOT_IMPLEMENTED", "Phase 15.5 discovery bridge does not implement Windows.Graphics.Capture yet");
+                    WriteSuccess(requestId, captures.Unmount(
+                        RequiredString(parameters, "mountId"),
+                        RequiredString(parameters, "providerResourceId")));
                     break;
                 case "uia.inspect":
                 case "uia.action":
-                    WriteFailure(requestId, "UIA_NOT_IMPLEMENTED", "Phase 15.5 discovery bridge does not implement UI Automation yet");
+                    WriteFailure(requestId, "UIA_NOT_IMPLEMENTED", "Phase 15.6 does not implement UI Automation yet");
                     break;
                 default:
                     WriteFailure(requestId, "METHOD_NOT_FOUND", $"Unsupported Windows bridge method: {method}");
                     break;
             }
+        }
+        catch (WindowsBridgeOperationException error)
+        {
+            WriteFailure(requestId, error.Code, error.Message);
         }
         catch (Exception error)
         {
@@ -113,6 +131,8 @@ internal static class Program
         {
             api = "windows_graphics_capture",
             supported = false,
+            sessionLifecycleSupported = true,
+            frameTransport = "none",
             minimumBuild = 18362,
             target = "hwnd"
         },
@@ -167,6 +187,13 @@ internal static class Program
         return "unknown";
     }
 
+    private static JsonElement RequiredObject(JsonElement root, string property)
+    {
+        if (!root.TryGetProperty(property, out var element) || element.ValueKind != JsonValueKind.Object)
+            throw new InvalidOperationException($"{property} is required");
+        return element;
+    }
+
     private static string RequiredString(JsonElement root, string property)
     {
         if (!root.TryGetProperty(property, out var element) || element.ValueKind != JsonValueKind.String)
@@ -174,6 +201,13 @@ internal static class Program
         var value = element.GetString();
         if (string.IsNullOrWhiteSpace(value)) throw new InvalidOperationException($"{property} is required");
         return value.Trim();
+    }
+
+    private static uint RequiredUInt32(JsonElement root, string property)
+    {
+        if (!root.TryGetProperty(property, out var element) || element.ValueKind != JsonValueKind.Number || !element.TryGetUInt32(out var value) || value == 0)
+            throw new InvalidOperationException($"{property} must be a positive uint32");
+        return value;
     }
 
     private static void WriteSuccess(string requestId, object result) => Write(new

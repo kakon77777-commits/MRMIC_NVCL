@@ -12,10 +12,18 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+
+  windows-native:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
-      - run: npm ci
-      - run: npm run check
-      - run: dotnet build ./native/windows-bridge-csharp/MRMIC.WindowsBridge.csproj -c Release
-      - run: npm test
+      - run: dotnet build .\native\windows-bridge-csharp\MRMIC.WindowsBridge.csproj -c Release
+        shell: pwsh
+      - run: .\native\windows-bridge-csharp\smoke.ps1
+        shell: pwsh

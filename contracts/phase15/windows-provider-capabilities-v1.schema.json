@@ -13,10 +13,12 @@
     "capture": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["api", "supported", "minimumBuild", "target"],
+      "required": ["api", "supported", "sessionLifecycleSupported", "frameTransport", "minimumBuild", "target"],
       "properties": {
         "api": { "const": "windows_graphics_capture" },
         "supported": { "type": "boolean" },
+        "sessionLifecycleSupported": { "type": "boolean" },
+        "frameTransport": { "enum": ["none"] },
         "minimumBuild": { "const": 18362 },
         "target": { "const": "hwnd" }
       }

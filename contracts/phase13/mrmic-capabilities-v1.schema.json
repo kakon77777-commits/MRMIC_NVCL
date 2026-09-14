@@ -99,14 +99,16 @@
         "nativeBridge": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["required", "protocolVersion", "referenceImplementation", "referenceProject", "scope", "discoveryImplemented", "captureImplemented", "automationImplemented"],
+          "required": ["required", "protocolVersion", "referenceImplementation", "referenceProject", "scope", "discoveryImplemented", "captureSessionImplemented", "frameTransportImplemented", "captureImplemented", "automationImplemented"],
           "properties": {
             "required": { "const": true },
             "protocolVersion": { "const": "mrmic-windows-native-bridge/v1" },
             "referenceImplementation": { "const": true },
             "referenceProject": { "const": "native/windows-bridge-csharp" },
-            "scope": { "const": "discovery_only" },
+            "scope": { "const": "discovery_and_capture_session" },
             "discoveryImplemented": { "const": true },
+            "captureSessionImplemented": { "const": true },
+            "frameTransportImplemented": { "const": false },
             "captureImplemented": { "const": false },
             "automationImplemented": { "const": false }
           }
@@ -114,11 +116,13 @@
         "capture": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["api", "target", "minimumBuild"],
+          "required": ["api", "target", "minimumBuild", "sessionLifecycleSupported", "frameTransport"],
           "properties": {
             "api": { "const": "windows_graphics_capture" },
             "target": { "const": "hwnd" },
-            "minimumBuild": { "const": 18362 }
+            "minimumBuild": { "const": 18362 },
+            "sessionLifecycleSupported": { "const": true },
+            "frameTransport": { "const": "none" }
           }
         },
         "automation": {
