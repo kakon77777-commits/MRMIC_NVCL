@@ -1,10 +1,10 @@
 # Phase 15 - Observer-Relative Workspace
 
-Status: 15.3 topology-authorized nested observer baseline.
+Status: 15.4 Windows desktop-window provider adapter baseline.
 
 Phase 15 adds an observer-relative coordination layer above the existing Canvas, identity, resource portal, recursive Canvas, runtime-presence and durable-event authorities.
 
-The phase does not replace Windows, provider runtimes, or existing portal ownership. It defines how authenticated human and AI principals can keep private views of one shared world, selectively converge on a shared rendezvous Canvas, recover that coordination state across process/conversation boundaries, safely re-enter it through authenticated HTTP/MCP surfaces, and navigate existing recursive Canvas topology without creating a second competing world tree.
+The phase does not replace Windows, provider runtimes, or existing portal ownership. It defines how authenticated human and AI principals can keep private views of one shared world, selectively converge on a shared rendezvous Canvas, recover that coordination state across process/conversation boundaries, safely re-enter it through authenticated HTTP/MCP surfaces, navigate existing recursive Canvas topology without creating a second competing world tree, and project Windows desktop windows as provider-owned resources without making the OS desktop the world authority.
 
 ## Delivered in 15.0
 
@@ -55,10 +55,27 @@ The phase does not replace Windows, provider runtimes, or existing portal owners
 - Capability discovery advertises nested context schema, visibility modes, maximum depth and `topologyAuthorityRequired=true`.
 - ADR-015 records the single-topology and visibility-inheritance boundary.
 
-## Explicit non-goals through 15.3
+## Delivered in 15.4
 
-- Windows Graphics Capture, UI Automation, virtual desktops, remote sessions, or GPU transport.
-- Treating recovered `live` lifecycle intent as proof that a provider process is alive.
+- Canvas resource schema adds first-class `provider=windows` and `resourceKind=desktop_window`.
+- `@mrmic/provider-windows` defines the replaceable Windows-native bridge boundary and the provider-side window catalog.
+- `windows_provider_capabilities_v1` formalizes Windows Graphics Capture/UI Automation capability discovery.
+- `windows_window_resource_v1` formalizes provider-owned native window resources.
+- Provider resource identity is bound to `providerEpoch + processId + hwndHex`; HWND alone is explicitly not treated as durable identity.
+- Default discovery filters invisible, DWM-cloaked and untitled top-level windows before they become MRMIC resources.
+- `createWindowsWindowPortal` projects a provider-owned native window into the existing `resource_portal` contract while keeping dynamic HWND/UIA state out of canonical Canvas metadata.
+- `WindowsLivePortalHost` plugs into the existing Phase 13 `LivePortalHostRegistry` / `CanvasLivePortalCoordinator` rather than creating another projection runtime.
+- `WindowsProviderAccess` keeps inspection and mutation authority separate through `canInspect` / `canControl`; the provider does not invent a second `controlOwner`.
+- Semantic UI operations are bounded to UIA-style invoke/toggle/select/set-value actions in this baseline.
+- Capability discovery advertises the Windows provider contract while explicitly recording `nativeBridge.referenceImplementation=false`.
+- ADR-016 records Windows resource identity, capture, UIA and control-authority boundaries.
+
+## Explicit non-goals through 15.4
+
+- Claiming that a Windows-native WinRT/D3D capture helper has already been implemented or validated on a real Windows host.
+- UAC/secure-desktop automation, credential extraction, or privileged desktop bypass.
+- Treating recovered `live` lifecycle intent as proof that a provider process or HWND is alive.
+- Treating a reused HWND as the same native resource after a provider epoch changes.
 - Letting observer state create, rewrite or own canonical Canvas parent/child topology.
 - Allowing a child context to broaden visibility beyond a hidden ancestor.
 - A new resource ownership system.
@@ -69,7 +86,8 @@ The phase does not replace Windows, provider runtimes, or existing portal owners
 
 ## Next implementation slices
 
-1. Add provider adapters for Windows application capture and structured control.
-2. Add lifecycle scheduling so inactive AI views can become warm/frozen/sleeping without destroying provider resources.
-3. Add a unified routing/front-door option after the independent authorities are stable.
-4. Add HDUS bridge contracts only after MRMIC semantics are stable.
+1. Implement the Windows-native bridge on a real Windows host: Win32 discovery, `Windows.Graphics.Capture` from HWND, UIA inspection and semantic actions.
+2. Bind observer-visible Windows portals to the existing live `controlOwner` authority and validate multi-observer isolation end-to-end.
+3. Add lifecycle scheduling so inactive AI views can become warm/frozen/sleeping without destroying provider resources unnecessarily.
+4. Add a unified routing/front-door option after the independent authorities are stable.
+5. Add HDUS bridge contracts only after MRMIC semantics are stable.

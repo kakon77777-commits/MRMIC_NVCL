@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/mrmic/contracts/phase15/windows-window-resource-v1.schema.json",
+  "title": "MRMIC Windows Window Resource v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "provider", "resourceKind", "providerResourceId", "resourceUri", "providerEpoch", "hwndHex", "processId", "threadId", "title", "state", "projection", "automation", "updatedAt"],
+  "properties": {
+    "schema": { "const": "windows_window_resource_v1" },
+    "provider": { "const": "windows" },
+    "resourceKind": { "const": "desktop_window" },
+    "providerResourceId": { "type": "string", "minLength": 1 },
+    "resourceUri": { "type": "string", "pattern": "^windows://window/" },
+    "providerEpoch": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "hwndHex": { "type": "string", "pattern": "^0x[0-9a-f]+$" },
+    "processId": { "type": "integer", "minimum": 1 },
+    "threadId": { "type": "integer", "minimum": 1 },
+    "title": { "type": "string", "minLength": 1, "maxLength": 2048 },
+    "className": { "type": "string", "minLength": 1 },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visible", "minimized", "cloakState"],
+      "properties": {
+        "visible": { "type": "boolean" },
+        "minimized": { "type": "boolean" },
+        "cloakState": { "enum": ["none", "app", "shell", "inherited", "unknown"] }
+      }
+    },
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["preferredDisplayMode", "previewUri", "liveMountUri", "liveMountKind"],
+      "properties": {
+        "preferredDisplayMode": { "enum": ["live", "snapshot"] },
+        "previewUri": { "type": "string", "minLength": 1 },
+        "liveMountUri": { "type": "string", "minLength": 1 },
+        "liveMountKind": { "const": "windows-graphics-capture" }
+      }
+    },
+    "automation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["api", "available", "inputInjectionFallback"],
+      "properties": {
+        "api": { "const": "uia" },
+        "available": { "type": "boolean" },
+        "inputInjectionFallback": { "type": "boolean" }
+      }
+    },
+    "updatedAt": { "type": "string", "minLength": 1, "maxLength": 128 }
+  }
+}

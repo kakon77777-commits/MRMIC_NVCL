@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/mrmic/contracts/phase15/windows-provider-capabilities-v1.schema.json",
+  "title": "MRMIC Windows Provider Capabilities v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "provider", "providerEpoch", "platform", "capture", "automation"],
+  "properties": {
+    "schema": { "const": "windows_provider_capabilities_v1" },
+    "provider": { "const": "windows" },
+    "providerEpoch": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "platform": { "const": "win32" },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["api", "supported", "minimumBuild", "target"],
+      "properties": {
+        "api": { "const": "windows_graphics_capture" },
+        "supported": { "type": "boolean" },
+        "minimumBuild": { "const": 18362 },
+        "target": { "const": "hwnd" }
+      }
+    },
+    "automation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["api", "supported", "semanticPatternsPreferred", "inputInjectionFallback", "interactiveDesktopRequiredForInjection"],
+      "properties": {
+        "api": { "const": "uia" },
+        "supported": { "type": "boolean" },
+        "semanticPatternsPreferred": { "const": true },
+        "inputInjectionFallback": { "type": "boolean" },
+        "interactiveDesktopRequiredForInjection": { "const": true }
+      }
+    }
+  }
+}
