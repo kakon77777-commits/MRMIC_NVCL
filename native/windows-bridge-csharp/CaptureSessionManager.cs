@@ -17,6 +17,8 @@ internal sealed class WindowsBridgeOperationException : Exception
 
 internal sealed class WindowsCaptureSessionManager : IDisposable
 {
+    public const int MaxActiveMounts = 4;
+
     private const int D3dDriverTypeHardware = 1;
     private const uint D3d11CreateDeviceBgraSupport = 0x20;
     private const uint D3d11SdkVersion = 7;
@@ -84,10 +86,12 @@ internal sealed class WindowsCaptureSessionManager : IDisposable
         if (!GraphicsCaptureSession.IsSupported())
             throw new WindowsBridgeOperationException("CAPTURE_UNSUPPORTED", "Windows.Graphics.Capture is not supported on this device");
         if (IsIconic(hwnd))
-            throw new WindowsBridgeOperationException("WINDOW_MINIMIZED", "Minimized windows are not eligible for the Phase 15.6 WGC session baseline");
+            throw new WindowsBridgeOperationException("WINDOW_MINIMIZED", "Minimized windows are not eligible for the Phase 15.7 WGC transport baseline");
 
         lock (_gate)
         {
+            if (_mounts.Count >= MaxActiveMounts)
+                throw new WindowsBridgeOperationException("CAPTURE_MOUNT_LIMIT", $"Phase 15.7 allows at most {MaxActiveMounts} active Windows capture mounts");
             if (_mounts.Values.Any(value => string.Equals(value.ProviderResourceId, providerResourceId, StringComparison.Ordinal)))
                 throw new WindowsBridgeOperationException("CAPTURE_ALREADY_MOUNTED", "The Windows resource already has an active capture session");
         }
@@ -98,6 +102,8 @@ internal sealed class WindowsCaptureSessionManager : IDisposable
             var item = CreateCaptureItemForWindow(hwnd);
             if (item.Size.Width <= 0 || item.Size.Height <= 0)
                 throw new WindowsBridgeOperationException("INVALID_CAPTURE_SIZE", "Windows.Graphics.Capture returned an empty capture size");
+            if ((long)item.Size.Width * item.Size.Height > BoundedPngFrameTransport.MaxSnapshotPixels)
+                throw new WindowsBridgeOperationException("CAPTURE_SIZE_LIMIT", "Window exceeds the Phase 15.7 bounded snapshot pixel limit");
 
             var mountId = $"wgc-{Guid.NewGuid():N}";
             var mounted = new MountedCapture(mountId, providerResourceId, hwnd, item, device);
@@ -119,6 +125,12 @@ internal sealed class WindowsCaptureSessionManager : IDisposable
     {
         var mounted = RequireMount(mountId, providerResourceId);
         return mounted.Snapshot();
+    }
+
+    public object ReadSnapshot(string mountId, string providerResourceId)
+    {
+        var mounted = RequireMount(mountId, providerResourceId);
+        return mounted.LatestFrameSnapshot();
     }
 
     public object Unmount(string mountId, string providerResourceId)
@@ -274,10 +286,12 @@ internal sealed class WindowsCaptureSessionManager : IDisposable
         private readonly IDirect3DDevice _device;
         private readonly Direct3D11CaptureFramePool _framePool;
         private readonly GraphicsCaptureSession _session;
+        private readonly BoundedPngFrameTransport _transport;
         private long _frameCount;
         private long _lastFrameUtcTicks;
         private int _lastWidth;
         private int _lastHeight;
+        private int _resizePending;
         private int _closed;
 
         public string MountId { get; }
@@ -292,6 +306,7 @@ internal sealed class WindowsCaptureSessionManager : IDisposable
             _device = device;
             _lastWidth = item.Size.Width;
             _lastHeight = item.Size.Height;
+            _transport = new BoundedPngFrameTransport(mountId, providerResourceId);
             _framePool = Direct3D11CaptureFramePool.CreateFreeThreaded(
                 device,
                 DirectXPixelFormat.B8G8R8A8UIntNormalized,
@@ -316,17 +331,24 @@ internal sealed class WindowsCaptureSessionManager : IDisposable
                 frameCount = Interlocked.Read(ref _frameCount),
                 lastFrameAt = ticks == 0 ? null : new DateTime(ticks, DateTimeKind.Utc).ToString("O"),
                 contentSize = new { width = Volatile.Read(ref _lastWidth), height = Volatile.Read(ref _lastHeight) },
-                frameTransport = "none"
+                frameTransport = BoundedPngFrameTransport.TransportName,
+                transport = _transport.Status(),
             };
         }
+
+        public object LatestFrameSnapshot() => _transport.LatestSnapshot();
 
         public void Dispose()
         {
             if (Interlocked.Exchange(ref _closed, 1) != 0) return;
             _framePool.FrameArrived -= OnFrameArrived;
             _item.Closed -= OnItemClosed;
+            _transport.DropPendingForRecreate();
+            try { _transport.WaitUntilIdleAsync().Wait(TimeSpan.FromSeconds(5)); }
+            catch { /* best effort shutdown */ }
             _session.Dispose();
             _framePool.Dispose();
+            _transport.Dispose();
         }
 
         private void OnItemClosed(GraphicsCaptureItem sender, object args) => Dispose();
@@ -334,21 +356,69 @@ internal sealed class WindowsCaptureSessionManager : IDisposable
         private void OnFrameArrived(Direct3D11CaptureFramePool sender, object args)
         {
             if (Volatile.Read(ref _closed) != 0) return;
+            Direct3D11CaptureFrame? frame = null;
             try
             {
-                using var frame = sender.TryGetNextFrame();
+                frame = sender.TryGetNextFrame();
                 if (frame is null) return;
                 Interlocked.Increment(ref _frameCount);
                 Interlocked.Exchange(ref _lastFrameUtcTicks, DateTime.UtcNow.Ticks);
+
                 var size = frame.ContentSize;
                 var changed = size.Width > 0 && size.Height > 0
                     && (size.Width != Volatile.Read(ref _lastWidth) || size.Height != Volatile.Read(ref _lastHeight));
-                Volatile.Write(ref _lastWidth, size.Width);
-                Volatile.Write(ref _lastHeight, size.Height);
+
                 if (changed)
                 {
-                    sender.Recreate(_device, DirectXPixelFormat.B8G8R8A8UIntNormalized, 2, size);
+                    frame.Dispose();
+                    frame = null;
+                    if (Interlocked.CompareExchange(ref _resizePending, 1, 0) == 0)
+                    {
+                        _transport.DropPendingForRecreate();
+                        _ = RecreateAfterDrainAsync(size);
+                    }
+                    return;
                 }
+
+                if (Volatile.Read(ref _resizePending) != 0)
+                {
+                    frame.Dispose();
+                    frame = null;
+                    return;
+                }
+
+                _transport.Enqueue(frame);
+                frame = null; // transport now owns frame lifetime
+            }
+            catch (ObjectDisposedException)
+            {
+                frame?.Dispose();
+            }
+            catch (COMException)
+            {
+                frame?.Dispose();
+            }
+            catch
+            {
+                frame?.Dispose();
+                throw;
+            }
+        }
+
+        private async Task RecreateAfterDrainAsync(Windows.Graphics.SizeInt32 size)
+        {
+            try
+            {
+                await _transport.WaitUntilIdleAsync().ConfigureAwait(false);
+                if (Volatile.Read(ref _closed) != 0) return;
+                if ((long)size.Width * size.Height > BoundedPngFrameTransport.MaxSnapshotPixels)
+                {
+                    Dispose();
+                    return;
+                }
+                _framePool.Recreate(_device, DirectXPixelFormat.B8G8R8A8UIntNormalized, 2, size);
+                Volatile.Write(ref _lastWidth, size.Width);
+                Volatile.Write(ref _lastHeight, size.Height);
             }
             catch (ObjectDisposedException)
             {
@@ -356,7 +426,11 @@ internal sealed class WindowsCaptureSessionManager : IDisposable
             }
             catch (COMException)
             {
-                // Runtime/device failures are observed through mount state in a later transport slice.
+                Dispose();
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _resizePending, 0);
             }
         }
     }

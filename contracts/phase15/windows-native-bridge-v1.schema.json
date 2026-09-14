@@ -16,6 +16,7 @@
             "window.enumerate",
             "capture.mount",
             "capture.update",
+            "capture.snapshot",
             "capture.unmount",
             "uia.inspect",
             "uia.action"

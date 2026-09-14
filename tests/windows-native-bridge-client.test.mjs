@@ -40,6 +40,8 @@ function resource() {
   }
 }
 
+const rect = { left: 0, top: 0, width: 100, height: 100, visible: true }
+
 test('JSONL bridge correlates concurrent responses by requestId even when the helper reverses responses', async () => {
   const bridge = client('reverse')
   try {
@@ -49,31 +51,51 @@ test('JSONL bridge correlates concurrent responses by requestId even when the he
     ])
     assert.equal(capabilities.providerEpoch, 'fake-epoch')
     assert.equal(capabilities.capture.supported, false)
+    assert.equal(capabilities.capture.frameTransport, 'png_base64_snapshot_v1')
     assert.deepEqual(windows.map(window => window.title), ['Fake Editor'])
   } finally {
     bridge.close()
   }
 })
 
-test('discovery baseline exposes capabilities and native window facts through the process boundary', async () => {
+test('bounded snapshot transport validates identity, byte length and SHA-256 across the process boundary', async () => {
   const bridge = client()
   try {
-    const capabilities = await bridge.capabilities()
-    const windows = await bridge.enumerateTopLevelWindows()
-    assert.equal(capabilities.provider, 'windows')
-    assert.equal(capabilities.automation.supported, false)
-    assert.equal(windows[0].hwndHex, '0x200')
-    assert.equal(windows[0].processId, 20)
+    const mount = await bridge.mountCapture(resource(), rect)
+    const snapshot = await bridge.snapshotCapture(mount)
+    assert.equal(snapshot.schema, 'windows_capture_snapshot_v1')
+    assert.equal(snapshot.mountId, 'mount-1')
+    assert.equal(snapshot.providerResourceId, resource().providerResourceId)
+    assert.equal(snapshot.mimeType, 'image/png')
+    assert.equal(snapshot.transport, 'png_base64_snapshot_v1')
+    assert.equal(snapshot.width, 1)
+    assert.equal(snapshot.height, 1)
+    assert.match(snapshot.sha256, /^[0-9a-f]{64}$/)
+    assert.ok(snapshot.encodedBytes > 0)
+    await bridge.unmountCapture(mount)
   } finally {
     bridge.close()
   }
 })
 
-test('remote typed capture failure propagates without fallback or fake success', async () => {
-  const bridge = client()
+test('tampered snapshot digest fails closed at the TypeScript trust boundary', async () => {
+  const bridge = client('bad-frame-hash')
+  try {
+    const mount = await bridge.mountCapture(resource(), rect)
+    await assert.rejects(
+      () => bridge.snapshotCapture(mount),
+      error => error instanceof WindowsNativeBridgeProtocolError && error.code === 'FRAME_INTEGRITY',
+    )
+  } finally {
+    bridge.close()
+  }
+})
+
+test('discovery-only helper still propagates typed capture failure without fallback', async () => {
+  const bridge = client('discovery-only')
   try {
     await assert.rejects(
-      () => bridge.mountCapture(resource(), { left: 0, top: 0, width: 100, height: 100, visible: true }),
+      () => bridge.mountCapture(resource(), rect),
       error => error instanceof WindowsNativeBridgeProtocolError && error.code === 'CAPTURE_NOT_IMPLEMENTED',
     )
   } finally {
@@ -83,10 +105,7 @@ test('remote typed capture failure propagates without fallback or fake success',
 
 test('malformed native stdout is terminal and fails closed', async () => {
   const bridge = client('malformed')
-  await assert.rejects(
-    () => bridge.capabilities(),
-    error => error instanceof Error,
-  )
+  await assert.rejects(() => bridge.capabilities(), error => error instanceof Error)
   bridge.close()
 })
 

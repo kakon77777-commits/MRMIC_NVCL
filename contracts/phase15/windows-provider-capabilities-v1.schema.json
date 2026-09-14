@@ -18,7 +18,12 @@
         "api": { "const": "windows_graphics_capture" },
         "supported": { "type": "boolean" },
         "sessionLifecycleSupported": { "type": "boolean" },
-        "frameTransport": { "enum": ["none"] },
+        "frameTransport": { "enum": ["none", "png_base64_snapshot_v1"] },
+        "frameTransportSupported": { "type": "boolean" },
+        "maxActiveMounts": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "frameQueueCapacity": { "type": "integer", "minimum": 1, "maximum": 16 },
+        "maxSnapshotPixels": { "type": "integer", "minimum": 1 },
+        "maxSnapshotBytes": { "type": "integer", "minimum": 1024 },
         "minimumBuild": { "const": 18362 },
         "target": { "const": "hwnd" }
       }

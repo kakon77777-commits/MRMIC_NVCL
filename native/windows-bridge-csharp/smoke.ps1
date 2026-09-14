@@ -32,11 +32,16 @@ if ($cap.protocol -ne 'mrmic-windows-native-bridge/v1') { throw 'Unexpected brid
 if ($cap.result.provider -ne 'windows') { throw 'Unexpected Windows provider id' }
 if ([string]::IsNullOrWhiteSpace([string]$cap.result.providerEpoch)) { throw 'providerEpoch was not returned' }
 if (-not $cap.result.capture.sessionLifecycleSupported) { throw 'WGC session lifecycle capability was not advertised' }
-if ($cap.result.capture.frameTransport -ne 'none') { throw 'Phase 15.6 must not advertise frame transport' }
-if ($cap.result.capture.supported) { throw 'Phase 15.6 must not advertise completed capture transport' }
-if ($cap.result.automation.supported) { throw 'Phase 15.6 must not advertise UI Automation' }
+if (-not $cap.result.capture.frameTransportSupported) { throw 'Phase 15.7 bounded frame transport was not advertised' }
+if ($cap.result.capture.frameTransport -ne 'png_base64_snapshot_v1') { throw 'Unexpected Phase 15.7 frame transport' }
+if ($cap.result.capture.maxActiveMounts -ne 4) { throw 'Unexpected Windows capture mount bound' }
+if ($cap.result.capture.frameQueueCapacity -ne 2) { throw 'Unexpected bounded frame queue capacity' }
+if ($cap.result.capture.maxSnapshotPixels -ne 8294400) { throw 'Unexpected snapshot pixel bound' }
+if ($cap.result.capture.maxSnapshotBytes -ne 16777216) { throw 'Unexpected snapshot byte bound' }
+if ($cap.result.capture.supported) { throw 'Phase 15.7 must not advertise completed portal capture integration' }
+if ($cap.result.automation.supported) { throw 'Phase 15.7 must not advertise UI Automation' }
 
 if (-not $windows -or -not $windows.ok) { throw 'Window enumeration smoke request failed' }
 if ($windows.protocol -ne 'mrmic-windows-native-bridge/v1') { throw 'Unexpected enumeration protocol' }
 
-Write-Host "Windows bridge smoke passed; enumerated $(@($windows.result).Count) top-level window facts."
+Write-Host "Windows bridge smoke passed; enumerated $(@($windows.result).Count) top-level window facts with bounded snapshot transport declared."

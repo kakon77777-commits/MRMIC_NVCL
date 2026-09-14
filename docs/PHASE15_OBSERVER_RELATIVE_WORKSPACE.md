@@ -1,121 +1,129 @@
 # Phase 15 - Observer-Relative Workspace
 
-Status: 15.6 HWND-bound Windows Graphics Capture session baseline.
+Status: 15.7 bounded Windows Graphics Capture snapshot transport baseline.
 
-Phase 15 adds an observer-relative coordination layer above the existing Canvas, identity, resource portal, recursive Canvas, runtime-presence and durable-event authorities.
+Phase 15 adds an observer-relative coordination layer above the existing Canvas, identity, resource-portal, recursive-Canvas, runtime-presence and durable-event authorities. It does not replace Windows or provider runtimes: Windows remains a resource host, while MRMIC owns spatial projection, authenticated observer views, selective convergence and resource-control boundaries.
 
-The phase does not replace Windows, provider runtimes, or existing portal ownership. It defines how authenticated human and AI principals can keep private views of one shared world, selectively converge on a shared rendezvous Canvas, recover that coordination state across process/conversation boundaries, safely re-enter it through authenticated HTTP/MCP surfaces, navigate existing recursive Canvas topology without creating a second competing world tree, and project Windows desktop windows as provider-owned resources without making the OS desktop the world authority.
+The guiding rule remains:
 
-## Delivered in 15.0
+> Shared World != Shared Screen
+
+Authenticated human and AI principals may keep different private views of one canonical world, enter existing recursive Canvas topology, selectively project resources into shared rendezvous spaces, and later re-enter the same durable coordination state from a new process or conversation.
+
+## Delivered in 15.0 - observer-relative shared world
 
 - `observer_view_v1`: private-by-default observer view state.
 - Independent foreground portal stacks and view lifecycle (`live`, `warm`, `frozen`, `sleeping`).
 - `shared_rendezvous_v1`: explicit invite/join membership.
-- `shared_resource_projection_v1`: selective projection of an existing portal into a shared room without moving or transferring the source resource.
-- Fail-closed authorization for private views and rendezvous membership.
-- Identity binding from `AuthenticatedPrincipal`; input contracts do not accept caller-supplied principal or semantic-agent identity.
-- JSON Schemas for observer views and shared rendezvous rooms.
+- `shared_resource_projection_v1`: selective projection without moving or transferring the source resource.
+- Identity binding from `AuthenticatedPrincipal`; caller payload cannot own principal or semantic-agent identity.
+- Existing provider authorization and `controlOwner` remain authoritative.
 
-## Delivered in 15.1
+## Delivered in 15.1 - durable continuity
 
-- `observer_workspace_event_v1`: append-only durable transition contract for observer views and rendezvous rooms.
-- `SqliteObserverWorkspaceEventStore`: sibling observer event stream in the same SQLite durable database authority used by MRMIC, without coercing observer transitions into `CanvasEvent`.
-- `DurableObserverWorkspaceRegistry`: deterministic recovery wrapper around the existing authorization/transition registry.
-- SHA-256 binding of persisted principal, replay command and resulting aggregate state.
-- Recovery fail-closed checks for payload tampering, duplicate event IDs, non-contiguous revisions, command/event mismatch and replay divergence.
-- Durable-append failure rollback and restart/idempotency validation.
-- Explicit separation between durable observer-world intention and ephemeral provider/runtime presence.
-- ADR-013 records the durability, privacy and authority boundary.
+- `observer_workspace_event_v1`: append-only durable transition stream.
+- SQLite persistence and deterministic recovery across process/conversation restarts.
+- SHA-256 binding of persisted principal, replay command and resulting state.
+- Fail-closed recovery on tampering, duplicate IDs, revision gaps, command mismatch or replay divergence.
+- Durable observer intention remains separate from ephemeral liveness/focus/runtime presence/control.
+- ADR-013 records the durability boundary.
 
-## Delivered in 15.2
+## Delivered in 15.2 - authenticated re-entry
 
-- `ObserverProtocolGateway`: authenticated HTTP and MCP re-entry surface over the durable observer authority.
-- HTTP: `GET /api/observer/snapshot` and `POST /api/observer/command`.
-- MCP: `/mcp/observer`, resource `mrmic://observer/self`, member-visible rendezvous template, tools `observer.get_snapshot` and `observer.command`.
-- Every request resolves a bearer principal; MCP sessions are pinned to the initializing principal and cross-principal reuse fails closed.
-- `observer-protocol-command-v1` formalizes the external command envelope without accepting caller-owned identity.
-- Standalone reference server `npm run observer`, secure-by-default: `MRMIC_PMW_BINDINGS_JSON` is mandatory.
-- `MRMIC_OBSERVER_DATABASE_PATH` allows the reference server to open the same persistent SQLite authority used by the observer event stream.
-- Capability discovery advertises the observer schemas, durability, auth requirement, HTTP paths, MCP path/resources/tools and reference-server port.
-- Network E2E closes the loop: authenticated HTTP creates/reads a view, then a fresh MCP session reads the same principal-filtered durable world.
-- ADR-014 records protocol, privacy and deployment boundaries.
+- Authenticated HTTP and MCP re-entry through `ObserverProtocolGateway`.
+- HTTP snapshot/command surfaces and a separate `/mcp/observer` authority.
+- MCP sessions are pinned to the initializing principal.
+- Raw observer event history remains private.
+- Network E2E proves that state created/read through authenticated HTTP can be read again by a fresh MCP session under the same principal.
+- ADR-014 records the protocol/privacy boundary.
 
-## Delivered in 15.3
+## Delivered in 15.3 - topology-authorized nested observer contexts
 
-- `observer_nested_canvas_v1`: optional nested context stack inside an existing private observer view.
-- Nested contexts reference existing Canvas topology by `parentCanvasId + childCanvasId + portalObjectId`; they do not create a second topology.
-- `CanvasAuthorityTopologyResolver` validates both directions of the existing recursive Canvas relation: the child document must point to the parent/portal and the parent `subcanvas` object must point to the child.
-- Nested navigation fails closed when topology authority is absent, mismatched, skipped or cyclic.
-- Each nested context has an independent `foregroundPortalIds` stack while the root view keeps its existing foreground stack.
-- Visibility is intentionally restrictive: nested contexts support only `inherit` and `hidden`; effective visibility is monotonic downward, so a hidden ancestor cannot be bypassed by a descendant.
-- Maximum observer nesting depth is 64.
-- Durable events add enter/leave, nested visibility and nested foreground transitions; deterministic replay requires the same topology authority for histories containing nested navigation.
-- Observer MCP adds `observer.get_canvas_contexts` and `mrmic://observer/view/{viewId}/contexts` for principal-filtered resolved context/visibility reads.
-- The standalone observer reference server accepts an injected topology resolver for integration tests and future unified runtime composition. With no resolver it remains root-only for nested navigation.
-- Capability discovery advertises nested context schema, visibility modes, maximum depth and `topologyAuthorityRequired=true`.
-- ADR-015 records the single-topology and visibility-inheritance boundary.
+- `observer_nested_canvas_v1` adds an observer-relative context stack without creating a second world tree.
+- `CanvasAuthorityTopologyResolver` verifies child `parentCanvasId/parentObjectId` against the parent `subcanvas.content.childCanvasId` in both directions.
+- Missing authority, skipped lineage, forged relations and cycles fail closed.
+- Each Canvas depth has its own foreground stack.
+- Visibility can only become more restrictive (`inherit | hidden`) down the hierarchy.
+- Nested state participates in deterministic durable replay.
+- ADR-015 records the single-topology boundary.
 
-## Delivered in 15.4
+## Delivered in 15.4 - Windows desktop-window provider
 
-- Canvas resource schema adds first-class `provider=windows` and `resourceKind=desktop_window`.
-- `@mrmic/provider-windows` defines the replaceable Windows-native bridge boundary and the provider-side window catalog.
-- `windows_provider_capabilities_v1` formalizes Windows Graphics Capture/UI Automation capability discovery.
-- `windows_window_resource_v1` formalizes provider-owned native window resources.
-- Provider resource identity is bound to `providerEpoch + processId + hwndHex`; HWND alone is explicitly not treated as durable identity.
-- Default discovery filters invisible, DWM-cloaked and untitled top-level windows before they become MRMIC resources.
-- `createWindowsWindowPortal` projects a provider-owned native window into the existing `resource_portal` contract while keeping dynamic HWND/UIA state out of canonical Canvas metadata.
-- `WindowsLivePortalHost` plugs into the existing Phase 13 `LivePortalHostRegistry` / `CanvasLivePortalCoordinator` rather than creating another projection runtime.
-- `WindowsProviderAccess` keeps inspection and mutation authority separate through `canInspect` / `canControl`; the provider does not invent a second `controlOwner`.
-- Semantic UI operations are bounded to UIA-style invoke/toggle/select/set-value actions in this baseline contract.
-- ADR-016 records Windows resource identity, capture, UIA and control-authority boundaries.
+- First-class Canvas resource type: `provider=windows`, `resourceKind=desktop_window`.
+- `@mrmic/provider-windows` defines discovery/catalog, resource projection, live-host and inspect/control boundaries.
+- Native resource identity is `providerEpoch + processId + hwndHex`; HWND alone is never durable identity.
+- Invisible, DWM-cloaked and untitled top-level windows are filtered from default discovery.
+- `WindowsLivePortalHost` reuses the existing `LivePortalHostRegistry` / `CanvasLivePortalCoordinator` instead of creating a second projection runtime.
+- `WindowsProviderAccess` keeps inspect and control authority separate and does not invent another control owner.
+- ADR-016 records Windows provider/resource authority.
 
-## Delivered in 15.5
+## Delivered in 15.5 - executable native discovery bridge
 
-- Adds the executable .NET 8 reference project at `native/windows-bridge-csharp/`.
-- Adds `mrmic-windows-native-bridge/v1` JSONL process protocol and formal `windows-native-bridge-v1` schema.
-- Native discovery implements top-level `EnumWindows`, visibility, DWM cloaking state, minimized state, PID/TID, title, class and normalized HWND facts.
-- Adds a TypeScript JSONL bridge client with request correlation, timeout, malformed-output and unexpected-exit fail-closed behavior.
-- Native discovery facts continue to flow through the existing Windows provider catalog; the helper does not own Canvas, observer state or `controlOwner`.
-- Capability discovery advertises `referenceImplementation=true` together with the bounded implemented scope.
-- Capture/UIA native commands failed explicitly rather than fabricating fallback success in this slice.
-- ADR-017 records the native process, scope and authority boundaries.
+- .NET 8 helper at `native/windows-bridge-csharp/`.
+- JSONL protocol `mrmic-windows-native-bridge/v1`.
+- Real Win32/DWM top-level discovery: visibility, minimized state, cloak state, PID/TID, title, class and normalized HWND.
+- TypeScript JSONL client correlates requests and fails closed on malformed stdout, timeout or unexpected helper exit.
+- Windows-native CI builds and actually launches the helper for discovery smoke requests.
+- ADR-017 records the native process boundary.
 
-## Delivered in 15.6
+## Delivered in 15.6 - HWND-bound WGC session lifecycle
 
-- Adds a real HWND-bound Windows Graphics Capture session manager to the reference native helper.
-- `capture.mount` validates `providerEpoch + providerResourceId + PID + HWND`, verifies the HWND is still live and owned by the expected process, rejects minimized windows, then creates a WGC capture item with `IGraphicsCaptureItemInterop.CreateForWindow(HWND)`.
-- The native helper creates a BGRA-capable D3D11 device, projects it into `IDirect3DDevice`, creates a free-threaded `Direct3D11CaptureFramePool`, creates a `GraphicsCaptureSession`, and calls `StartCapture`.
-- `FrameArrived` dequeues the next frame, records frame count/time/content size, recreates the frame pool on a content-size change, and releases the frame without synchronous pixel conversion or encoding.
-- `capture.update` returns bounded provider-runtime session facts; `capture.unmount` verifies resource identity and disposes the native WGC session.
-- Capability discovery separates session lifecycle from full visual transport: `captureSessionImplemented=true`, `frameTransportImplemented=false`, `captureImplemented=false`, `sessionLifecycleSupported=true`, `frameTransport=none`.
-- The helper still reports provider-level `capture.supported=false`, because MRMIC does not yet have a reference frame transport into a live/snapshot portal.
-- CI now separates the portable Node/TypeScript test job from a Windows-native job. The native project compiles against a current Windows SDK while declaring Windows 10 build 18362 as its minimum supported OS platform.
-- Windows-native CI launches the built helper and sends real `capabilities` and `window.enumerate` JSONL requests, closing the Phase 15.5 native-process discovery smoke gap.
-- ADR-018 records the WGC session lifecycle / frame transport boundary.
+- Real `capture.mount`, `capture.update`, `capture.unmount` native lifecycle.
+- Mount revalidates provider epoch/resource identity/PID/HWND and rejects stale or reused HWND identity.
+- `IGraphicsCaptureItemInterop.CreateForWindow(HWND)` creates the capture item.
+- BGRA-capable D3D11 device -> WinRT `IDirect3DDevice` -> free-threaded `Direct3D11CaptureFramePool` -> `GraphicsCaptureSession` -> `StartCapture`.
+- `FrameArrived` dequeues WGC frames without synchronous pixel conversion or encoding.
+- Frame-pool resize is explicit and bounded.
+- Windows CI compiles CsWinRT on Windows rather than pretending Linux is the native target.
+- ADR-018 separates capture-session lifecycle from frame transport.
 
-## Explicit non-goals through 15.6
+## Delivered in 15.7 - bounded WGC snapshot transport
 
-- Claiming a completed WGC pixel/frame transport or live Canvas rendering path. A native session is not the same thing as transported pixels.
-- Claiming real interactive WGC session E2E before it is validated against an interactive Windows desktop target.
-- Performing synchronous GPU readback, `SoftwareBitmap` conversion, PNG encoding or Canvas mutation inside the WGC `FrameArrived` callback.
-- UI Automation inspection or UIA semantic mutation in the reference helper.
-- UAC/secure-desktop automation, credential extraction, privileged desktop bypass, or unrestricted raw input injection.
-- Treating recovered `live` lifecycle intent as proof that a provider process, HWND or WGC session is alive.
-- Treating a reused HWND as the same native resource after a provider epoch changes.
-- Letting observer state create, rewrite or own canonical Canvas parent/child topology.
-- Allowing a child context to broaden visibility beyond a hidden ancestor.
-- A new resource ownership system.
-- Bypassing Phase 13 `controlOwner`, provider authorization, or secure-mode principal checks.
-- Public unauthenticated access to raw private observer event history.
+- `BoundedPngFrameTransport` moves checked-out WGC frames away from `FrameArrived` into a background worker.
+- Worker performs `SoftwareBitmap.CreateCopyFromSurfaceAsync`, PNG encoding and SHA-256.
+- Per-mount queue capacity is **2**; saturation drops older pending frames.
+- Only the latest encoded snapshot is retained.
+- Maximum active capture mounts: **4**.
+- Maximum snapshot pixels: **8,294,400**.
+- Maximum encoded PNG bytes: **16 MiB**.
+- Resize waits for transport-owned frames to drain before `FramePool.Recreate`.
+- Native protocol adds `capture.snapshot` and `windows_capture_snapshot_v1`.
+- TypeScript revalidates mount/resource identity, dimensions, pixel count, Base64 length, decoded byte count, SHA-256, MIME and transport identifier.
+- Capability discovery reports `frameTransportImplemented=true` and `frameTransport=png_base64_snapshot_v1` while keeping `captureImplemented=false`.
+- Provider-level `capture.supported` remains false until the snapshot bytes are wired into an actual MRMIC portal rendering surface.
+- ADR-019 records the latest-only bounded transport and trust boundary.
+
+## Authority model after 15.7
+
+Durable world authority:
+
+- observer views, rendezvous membership, selective projection and nested Canvas context are durable.
+
+Ephemeral provider/runtime authority:
+
+- HWND liveness, WGC sessions, frame queues, encoded snapshots, runtime focus and control remain provider/runtime state.
+
+Canvas stores geometry and bounded provider identity. Windows continues to own the native window. A capture snapshot is visual evidence, not canonical Canvas state and not ownership transfer.
+
+## Explicit non-goals through 15.7
+
+- Claiming completed Windows pixels-to-Canvas portal rendering. Phase 15.7 crosses the native process boundary but does not yet bind snapshots to the Canvas surface.
+- Claiming high-FPS streaming, zero-copy cross-process GPU sharing, video recording or archival frame completeness.
+- Claiming authoritative interactive WGC E2E from GitHub-hosted Windows runners.
+- UI Automation inspection or semantic actions in the reference helper.
+- Keyboard/pointer injection, UAC/secure-desktop bypass or credential access.
+- Treating recovered observer lifecycle intent as proof that a provider process, HWND or WGC session is alive.
+- Treating a reused HWND as the same resource after a provider epoch changes.
+- Letting observer state own or rewrite canonical Canvas topology.
+- Bypassing provider authorization or the existing `controlOwner` authority.
 - Claiming HDUS integration as complete.
-- Forcing the main Canvas MCP server and observer MCP authority into one internal server implementation.
 
 ## Next implementation slices
 
-1. Implement bounded WGC frame transport/readback outside the `FrameArrived` callback and connect it to snapshot/live portal projection.
-2. Validate the WGC session and frame transport on an interactive Windows desktop target.
-3. Add read-only UI Automation inspection, then semantic UIA actions behind the existing `controlOwner` authority.
-4. Validate multi-observer Windows portal isolation end-to-end.
-5. Add lifecycle scheduling so inactive AI views can become warm/frozen/sleeping without destroying provider resources unnecessarily.
-6. Add a unified routing/front-door option after the independent authorities are stable.
-7. Add HDUS bridge contracts only after MRMIC semantics are stable.
+1. Phase 15.8: project `png_base64_snapshot_v1` into the existing resource-portal/live-host path under observer-relative visibility.
+2. Validate capture + snapshot + portal rendering on an interactive Windows desktop target.
+3. Add read-only UI Automation inspection, followed by semantic UIA actions behind existing control authority.
+4. Validate multi-observer Windows portal isolation and selective convergence end-to-end.
+5. Add warm/frozen/sleeping scheduling for inactive AI workspaces.
+6. Consider higher-throughput or zero-copy frame transport only after the correctness path is closed.
+7. Add HDUS bridge contracts after MRMIC semantics are stable.

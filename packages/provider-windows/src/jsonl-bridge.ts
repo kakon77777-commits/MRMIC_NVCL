@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { createInterface } from 'node:readline'
 import type {
   WindowsCaptureMount,
@@ -13,6 +14,10 @@ import type {
 import type { OverlayRect } from '../../portal-overlay/src/index.js'
 
 export const WINDOWS_NATIVE_BRIDGE_PROTOCOL = 'mrmic-windows-native-bridge/v1' as const
+export const WINDOWS_CAPTURE_SNAPSHOT_SCHEMA = 'windows_capture_snapshot_v1' as const
+export const WINDOWS_CAPTURE_TRANSPORT = 'png_base64_snapshot_v1' as const
+export const WINDOWS_CAPTURE_MAX_SNAPSHOT_BYTES = 16 * 1024 * 1024
+export const WINDOWS_CAPTURE_MAX_SNAPSHOT_PIXELS = 8_294_400
 
 interface BridgeRequest {
   protocol: typeof WINDOWS_NATIVE_BRIDGE_PROTOCOL
@@ -37,6 +42,21 @@ interface BridgeFailure {
 
 type BridgeResponse = BridgeSuccess | BridgeFailure
 
+export interface WindowsCaptureSnapshot {
+  schema: typeof WINDOWS_CAPTURE_SNAPSHOT_SCHEMA
+  mountId: string
+  providerResourceId: string
+  frameSequence: number
+  capturedAt: string
+  width: number
+  height: number
+  mimeType: 'image/png'
+  encodedBytes: number
+  sha256: string
+  bytesBase64: string
+  transport: typeof WINDOWS_CAPTURE_TRANSPORT
+}
+
 export interface WindowsJsonlNativeBridgeOptions {
   command: string
   args?: string[]
@@ -60,15 +80,24 @@ function record(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-function text(value: unknown, label: string): string {
+function text(value: unknown, label: string, max = 4096): string {
   if (typeof value !== 'string' || !value.trim()) throw new WindowsNativeBridgeProtocolError('INVALID_RESPONSE', `${label} must be a non-empty string`)
-  return value.trim()
+  const normalized = value.trim()
+  if (normalized.length > max) throw new WindowsNativeBridgeProtocolError('INVALID_RESPONSE', `${label} exceeds ${max} characters`)
+  return normalized
+}
+
+function positiveInteger(value: unknown, label: string, max = Number.MAX_SAFE_INTEGER): number {
+  if (!Number.isSafeInteger(value) || Number(value) <= 0 || Number(value) > max) {
+    throw new WindowsNativeBridgeProtocolError('INVALID_RESPONSE', `${label} must be a positive integer within bounds`)
+  }
+  return Number(value)
 }
 
 function parseResponse(value: unknown): BridgeResponse {
   const input = record(value, 'response')
   if (input.protocol !== WINDOWS_NATIVE_BRIDGE_PROTOCOL) throw new WindowsNativeBridgeProtocolError('PROTOCOL_MISMATCH', 'Windows native bridge protocol mismatch')
-  const requestId = text(input.requestId, 'response.requestId')
+  const requestId = text(input.requestId, 'response.requestId', 256)
   if (input.ok === true) {
     return { protocol: WINDOWS_NATIVE_BRIDGE_PROTOCOL, requestId, ok: true, result: input.result }
   }
@@ -78,10 +107,48 @@ function parseResponse(value: unknown): BridgeResponse {
       protocol: WINDOWS_NATIVE_BRIDGE_PROTOCOL,
       requestId,
       ok: false,
-      error: { code: text(error.code, 'response.error.code'), message: text(error.message, 'response.error.message') },
+      error: { code: text(error.code, 'response.error.code', 128), message: text(error.message, 'response.error.message') },
     }
   }
   throw new WindowsNativeBridgeProtocolError('INVALID_RESPONSE', 'response.ok must be boolean')
+}
+
+function parseCaptureSnapshot(value: unknown, expected: WindowsCaptureMount): WindowsCaptureSnapshot {
+  const input = record(value, 'capture.snapshot')
+  if (input.schema !== WINDOWS_CAPTURE_SNAPSHOT_SCHEMA) throw new WindowsNativeBridgeProtocolError('INVALID_RESPONSE', 'capture.snapshot schema mismatch')
+  const mountId = text(input.mountId, 'capture.snapshot.mountId', 256)
+  const providerResourceId = text(input.providerResourceId, 'capture.snapshot.providerResourceId', 512)
+  if (mountId !== expected.mountId || providerResourceId !== expected.providerResourceId) {
+    throw new WindowsNativeBridgeProtocolError('CAPTURE_IDENTITY_MISMATCH', 'capture.snapshot does not match the requested mount identity')
+  }
+  const width = positiveInteger(input.width, 'capture.snapshot.width', 32768)
+  const height = positiveInteger(input.height, 'capture.snapshot.height', 32768)
+  if (width * height > WINDOWS_CAPTURE_MAX_SNAPSHOT_PIXELS) throw new WindowsNativeBridgeProtocolError('FRAME_BOUNDS', 'capture.snapshot pixel count exceeds the transport bound')
+  const encodedBytes = positiveInteger(input.encodedBytes, 'capture.snapshot.encodedBytes', WINDOWS_CAPTURE_MAX_SNAPSHOT_BYTES)
+  const bytesBase64 = text(input.bytesBase64, 'capture.snapshot.bytesBase64', Math.ceil(WINDOWS_CAPTURE_MAX_SNAPSHOT_BYTES * 4 / 3) + 16)
+  const decoded = Buffer.from(bytesBase64, 'base64')
+  if (decoded.length !== encodedBytes) throw new WindowsNativeBridgeProtocolError('FRAME_INTEGRITY', 'capture.snapshot encoded byte length mismatch')
+  const sha256 = text(input.sha256, 'capture.snapshot.sha256', 64).toLowerCase()
+  if (!/^[0-9a-f]{64}$/.test(sha256)) throw new WindowsNativeBridgeProtocolError('FRAME_INTEGRITY', 'capture.snapshot sha256 is malformed')
+  const actualSha256 = createHash('sha256').update(decoded).digest('hex')
+  if (actualSha256 !== sha256) throw new WindowsNativeBridgeProtocolError('FRAME_INTEGRITY', 'capture.snapshot sha256 mismatch')
+  if (input.mimeType !== 'image/png' || input.transport !== WINDOWS_CAPTURE_TRANSPORT) {
+    throw new WindowsNativeBridgeProtocolError('INVALID_RESPONSE', 'capture.snapshot transport metadata mismatch')
+  }
+  return {
+    schema: WINDOWS_CAPTURE_SNAPSHOT_SCHEMA,
+    mountId,
+    providerResourceId,
+    frameSequence: positiveInteger(input.frameSequence, 'capture.snapshot.frameSequence'),
+    capturedAt: text(input.capturedAt, 'capture.snapshot.capturedAt', 128),
+    width,
+    height,
+    mimeType: 'image/png',
+    encodedBytes,
+    sha256,
+    bytesBase64,
+    transport: WINDOWS_CAPTURE_TRANSPORT,
+  }
 }
 
 interface PendingRequest {
@@ -124,6 +191,11 @@ export class WindowsJsonlNativeBridge implements WindowsNativeBridge {
 
   async updateCapture(mount: WindowsCaptureMount, rect: OverlayRect): Promise<void> {
     await this.#request('capture.update', { mountId: mount.mountId, providerResourceId: mount.providerResourceId, rect })
+  }
+
+  async snapshotCapture(mount: WindowsCaptureMount): Promise<WindowsCaptureSnapshot> {
+    const result = await this.#request('capture.snapshot', { mountId: mount.mountId, providerResourceId: mount.providerResourceId })
+    return parseCaptureSnapshot(result, mount)
   }
 
   async unmountCapture(mount: WindowsCaptureMount): Promise<void> {

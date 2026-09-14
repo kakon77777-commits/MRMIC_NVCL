@@ -97,6 +97,11 @@ internal static class Program
                         RequiredString(parameters, "mountId"),
                         RequiredString(parameters, "providerResourceId")));
                     break;
+                case "capture.snapshot":
+                    WriteSuccess(requestId, captures.ReadSnapshot(
+                        RequiredString(parameters, "mountId"),
+                        RequiredString(parameters, "providerResourceId")));
+                    break;
                 case "capture.unmount":
                     WriteSuccess(requestId, captures.Unmount(
                         RequiredString(parameters, "mountId"),
@@ -104,7 +109,7 @@ internal static class Program
                     break;
                 case "uia.inspect":
                 case "uia.action":
-                    WriteFailure(requestId, "UIA_NOT_IMPLEMENTED", "Phase 15.6 does not implement UI Automation yet");
+                    WriteFailure(requestId, "UIA_NOT_IMPLEMENTED", "Phase 15.7 does not implement UI Automation yet");
                     break;
                 default:
                     WriteFailure(requestId, "METHOD_NOT_FOUND", $"Unsupported Windows bridge method: {method}");
@@ -132,7 +137,12 @@ internal static class Program
             api = "windows_graphics_capture",
             supported = false,
             sessionLifecycleSupported = true,
-            frameTransport = "none",
+            frameTransport = BoundedPngFrameTransport.TransportName,
+            frameTransportSupported = true,
+            maxActiveMounts = WindowsCaptureSessionManager.MaxActiveMounts,
+            frameQueueCapacity = BoundedPngFrameTransport.QueueCapacity,
+            maxSnapshotPixels = BoundedPngFrameTransport.MaxSnapshotPixels,
+            maxSnapshotBytes = BoundedPngFrameTransport.MaxSnapshotBytes,
             minimumBuild = 18362,
             target = "hwnd"
         },

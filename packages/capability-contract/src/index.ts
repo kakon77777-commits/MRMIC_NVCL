@@ -41,10 +41,10 @@ export interface MrmicCapabilitiesV1 {
       protocolVersion: 'mrmic-windows-native-bridge/v1'
       referenceImplementation: true
       referenceProject: 'native/windows-bridge-csharp'
-      scope: 'discovery_and_capture_session'
+      scope: 'wgc_bounded_snapshot_transport'
       discoveryImplemented: true
       captureSessionImplemented: true
-      frameTransportImplemented: false
+      frameTransportImplemented: true
       captureImplemented: false
       automationImplemented: false
     }
@@ -53,7 +53,11 @@ export interface MrmicCapabilitiesV1 {
       target: 'hwnd'
       minimumBuild: 18362
       sessionLifecycleSupported: true
-      frameTransport: 'none'
+      frameTransport: 'png_base64_snapshot_v1'
+      maxActiveMounts: 4
+      frameQueueCapacity: 2
+      maxSnapshotPixels: 8294400
+      maxSnapshotBytes: 16777216
     }
     automation: {
       api: 'uia'
@@ -115,10 +119,10 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
       protocolVersion: 'mrmic-windows-native-bridge/v1',
       referenceImplementation: true,
       referenceProject: 'native/windows-bridge-csharp',
-      scope: 'discovery_and_capture_session',
+      scope: 'wgc_bounded_snapshot_transport',
       discoveryImplemented: true,
       captureSessionImplemented: true,
-      frameTransportImplemented: false,
+      frameTransportImplemented: true,
       captureImplemented: false,
       automationImplemented: false,
     },
@@ -127,7 +131,11 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
       target: 'hwnd',
       minimumBuild: 18362,
       sessionLifecycleSupported: true,
-      frameTransport: 'none',
+      frameTransport: 'png_base64_snapshot_v1',
+      maxActiveMounts: 4,
+      frameQueueCapacity: 2,
+      maxSnapshotPixels: 8294400,
+      maxSnapshotBytes: 16777216,
     },
     automation: {
       api: 'uia',

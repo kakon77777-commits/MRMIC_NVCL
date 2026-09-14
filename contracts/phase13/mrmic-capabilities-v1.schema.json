@@ -105,10 +105,10 @@
             "protocolVersion": { "const": "mrmic-windows-native-bridge/v1" },
             "referenceImplementation": { "const": true },
             "referenceProject": { "const": "native/windows-bridge-csharp" },
-            "scope": { "const": "discovery_and_capture_session" },
+            "scope": { "const": "wgc_bounded_snapshot_transport" },
             "discoveryImplemented": { "const": true },
             "captureSessionImplemented": { "const": true },
-            "frameTransportImplemented": { "const": false },
+            "frameTransportImplemented": { "const": true },
             "captureImplemented": { "const": false },
             "automationImplemented": { "const": false }
           }
@@ -116,13 +116,17 @@
         "capture": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["api", "target", "minimumBuild", "sessionLifecycleSupported", "frameTransport"],
+          "required": ["api", "target", "minimumBuild", "sessionLifecycleSupported", "frameTransport", "maxActiveMounts", "frameQueueCapacity", "maxSnapshotPixels", "maxSnapshotBytes"],
           "properties": {
             "api": { "const": "windows_graphics_capture" },
             "target": { "const": "hwnd" },
             "minimumBuild": { "const": 18362 },
             "sessionLifecycleSupported": { "const": true },
-            "frameTransport": { "const": "none" }
+            "frameTransport": { "const": "png_base64_snapshot_v1" },
+            "maxActiveMounts": { "const": 4 },
+            "frameQueueCapacity": { "const": 2 },
+            "maxSnapshotPixels": { "const": 8294400 },
+            "maxSnapshotBytes": { "const": 16777216 }
           }
         },
         "automation": {
