@@ -22,7 +22,7 @@ test('HTTP and MCP expose one versioned provider-neutral capability document', a
   }
 })
 
-test('capability schema advertises observer-relative re-entry and Windows provider boundary', async () => {
+test('capability schema advertises observer-relative re-entry and bounded Windows discovery bridge', async () => {
   const schema = JSON.parse(await readFile('contracts/phase13/mrmic-capabilities-v1.schema.json', 'utf8'))
   assert.equal(schema.$id, 'https://evemisslab.com/schemas/mrmic-capabilities-v1.schema.json')
   assert.deepEqual(schema.required, [
@@ -47,5 +47,9 @@ test('capability schema advertises observer-relative re-entry and Windows provid
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.api, 'windows_graphics_capture')
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.minimumBuild, 18362)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.automation.api, 'uia')
-  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.referenceImplementation, false)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.referenceImplementation, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.scope, 'discovery_only')
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.discoveryImplemented, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.captureImplemented, false)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.automationImplemented, false)
 })

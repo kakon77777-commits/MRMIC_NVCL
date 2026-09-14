@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/mrmic/contracts/phase15/windows-native-bridge-v1.schema.json",
+  "title": "MRMIC Windows Native Bridge JSONL v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "requestId", "method", "params"],
+      "properties": {
+        "protocol": { "const": "mrmic-windows-native-bridge/v1" },
+        "requestId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "method": {
+          "enum": [
+            "capabilities",
+            "window.enumerate",
+            "capture.mount",
+            "capture.update",
+            "capture.unmount",
+            "uia.inspect",
+            "uia.action"
+          ]
+        },
+        "params": { "type": "object" }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "requestId", "ok", "result"],
+      "properties": {
+        "protocol": { "const": "mrmic-windows-native-bridge/v1" },
+        "requestId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "ok": { "const": true },
+        "result": {}
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "requestId", "ok", "error"],
+      "properties": {
+        "protocol": { "const": "mrmic-windows-native-bridge/v1" },
+        "requestId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "ok": { "const": false },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message"],
+          "properties": {
+            "code": { "type": "string", "minLength": 1, "maxLength": 128 },
+            "message": { "type": "string", "minLength": 1, "maxLength": 4096 }
+          }
+        }
+      }
+    }
+  ]
+}

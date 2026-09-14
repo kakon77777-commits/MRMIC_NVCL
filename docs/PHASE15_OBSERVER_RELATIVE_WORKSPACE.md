@@ -1,6 +1,6 @@
 # Phase 15 - Observer-Relative Workspace
 
-Status: 15.4 Windows desktop-window provider adapter baseline.
+Status: 15.5 Windows native discovery bridge baseline.
 
 Phase 15 adds an observer-relative coordination layer above the existing Canvas, identity, resource portal, recursive Canvas, runtime-presence and durable-event authorities.
 
@@ -66,14 +66,26 @@ The phase does not replace Windows, provider runtimes, or existing portal owners
 - `createWindowsWindowPortal` projects a provider-owned native window into the existing `resource_portal` contract while keeping dynamic HWND/UIA state out of canonical Canvas metadata.
 - `WindowsLivePortalHost` plugs into the existing Phase 13 `LivePortalHostRegistry` / `CanvasLivePortalCoordinator` rather than creating another projection runtime.
 - `WindowsProviderAccess` keeps inspection and mutation authority separate through `canInspect` / `canControl`; the provider does not invent a second `controlOwner`.
-- Semantic UI operations are bounded to UIA-style invoke/toggle/select/set-value actions in this baseline.
-- Capability discovery advertises the Windows provider contract while explicitly recording `nativeBridge.referenceImplementation=false`.
+- Semantic UI operations are bounded to UIA-style invoke/toggle/select/set-value actions in this baseline contract.
 - ADR-016 records Windows resource identity, capture, UIA and control-authority boundaries.
 
-## Explicit non-goals through 15.4
+## Delivered in 15.5
 
-- Claiming that a Windows-native WinRT/D3D capture helper has already been implemented or validated on a real Windows host.
-- UAC/secure-desktop automation, credential extraction, or privileged desktop bypass.
+- Adds the executable .NET 8 reference project at `native/windows-bridge-csharp/`.
+- Adds `mrmic-windows-native-bridge/v1` JSONL process protocol and formal `windows-native-bridge-v1` schema.
+- Native discovery implements top-level `EnumWindows`, visibility, DWM cloaking state, minimized state, PID/TID, title, class and normalized HWND facts.
+- Adds a TypeScript JSONL bridge client with request correlation, timeout, malformed-output and unexpected-exit fail-closed behavior.
+- Native discovery facts continue to flow through the existing Windows provider catalog; the helper does not own Canvas, observer state or `controlOwner`.
+- Capability discovery now advertises `referenceImplementation=true` only together with `scope=discovery_only`, `discoveryImplemented=true`, `captureImplemented=false` and `automationImplemented=false`.
+- Capture/UIA native commands fail explicitly rather than fabricating fallback success.
+- CI compiles the C# helper with .NET 8 and warnings-as-errors in addition to `npm ci`, strict TypeScript and the complete Node test suite.
+- ADR-017 records the native process, scope and authority boundaries.
+
+## Explicit non-goals through 15.5
+
+- Claiming real Windows-host discovery E2E evidence before the helper is actually run on a Windows desktop.
+- Claiming that Windows Graphics Capture frame acquisition, D3D transport, UIA inspection or UIA semantic mutation is implemented in the reference helper.
+- UAC/secure-desktop automation, credential extraction, privileged desktop bypass, or unrestricted raw input injection.
 - Treating recovered `live` lifecycle intent as proof that a provider process or HWND is alive.
 - Treating a reused HWND as the same native resource after a provider epoch changes.
 - Letting observer state create, rewrite or own canonical Canvas parent/child topology.
@@ -86,8 +98,10 @@ The phase does not replace Windows, provider runtimes, or existing portal owners
 
 ## Next implementation slices
 
-1. Implement the Windows-native bridge on a real Windows host: Win32 discovery, `Windows.Graphics.Capture` from HWND, UIA inspection and semantic actions.
-2. Bind observer-visible Windows portals to the existing live `controlOwner` authority and validate multi-observer isolation end-to-end.
-3. Add lifecycle scheduling so inactive AI views can become warm/frozen/sleeping without destroying provider resources unnecessarily.
-4. Add a unified routing/front-door option after the independent authorities are stable.
-5. Add HDUS bridge contracts only after MRMIC semantics are stable.
+1. Run and validate the reference discovery helper on a real Windows host.
+2. Implement HWND-bound `Windows.Graphics.Capture` frame acquisition and bounded frame transport.
+3. Add read-only UI Automation inspection, then semantic UIA actions behind the existing `controlOwner` authority.
+4. Validate multi-observer Windows portal isolation end-to-end.
+5. Add lifecycle scheduling so inactive AI views can become warm/frozen/sleeping without destroying provider resources unnecessarily.
+6. Add a unified routing/front-door option after the independent authorities are stable.
+7. Add HDUS bridge contracts only after MRMIC semantics are stable.

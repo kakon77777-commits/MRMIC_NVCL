@@ -12,6 +12,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
       - run: npm ci
       - run: npm run check
+      - run: dotnet build ./native/windows-bridge-csharp/MRMIC.WindowsBridge.csproj -c Release
       - run: npm test

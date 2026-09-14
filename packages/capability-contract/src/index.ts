@@ -36,7 +36,16 @@ export interface MrmicCapabilitiesV1 {
     providerCapabilitySchemaVersion: 'windows_provider_capabilities_v1'
     adapterPackage: '@mrmic/provider-windows'
     adapterVersion: '0.15.4'
-    nativeBridge: { required: true; referenceImplementation: false }
+    nativeBridge: {
+      required: true
+      protocolVersion: 'mrmic-windows-native-bridge/v1'
+      referenceImplementation: true
+      referenceProject: 'native/windows-bridge-csharp'
+      scope: 'discovery_only'
+      discoveryImplemented: true
+      captureImplemented: false
+      automationImplemented: false
+    }
     capture: { api: 'windows_graphics_capture'; target: 'hwnd'; minimumBuild: 18362 }
     automation: {
       api: 'uia'
@@ -93,7 +102,16 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
     providerCapabilitySchemaVersion: 'windows_provider_capabilities_v1',
     adapterPackage: '@mrmic/provider-windows',
     adapterVersion: '0.15.4',
-    nativeBridge: { required: true, referenceImplementation: false },
+    nativeBridge: {
+      required: true,
+      protocolVersion: 'mrmic-windows-native-bridge/v1',
+      referenceImplementation: true,
+      referenceProject: 'native/windows-bridge-csharp',
+      scope: 'discovery_only',
+      discoveryImplemented: true,
+      captureImplemented: false,
+      automationImplemented: false,
+    },
     capture: { api: 'windows_graphics_capture', target: 'hwnd', minimumBuild: 18362 },
     automation: {
       api: 'uia',

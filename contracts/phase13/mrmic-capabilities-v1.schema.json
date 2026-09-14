@@ -99,10 +99,16 @@
         "nativeBridge": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["required", "referenceImplementation"],
+          "required": ["required", "protocolVersion", "referenceImplementation", "referenceProject", "scope", "discoveryImplemented", "captureImplemented", "automationImplemented"],
           "properties": {
             "required": { "const": true },
-            "referenceImplementation": { "const": false }
+            "protocolVersion": { "const": "mrmic-windows-native-bridge/v1" },
+            "referenceImplementation": { "const": true },
+            "referenceProject": { "const": "native/windows-bridge-csharp" },
+            "scope": { "const": "discovery_only" },
+            "discoveryImplemented": { "const": true },
+            "captureImplemented": { "const": false },
+            "automationImplemented": { "const": false }
           }
         },
         "capture": {
