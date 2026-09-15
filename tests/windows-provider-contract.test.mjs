@@ -3,15 +3,17 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { MRMIC_CAPABILITIES } from '../dist/packages/capability-contract/src/index.js'
 
-test('Windows provider schemas publish bounded snapshot and live portal visual contracts', async () => {
+test('Windows provider schemas publish bounded snapshot, portal visual, and refresh policy contracts', async () => {
   const capabilitySchema = JSON.parse(await readFile('contracts/phase15/windows-provider-capabilities-v1.schema.json', 'utf8'))
   const resourceSchema = JSON.parse(await readFile('contracts/phase15/windows-window-resource-v1.schema.json', 'utf8'))
   const snapshotSchema = JSON.parse(await readFile('contracts/phase15/windows-capture-snapshot-v1.schema.json', 'utf8'))
   const visualSchema = JSON.parse(await readFile('contracts/phase15/live-portal-visual-frame-v1.schema.json', 'utf8'))
+  const refreshSchema = JSON.parse(await readFile('contracts/phase15/observer-portal-refresh-policy-v1.schema.json', 'utf8'))
   assert.equal(capabilitySchema.$id, 'https://evemisslab.com/mrmic/contracts/phase15/windows-provider-capabilities-v1.schema.json')
   assert.equal(resourceSchema.$id, 'https://evemisslab.com/mrmic/contracts/phase15/windows-window-resource-v1.schema.json')
   assert.equal(snapshotSchema.$id, 'https://evemisslab.com/mrmic/contracts/phase15/windows-capture-snapshot-v1.schema.json')
   assert.equal(visualSchema.$id, 'https://evemisslab.com/mrmic/contracts/phase15/live-portal-visual-frame-v1.schema.json')
+  assert.equal(refreshSchema.$id, 'https://evemisslab.com/mrmic/contracts/phase15/observer-portal-refresh-policy-v1.schema.json')
   assert.equal(capabilitySchema.properties.capture.properties.minimumBuild.const, 18362)
   assert.deepEqual(capabilitySchema.properties.capture.properties.frameTransport.enum, ['none', 'png_base64_snapshot_v1'])
   assert.equal(snapshotSchema.properties.mimeType.const, 'image/png')
@@ -21,11 +23,19 @@ test('Windows provider schemas publish bounded snapshot and live portal visual c
   assert.equal(visualSchema.properties.mimeType.const, 'image/png')
   assert.equal(visualSchema.properties.sha256.pattern, '^[0-9a-f]{64}$')
   assert.equal(visualSchema.properties.bytesBase64.maxLength, 22369640)
+  assert.equal(refreshSchema.properties.liveRefreshMs.const, 250)
+  assert.equal(refreshSchema.properties.warmRefreshMs.const, 2000)
+  assert.equal(refreshSchema.properties.sharedRefreshMs.const, 500)
+  assert.equal(refreshSchema.properties.policyPollMs.const, 1000)
+  assert.equal(refreshSchema.properties.maxCachedFramesPerTarget.const, 4)
+  assert.equal(refreshSchema.properties.frozenRetainsLastFrame.const, true)
+  assert.equal(refreshSchema.properties.sleepingDropsFrame.const, true)
+  assert.equal(refreshSchema.properties.nonOverlapping.const, true)
   assert.equal(resourceSchema.properties.provider.const, 'windows')
   assert.equal(resourceSchema.properties.resourceKind.const, 'desktop_window')
 })
 
-test('global capability claims observer-gated snapshot-backed portal capture but not UIA', () => {
+test('global capability claims bounded observer-gated refresh but not UIA', () => {
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.supported, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.adapterPackage, '@mrmic/provider-windows')
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.adapterVersion, '0.15.4')
@@ -44,5 +54,14 @@ test('global capability claims observer-gated snapshot-backed portal capture but
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.canonicalPixelsDurable, false)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.maxActiveMounts, 4)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.frameQueueCapacity, 2)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.refresh.policySchemaVersion, 'observer_portal_refresh_policy_v1')
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.refresh.liveRefreshMs, 250)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.refresh.warmRefreshMs, 2000)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.refresh.sharedRefreshMs, 500)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.refresh.policyPollMs, 1000)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.refresh.maxCachedFramesPerTarget, 4)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.refresh.frozenRetainsLastFrame, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.refresh.sleepingDropsFrame, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.refresh.nonOverlapping, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.automation.api, 'uia')
 })

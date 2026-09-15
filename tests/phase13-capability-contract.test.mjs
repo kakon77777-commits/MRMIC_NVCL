@@ -22,7 +22,7 @@ test('HTTP and MCP expose one versioned provider-neutral capability document', a
   }
 })
 
-test('capability schema advertises observer-gated Windows snapshot portal projection', async () => {
+test('capability schema advertises observer-gated lifecycle-aware Windows portal refresh', async () => {
   const schema = JSON.parse(await readFile('contracts/phase13/mrmic-capabilities-v1.schema.json', 'utf8'))
   assert.equal(schema.$id, 'https://evemisslab.com/schemas/mrmic-capabilities-v1.schema.json')
   assert.deepEqual(schema.required, [
@@ -35,6 +35,7 @@ test('capability schema advertises observer-gated Windows snapshot portal projec
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('observer_relative_view_v1'))
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_desktop_window_v1'))
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_snapshot_portal_v1'))
+  assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('observer_portal_refresh_v1'))
   assert.equal(MRMIC_CAPABILITIES.resourcePortal.supported, true)
   assert.equal(MRMIC_CAPABILITIES.runtimePresence.supported, true)
   assert.equal(MRMIC_CAPABILITIES.observerWorkspace.supported, true)
@@ -52,6 +53,17 @@ test('capability schema advertises observer-gated Windows snapshot portal projec
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.frameQueueCapacity, 2)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.maxSnapshotPixels, 8294400)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.maxSnapshotBytes, 16777216)
+  assert.deepEqual(MRMIC_CAPABILITIES.windowsProvider.capture.refresh, {
+    policySchemaVersion: 'observer_portal_refresh_policy_v1',
+    liveRefreshMs: 250,
+    warmRefreshMs: 2000,
+    sharedRefreshMs: 500,
+    policyPollMs: 1000,
+    maxCachedFramesPerTarget: 4,
+    frozenRetainsLastFrame: true,
+    sleepingDropsFrame: true,
+    nonOverlapping: true,
+  })
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.scope, 'observer_gated_snapshot_portal')
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.discoveryImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.captureSessionImplemented, true)

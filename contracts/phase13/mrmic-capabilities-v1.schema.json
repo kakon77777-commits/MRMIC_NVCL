@@ -116,7 +116,7 @@
         "capture": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["api", "target", "minimumBuild", "sessionLifecycleSupported", "frameTransport", "portalProjection", "observerGated", "canonicalPixelsDurable", "maxActiveMounts", "frameQueueCapacity", "maxSnapshotPixels", "maxSnapshotBytes"],
+          "required": ["api", "target", "minimumBuild", "sessionLifecycleSupported", "frameTransport", "portalProjection", "observerGated", "canonicalPixelsDurable", "maxActiveMounts", "frameQueueCapacity", "maxSnapshotPixels", "maxSnapshotBytes", "refresh"],
           "properties": {
             "api": { "const": "windows_graphics_capture" },
             "target": { "const": "hwnd" },
@@ -129,7 +129,23 @@
             "maxActiveMounts": { "const": 4 },
             "frameQueueCapacity": { "const": 2 },
             "maxSnapshotPixels": { "const": 8294400 },
-            "maxSnapshotBytes": { "const": 16777216 }
+            "maxSnapshotBytes": { "const": 16777216 },
+            "refresh": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["policySchemaVersion", "liveRefreshMs", "warmRefreshMs", "sharedRefreshMs", "policyPollMs", "maxCachedFramesPerTarget", "frozenRetainsLastFrame", "sleepingDropsFrame", "nonOverlapping"],
+              "properties": {
+                "policySchemaVersion": { "const": "observer_portal_refresh_policy_v1" },
+                "liveRefreshMs": { "const": 250 },
+                "warmRefreshMs": { "const": 2000 },
+                "sharedRefreshMs": { "const": 500 },
+                "policyPollMs": { "const": 1000 },
+                "maxCachedFramesPerTarget": { "const": 4 },
+                "frozenRetainsLastFrame": { "const": true },
+                "sleepingDropsFrame": { "const": true },
+                "nonOverlapping": { "const": true }
+              }
+            }
           }
         },
         "automation": {

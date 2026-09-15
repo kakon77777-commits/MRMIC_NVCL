@@ -1,6 +1,6 @@
 # Phase 15 - Observer-Relative Workspace
 
-Status: 15.8 observer-gated Windows snapshot portal projection baseline.
+Status: 15.9 observer-gated lifecycle-aware bounded Windows portal refresh baseline.
 
 Phase 15 adds an observer-relative coordination layer above the existing Canvas, identity, resource-portal, recursive-Canvas, runtime-presence and durable-event authorities. It does not replace Windows or provider runtimes: Windows remains a resource host, while MRMIC owns spatial projection, authenticated observer views, selective convergence and resource-control boundaries.
 
@@ -94,61 +94,77 @@ Authenticated human and AI principals may keep different private views of one ca
 ## Delivered in 15.8 - observer-gated Windows portal projection
 
 - `live_portal_visual_frame_v1` defines a provider-neutral ephemeral visual frame bound to `portalObjectId + provider + providerResourceId`.
-- `LivePortalHost` gains optional `snapshot(handle)` without changing mount/update/unmount semantics for providers that do not expose visual frames.
-- `WindowsSnapshotLivePortalHost` adapts validated `windows_capture_snapshot_v1` into the provider-neutral live-portal visual frame.
+- `LivePortalHost` gains optional `snapshot(handle)` without changing providers that do not expose visual frames.
+- `WindowsSnapshotLivePortalHost` adapts validated `windows_capture_snapshot_v1` into the provider-neutral frame.
 - `observerAllowsPortalVisual` gates visual access from a principal-filtered observer snapshot.
 - Private view access requires the semantic `portalId` in the active effectively-visible foreground stack; sleeping or hidden contexts do not receive pixels.
-- Rendezvous membership alone is insufficient. Pixels become eligible only after an explicit `SharedResourceProjection` for the semantic `portalId`.
-- `projectPortalForObserver` performs the observer gate **before** provider snapshot I/O. A denied observer does not trigger `host.snapshot()`.
-- `snapshotPortalVisualFrame` independently checks canonical `portalObjectId`, provider and provider-resource identity.
-- `projectPortalVisualFrame` creates only an ephemeral structured clone and injects a `data:image/png;base64,...` preview URI into that clone.
+- Rendezvous membership alone is insufficient. Pixels become eligible only after an explicit `SharedResourceProjection`.
+- `projectPortalForObserver` performs the observer gate before provider snapshot I/O.
+- `snapshotPortalVisualFrame` checks canonical `portalObjectId`, provider and provider-resource identity.
+- `projectPortalVisualFrame` injects the data URI only into an ephemeral structured clone.
 - The canonical resource portal keeps its provider URI and never stores captured pixels or data URIs.
-- Existing SVG rendering already accepts `data:` preview URIs, so no parallel renderer is introduced.
-- Semantic `portalId` and canonical `portalObjectId` are explicitly distinct identities and are checked by different authorities.
-- Windows native `capture.supported=true` and global `captureImplemented=true` now mean the bounded snapshot can reach an authorized MRMIC resource-portal rendering path.
-- Capability discovery also fixes `portalProjection=ephemeral_render_copy_v1`, `observerGated=true` and `canonicalPixelsDurable=false`.
+- Semantic `portalId` and canonical `portalObjectId` are explicitly distinct identities.
+- Capability discovery fixes `portalProjection=ephemeral_render_copy_v1`, `observerGated=true` and `canonicalPixelsDurable=false`.
 - ADR-020 records the provider/observer/Canvas authority split.
 
-## Authority model after 15.8
+## Delivered in 15.9 - lifecycle-aware bounded refresh/compositor loop
+
+- `observer_portal_refresh_policy_v1` makes the reference cadence and cache policy machine-readable.
+- `ObserverPortalCompositor` retains only observer-scoped ephemeral render copies and applies LRU eviction.
+- Reference cache bound is **4** observer-target/portal entries.
+- `live` private view cadence is at most **250 ms** between provider reads.
+- `warm` private view cadence is at most **2000 ms**.
+- Explicitly projected rendezvous visual cadence is at most **500 ms**.
+- `frozen` retains the latest cached frame but performs **zero provider snapshot I/O**.
+- `sleeping` performs zero provider snapshot I/O and evicts cached pixels.
+- Denied, hidden and non-foreground states do not read provider pixels and clear the relevant cache entry.
+- Positive frame-sequence regression fails closed and removes stale pixels.
+- Provider/projection failure removes stale pixels rather than silently continuing a stale visual truth.
+- `ObserverPortalRefreshLoop` is non-overlapping: it schedules the next tick only after gate/read/projection/callback completion.
+- Suspended/denied states use a **1000 ms** policy poll to notice lifecycle or visibility changes without reading provider pixels.
+- ADR-021 records lifecycle-aware cadence, cache, monotonicity and non-overlap semantics.
+
+## Authority model after 15.9
 
 Durable world authority:
 
-- observer views, rendezvous membership, selective projection and nested Canvas context are durable;
+- observer views, lifecycle intent, rendezvous membership, selective projection and nested Canvas context are durable;
 - canonical Canvas stores portal geometry and bounded provider/resource identity.
 
 Ephemeral provider/runtime authority:
 
-- HWND liveness, WGC sessions, frame queues, encoded snapshots, runtime focus and control remain provider/runtime state;
-- observer-authorized render copies may contain pixels but are not persisted as canonical Canvas state.
+- HWND liveness, WGC sessions, native frame queues, encoded snapshots, compositor caches, refresh timers, runtime focus and control remain provider/runtime state;
+- observer-authorized render copies may contain pixels but are never persisted as canonical Canvas state.
 
-Visibility authority:
+Visibility and refresh authority:
 
 - the provider proves which resource a frame belongs to;
 - the observer snapshot decides which principal/view/room may see the semantic portal;
+- the observer lifecycle determines the bounded reference refresh cadence or whether provider I/O is suspended;
 - the renderer consumes only the resulting ephemeral copy.
 
-Windows continues to own the native window. Visual projection is neither ownership transfer nor durable world mutation.
+Windows continues to own the native window. Visual projection and refresh are neither ownership transfer nor durable world mutation.
 
-## Explicit non-goals through 15.8
+## Explicit non-goals through 15.9
 
-- Claiming high-FPS continuous compositor streaming or zero-copy cross-process GPU sharing. Phase 15.8 is snapshot-backed.
+- Claiming high-FPS continuous compositor streaming or zero-copy cross-process GPU sharing.
+- Claiming that the reference cadence is a guaranteed frame rate; slow work intentionally reduces effective rate because loops do not overlap.
 - Claiming authoritative interactive WGC E2E from GitHub-hosted Windows runners.
 - UI Automation inspection or semantic actions in the reference helper.
 - Keyboard/pointer injection, UAC/secure-desktop bypass or credential access.
 - Persisting captured Windows pixels into Canvas, observer durable events or resource metadata.
-- Exposing a private observer foreground to another principal merely because both principals joined a rendezvous.
+- Retaining an unbounded visual history or treating the compositor cache as durable evidence.
+- Exposing a private observer foreground merely because principals share a rendezvous.
 - Treating recovered observer lifecycle intent as proof that a provider process, HWND or WGC session is alive.
-- Treating a reused HWND as the same resource after a provider epoch changes.
 - Letting observer state own or rewrite canonical Canvas topology.
 - Bypassing provider authorization or the existing `controlOwner` authority.
 - Claiming HDUS integration as complete.
 
 ## Next implementation slices
 
-1. Phase 15.9: add a bounded refresh/compositor loop over the same observer-gated projection contract without making frame state durable.
-2. Validate capture + transport + observer-gated portal rendering on an interactive Windows desktop target.
-3. Add read-only UI Automation inspection, followed by semantic UIA actions behind existing control authority.
-4. Validate multi-observer Windows portal isolation and selective convergence under sustained refresh.
-5. Add warm/frozen/sleeping scheduling for inactive AI workspaces.
-6. Consider higher-throughput or zero-copy frame transport only after the correctness path is closed.
-7. Add HDUS bridge contracts after MRMIC semantics are stable.
+1. Validate discovery + WGC capture + bounded refresh + observer-gated portal rendering on an interactive Windows user-session host.
+2. Validate sustained multi-observer isolation and selective convergence against real Windows windows.
+3. Add read-only UI Automation inspection as a separate semantic-observation authority.
+4. Add semantic UIA actions only after inspection is stable and behind the existing `controlOwner` authority.
+5. Consider higher-throughput or zero-copy visual transport only after interactive correctness evidence is closed.
+6. Add HDUS bridge contracts after MRMIC semantics are stable.

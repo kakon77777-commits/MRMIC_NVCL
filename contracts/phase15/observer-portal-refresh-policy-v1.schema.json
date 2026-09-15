@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/mrmic/contracts/phase15/observer-portal-refresh-policy-v1.schema.json",
+  "title": "MRMIC Observer Portal Refresh Policy v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "liveRefreshMs",
+    "warmRefreshMs",
+    "sharedRefreshMs",
+    "policyPollMs",
+    "maxCachedFramesPerTarget",
+    "frozenRetainsLastFrame",
+    "sleepingDropsFrame",
+    "nonOverlapping"
+  ],
+  "properties": {
+    "schema": { "const": "observer_portal_refresh_policy_v1" },
+    "liveRefreshMs": { "const": 250 },
+    "warmRefreshMs": { "const": 2000 },
+    "sharedRefreshMs": { "const": 500 },
+    "policyPollMs": { "const": 1000 },
+    "maxCachedFramesPerTarget": { "const": 4 },
+    "frozenRetainsLastFrame": { "const": true },
+    "sleepingDropsFrame": { "const": true },
+    "nonOverlapping": { "const": true }
+  }
+}

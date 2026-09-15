@@ -61,6 +61,17 @@ export interface MrmicCapabilitiesV1 {
       frameQueueCapacity: 2
       maxSnapshotPixels: 8294400
       maxSnapshotBytes: 16777216
+      refresh: {
+        policySchemaVersion: 'observer_portal_refresh_policy_v1'
+        liveRefreshMs: 250
+        warmRefreshMs: 2000
+        sharedRefreshMs: 500
+        policyPollMs: 1000
+        maxCachedFramesPerTarget: 4
+        frozenRetainsLastFrame: true
+        sleepingDropsFrame: true
+        nonOverlapping: true
+      }
     }
     automation: {
       api: 'uia'
@@ -83,6 +94,7 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
     'observer_nested_canvas_v1',
     'windows_desktop_window_v1',
     'windows_snapshot_portal_v1',
+    'observer_portal_refresh_v1',
   ],
   authModes: ['legacy_local', 'bearer_principal_v1'],
   resourcePortal: { supported: true, schemaVersion: 'native_resource_portal_v1' },
@@ -143,6 +155,17 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
       frameQueueCapacity: 2,
       maxSnapshotPixels: 8294400,
       maxSnapshotBytes: 16777216,
+      refresh: {
+        policySchemaVersion: 'observer_portal_refresh_policy_v1',
+        liveRefreshMs: 250,
+        warmRefreshMs: 2000,
+        sharedRefreshMs: 500,
+        policyPollMs: 1000,
+        maxCachedFramesPerTarget: 4,
+        frozenRetainsLastFrame: true,
+        sleepingDropsFrame: true,
+        nonOverlapping: true,
+      },
     },
     automation: {
       api: 'uia',
