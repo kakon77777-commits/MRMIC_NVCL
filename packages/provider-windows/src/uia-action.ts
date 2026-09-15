@@ -1,4 +1,4 @@
-import type { CanvasLivePortalCoordinator } from '../../portal-overlay/src/runtime.js'
+import type { CanvasLivePortalCoordinator, LivePortalControlLease } from '../../portal-overlay/src/runtime.js'
 import type {
   WindowsAccessAuthority,
   WindowsNativeBridge,
@@ -23,6 +23,7 @@ export interface WindowsUiaControlledActionResult {
   portalObjectId: string
   providerResourceId: string
   principalId: string
+  controlGeneration: number
   action: { kind: WindowsUiSemanticAction['kind']; runtimeId: string }
   inspectionCapturedAt: string
   completedAt: string
@@ -111,11 +112,35 @@ function validateNativeResult(
   return result.completedAt
 }
 
+function requireOwnedLease(
+  coordinator: CanvasLivePortalCoordinator,
+  portalObjectId: string,
+  principalId: string,
+): LivePortalControlLease {
+  const lease = coordinator.controlLease(portalObjectId)
+  if (!lease?.mounted || !lease.visible) throw new Error('Windows portal must be mounted and visible before UIA control')
+  if (lease.controlOwner !== principalId) throw new Error('principal does not own Windows portal control')
+  if (!Number.isSafeInteger(lease.generation) || lease.generation < 1) throw new Error('Windows portal control lease generation is invalid')
+  return lease
+}
+
+function assertSameLease(
+  coordinator: CanvasLivePortalCoordinator,
+  expected: LivePortalControlLease,
+  principalId: string,
+): void {
+  const current = requireOwnedLease(coordinator, expected.portalObjectId, principalId)
+  if (current.generation !== expected.generation) {
+    throw new Error('Windows portal control lease changed during UIA action preparation')
+  }
+}
+
 /**
- * Phase 15.12 reference control lane. controlOwner and policy authorization are
- * checked before provider I/O. A fresh bounded UIA inspection is then used to
- * bind the runtime element identity and supported pattern immediately before
- * the native action call.
+ * Phase 15.12/15.14 reference control lane. controlOwner and policy
+ * authorization are checked before provider I/O. A fresh bounded UIA inspection
+ * binds the target element. Phase 15.14 additionally rechecks the exact
+ * generation-bound control lease immediately before native action I/O, closing
+ * handoff/ABA races while inspection is in flight.
  */
 export class WindowsUiaControlledAccess {
   readonly #bridge: WindowsNativeBridge
@@ -152,9 +177,7 @@ export class WindowsUiaControlledAccess {
     const action = validateIntent(requestedAction)
     const accessInput = { portalObjectId: portal, providerResourceId: resourceId, principalId: principal }
 
-    const state = this.#coordinator.state(portal)
-    if (!state?.mounted || !state.visible) throw new Error('Windows portal must be mounted and visible before UIA control')
-    if (state.controlOwner !== principal) throw new Error('principal does not own Windows portal control')
+    const lease = requireOwnedLease(this.#coordinator, portal, principal)
     if (!this.#authority.canControl(accessInput)) throw new Error('principal is not authorized to control Windows resource')
 
     // WindowsUiaReadOnlyAccess performs canInspect before native provider I/O.
@@ -170,6 +193,13 @@ export class WindowsUiaControlledAccess {
     if (action.kind === 'set_value' && element.password) throw new Error('Phase 15.12 does not set password element values')
     assertPattern(element, action.kind)
 
+    // Phase 15.14 TOCTOU closure: inspection may have taken long enough for a
+    // control handoff/revoke/reacquire. Require the same generation-bound lease
+    // and re-evaluate policy immediately before native action I/O.
+    assertSameLease(this.#coordinator, lease, principal)
+    if (!this.#authority.canControl(accessInput)) throw new Error('principal lost authorization to control Windows resource')
+    if (!this.#authority.canInspect(accessInput)) throw new Error('principal lost authorization to inspect Windows resource')
+
     const resource = this.#catalog.get(resourceId)
     if (!resource) throw new Error(`Windows resource ${resourceId} is not present in the current provider epoch`)
     const nativeResult = await this.#bridge.performUiAction(resource, bindAction(action, element))
@@ -181,6 +211,7 @@ export class WindowsUiaControlledAccess {
       portalObjectId: portal,
       providerResourceId: resourceId,
       principalId: principal,
+      controlGeneration: lease.generation,
       action: { kind: action.kind, runtimeId: action.runtimeId },
       inspectionCapturedAt: inspection.capturedAt,
       completedAt,

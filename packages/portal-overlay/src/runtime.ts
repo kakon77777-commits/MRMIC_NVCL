@@ -10,6 +10,8 @@ import {
   type OverlayRect,
 } from './index.js'
 
+export const LIVE_PORTAL_CONTROL_LEASE_SCHEMA = 'live_portal_control_lease_v1' as const
+
 export interface PortalActivationResult {
   portalObjectId: string
   provider: string
@@ -26,6 +28,15 @@ export interface LivePortalState {
   visible: boolean
   focused: boolean
   controlOwner: string | null
+}
+
+export interface LivePortalControlLease {
+  schema: typeof LIVE_PORTAL_CONTROL_LEASE_SCHEMA
+  portalObjectId: string
+  controlOwner: string | null
+  generation: number
+  mounted: boolean
+  visible: boolean
 }
 
 interface MountedPortal {
@@ -62,6 +73,7 @@ export class CanvasLivePortalCoordinator {
   readonly #budget: LiveSurfaceBudget
   readonly #mounted = new Map<string, MountedPortal>()
   readonly #states = new Map<string, LivePortalState>()
+  readonly #controlGenerations = new Map<string, number>()
 
   constructor(hosts: LivePortalHostRegistry, budget: LiveSurfaceBudget = new LiveSurfaceBudget(2)) {
     this.#hosts = hosts
@@ -79,6 +91,19 @@ export class CanvasLivePortalCoordinator {
   state(portalObjectId: string): LivePortalState | null {
     const state = this.#states.get(portalObjectId)
     return state ? { ...state } : null
+  }
+
+  controlLease(portalObjectId: string): LivePortalControlLease | null {
+    const state = this.#states.get(portalObjectId)
+    if (!state) return null
+    return {
+      schema: LIVE_PORTAL_CONTROL_LEASE_SCHEMA,
+      portalObjectId: state.portalObjectId,
+      controlOwner: state.controlOwner,
+      generation: this.#controlGenerations.get(portalObjectId) ?? 0,
+      mounted: state.mounted,
+      visible: state.visible,
+    }
   }
 
   setFocused(portalObjectId: string, focused: boolean): LivePortalState {
@@ -115,6 +140,30 @@ export class CanvasLivePortalCoordinator {
   revokeControl(portalObjectId: string): LivePortalState {
     const state = this.#requireState(portalObjectId)
     return this.#writeState({ ...state, controlOwner: null })
+  }
+
+  /**
+   * Atomically transfer one live portal control lease. The owner transition
+   * advances the per-portal generation exactly once, so in-flight semantic
+   * actions can detect a handoff even if ownership later returns to the same
+   * principal (ABA protection).
+   */
+  handoffControl(portalObjectId: string, fromPrincipalId: string, toPrincipalId: string): LivePortalControlLease {
+    const from = fromPrincipalId.trim()
+    const to = toPrincipalId.trim()
+    if (!from || !to) throw new Error('fromPrincipalId and toPrincipalId are required')
+    if (from === to) throw new Error('control handoff requires distinct principals')
+    const state = this.#requireState(portalObjectId)
+    if (!state.mounted || !state.visible) {
+      throw new Error(`Portal ${portalObjectId} must be mounted and visible before control can be handed off`)
+    }
+    if (state.controlOwner !== from) {
+      throw new Error(`Principal ${from} cannot hand off control owned by ${state.controlOwner ?? 'no principal'}`)
+    }
+    this.#writeState({ ...state, controlOwner: to })
+    const lease = this.controlLease(portalObjectId)
+    if (!lease) throw new Error(`Portal ${portalObjectId} has no control lease after handoff`)
+    return lease
   }
 
   async activate(
@@ -353,6 +402,17 @@ export class CanvasLivePortalCoordinator {
   }
 
   #writeState(state: LivePortalState): LivePortalState {
+    const previous = this.#states.get(state.portalObjectId)
+    let generation = this.#controlGenerations.get(state.portalObjectId) ?? 0
+    if (previous) {
+      if (previous.controlOwner !== state.controlOwner) generation += 1
+    } else if (state.controlOwner !== null) {
+      generation += 1
+    }
+    if (!Number.isSafeInteger(generation) || generation < 0) {
+      throw new Error(`Portal ${state.portalObjectId} control generation overflow`)
+    }
+    this.#controlGenerations.set(state.portalObjectId, generation)
     const stored = { ...state }
     this.#states.set(state.portalObjectId, stored)
     return { ...stored }

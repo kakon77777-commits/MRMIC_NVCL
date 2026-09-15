@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/mrmic/contracts/phase15/live-portal-control-lease-v1.schema.json",
+  "title": "MRMIC Live Portal Control Lease v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "portalObjectId", "controlOwner", "generation", "mounted", "visible"],
+  "properties": {
+    "schema": { "const": "live_portal_control_lease_v1" },
+    "portalObjectId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "controlOwner": {
+      "oneOf": [
+        { "type": "string", "minLength": 1, "maxLength": 512 },
+        { "type": "null" }
+      ]
+    },
+    "generation": { "type": "integer", "minimum": 0 },
+    "mounted": { "type": "boolean" },
+    "visible": { "type": "boolean" }
+  }
+}

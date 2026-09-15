@@ -1,6 +1,6 @@
 # Phase 15 - Observer-Relative Workspace
 
-Status: 15.13 interactive controlled-action E2E baseline.
+Status: 15.14 generation-bound multi-observer control handoff baseline.
 
 Phase 15 adds an observer-relative coordination layer above the existing Canvas, identity, resource-portal, recursive-Canvas, runtime-presence and durable-event authorities. It does not replace Windows or provider runtimes: Windows remains a resource host, while MRMIC owns spatial projection, authenticated observer views, selective convergence and resource-control boundaries.
 
@@ -54,7 +54,7 @@ Authenticated human and AI principals may keep different private views of one ca
 - Native resource identity is `providerEpoch + processId + hwndHex`; HWND alone is never durable identity.
 - Invisible, DWM-cloaked and untitled top-level windows are filtered from default discovery.
 - `WindowsLivePortalHost` reuses the existing `LivePortalHostRegistry` / `CanvasLivePortalCoordinator` instead of creating a second projection runtime.
-- `WindowsProviderAccess` keeps inspect and control authority separate and does not invent another control owner.
+- `WindowsProviderAccess` keeps inspect and control policy separate from provider identity; later phases make `WindowsUiaControlledAccess` the only semantic action gateway.
 - ADR-016 records Windows provider/resource authority.
 
 ## Delivered in 15.5 - executable native discovery bridge
@@ -172,7 +172,21 @@ Authenticated human and AI principals may keep different private views of one ca
 - Hosted Windows CI builds the dedicated WPF target and parses the runner but does not execute the interactive action sequence or claim caller-desktop action evidence.
 - ADR-025 records the safe-target and dual-postcondition boundary.
 
-## Authority model after 15.13
+## Delivered in 15.14 - generation-bound multi-observer control handoff
+
+- `live_portal_control_lease_v1` exposes ephemeral portal control owner, generation and mounted/visible state.
+- Control generation starts at **0** before any owner transition and advances on every actual owner change.
+- `CanvasLivePortalCoordinator.handoffControl()` atomically transfers a mounted/visible portal directly from one current principal to another and advances generation exactly once.
+- Release/reacquire advances generation across both owner transitions; offscreen/unmount/provider replacement advances generation when it implicitly revokes a live owner.
+- `WindowsUiaControlledAccess` captures the control generation before fresh UIA inspection and rechecks the exact owner/generation immediately before native action I/O.
+- `canControl` and `canInspect` are re-evaluated after fresh inspection before native semantic action I/O.
+- A-to-B-to-A ABA while inspection is in flight fails closed even though the final owner string again equals A.
+- `windows_uia_controlled_action_v1` now records `controlGeneration` so runtime action evidence identifies the exact live lease generation.
+- Historical `WindowsProviderAccess.performUiAction()` is disabled; compatibility inspection remains, but semantic action must use `WindowsUiaControlledAccess`.
+- Machine-readable capability reports generation support, atomic handoff support and pre-native lease recheck.
+- ADR-026 records the generation/ABA/legacy-bypass boundary.
+
+## Authority model after 15.14
 
 Durable world authority:
 
@@ -194,45 +208,46 @@ Visibility and observation authority:
 
 Control authority:
 
-- `controlOwner` remains the single active portal control lease;
-- successful semantic action additionally requires `canControl` and `canInspect` policy permission;
-- each action is rebound to a fresh UIA observation and revalidated against provider/window/element identity;
+- `controlOwner` remains the single active portal control owner;
+- `live_portal_control_lease_v1.generation` distinguishes successive ephemeral ownership leases, including ABA transitions;
+- successful semantic action requires the same owner **and same generation** before and after fresh UIA inspection;
+- `canControl` and `canInspect` must still pass immediately before native action I/O;
 - semantic UIA actions do not imply raw keyboard/pointer authority.
 
 Validation authority:
 
-- portable tests prove control-owner/policy/freshness/pattern/password/value-redaction fail-closed semantics and the complete four-action UIA+WGC E2E against a deterministic fake provider;
+- portable tests prove owner/policy/freshness/pattern/password/value-redaction semantics, atomic A-to-B handoff, generation monotonicity, ABA rejection and legacy direct-action closure;
 - hosted Windows CI proves native semantic-action compilation, native smoke, dedicated WPF target compilation and PowerShell harness syntax;
-- hosted CI still does not constitute caller-desktop interactive action evidence;
-- only `npm run windows:control-e2e --` in a caller-owned interactive Windows session can produce `interactive_windows_controlled_action_e2e_v1` evidence;
-- that command is intentionally pinned to the repository-owned safe target and is not a general automation selector.
+- hosted CI still does not constitute caller-desktop interactive handoff evidence;
+- only caller-executed Windows validation may later establish real multi-observer interactive handoff evidence.
 
 Windows continues to own the native window and UI tree.
 
-## Explicit non-goals through 15.13
+## Explicit non-goals through 15.14
 
 - High-FPS or zero-copy visual streaming.
-- Treating GitHub-hosted runners as authoritative user-desktop action evidence.
+- Treating GitHub-hosted runners as authoritative user-desktop action/handoff evidence.
 - Arbitrary UIA pattern execution beyond invoke/toggle/select/set_value.
 - Arbitrary application selection in the controlled-action E2E runner.
 - `ValuePattern`/`TextPattern` content extraction or password extraction.
 - Setting values on password elements.
 - Raw keyboard/pointer injection, `SendInput`, coordinate clicking or drag gestures.
 - UAC/secure-desktop bypass or credential access.
-- Persisting captured Windows pixels, UIA snapshots or set-value payloads into canonical Canvas or durable observer events.
-- Retaining an unbounded visual, semantic or action-value history.
+- Persisting captured Windows pixels, UIA snapshots, set-value payloads or live control generations into canonical Canvas or durable observer events.
+- Retaining an unbounded visual, semantic, action-value or control-history ledger.
 - Implicit control acquisition from visibility, foreground state or rendezvous membership.
-- Replaying actions against stale UIA snapshots or fuzzy-retargeting disappeared runtime ids.
-- Treating recovered observer state as proof that a provider process/HWND/UIA element remains live.
+- Replaying actions against stale UIA snapshots, stale control generations or fuzzy-retargeting disappeared runtime ids.
+- Treating recovered observer state as proof that a provider process/HWND/UIA element/control lease remains live.
 - Letting observer state own/rewrite canonical Canvas topology.
-- Bypassing provider authorization or `controlOwner`.
+- Distributed control consensus across separate coordinator processes.
+- Raw input fallback.
 - Claiming HDUS integration as complete.
 
 ## Next implementation slices
 
-1. Run `interactive_windows_e2e_v1`, `windows_uia_snapshot_v1` and `interactive_windows_controlled_action_e2e_v1` on a real caller-owned interactive Windows desktop and archive only the bounded non-pixel evidence artifacts intended for retention.
-2. Validate multi-observer control handoff: revoke one `controlOwner`, acquire another, and prove the former principal can no longer execute semantic actions before provider I/O.
+1. Run `interactive_windows_e2e_v1`, `windows_uia_snapshot_v1` and `interactive_windows_controlled_action_e2e_v1` on a real caller-owned interactive Windows desktop and archive only bounded intended evidence.
+2. Add a caller-executed multi-observer handoff E2E against the repository-owned safe target: A action -> atomic handoff -> A denial before provider I/O -> B action -> UIA/WGC verification.
 3. Validate sustained multi-observer isolation/selective convergence while visual observation and control ownership change independently.
-4. Keep raw input injection separate and disabled unless a later explicit fallback contract requires it.
-5. Consider higher-throughput/zero-copy visual transport only after real interactive evidence is collected.
+4. Consider process/distributed coordinator handoff only after single-runtime semantics are stable; do not infer distributed consensus from Phase 15.14.
+5. Keep raw input injection separate and disabled unless a later explicit fallback contract requires it.
 6. Add HDUS bridge contracts after MRMIC semantics are stable.

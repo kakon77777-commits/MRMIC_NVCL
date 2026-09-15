@@ -416,8 +416,10 @@ export class WindowsLivePortalHost implements LivePortalHost {
 }
 
 /**
- * Structured UI access keeps inspection and control separate. The authority is
- * expected to map to observer visibility and CanvasLivePortalCoordinator.controlOwner.
+ * Legacy structured UI inspection surface. Phase 15.14 keeps inspection for
+ * compatibility, but direct semantic action dispatch is fail-closed. Authorized
+ * actions must go through WindowsUiaControlledAccess so live controlOwner,
+ * generation, freshness and policy are enforced together.
  */
 export class WindowsProviderAccess {
   readonly #bridge: WindowsNativeBridge
@@ -448,11 +450,9 @@ export class WindowsProviderAccess {
     principalId: string,
     action: WindowsUiSemanticAction,
   ): Promise<WindowsUiActionResult> {
-    const input = this.#accessInput(portalObjectId, providerResourceId, principalId)
-    if (!this.#authority.canControl(input)) throw new Error('principal does not own Windows portal control')
-    const resource = this.#requireResource(providerResourceId)
-    if (!resource.automation.available) throw new Error('UI Automation is unavailable for this Windows resource')
-    return this.#bridge.performUiAction(resource, structuredClone(action))
+    this.#accessInput(portalObjectId, providerResourceId, principalId)
+    structuredClone(action)
+    throw new Error('direct WindowsProviderAccess UIA action is disabled; use WindowsUiaControlledAccess')
   }
 
   #accessInput(portalObjectId: string, providerResourceId: string, principalId: string) {

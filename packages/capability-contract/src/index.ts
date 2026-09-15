@@ -9,7 +9,13 @@ export interface MrmicCapabilitiesV1 {
   authModes: string[]
   resourcePortal: { supported: boolean; schemaVersion: string }
   runtimePresence: { supported: boolean; schemaVersion: string; durable: false }
-  livePortalHost: { supported: boolean; stateVersion: string }
+  livePortalHost: {
+    supported: boolean
+    stateVersion: string
+    controlLeaseSchemaVersion: 'live_portal_control_lease_v1'
+    controlGenerationSupported: true
+    atomicHandoffSupported: true
+  }
   observerWorkspace: {
     supported: boolean
     viewSchemaVersion: string
@@ -106,7 +112,9 @@ export interface MrmicCapabilitiesV1 {
       actionResultSchemaVersion: 'windows_uia_controlled_action_v1'
       supportedActions: readonly ['invoke', 'toggle', 'select', 'set_value']
       controlOwnerRequired: true
+      controlGenerationRequired: true
       freshInspectionRequired: true
+      preNativeActionLeaseRecheck: true
       maxInspectionAgeMs: 2000
       actionValueMaxLength: 2048
       passwordValueWriteAllowed: false
@@ -141,7 +149,13 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
   authModes: ['legacy_local', 'bearer_principal_v1'],
   resourcePortal: { supported: true, schemaVersion: 'native_resource_portal_v1' },
   runtimePresence: { supported: true, schemaVersion: 'ephemeral_runtime_presence_v1', durable: false as const },
-  livePortalHost: { supported: true, stateVersion: 'live_portal_host_v1' },
+  livePortalHost: {
+    supported: true,
+    stateVersion: 'live_portal_host_v1',
+    controlLeaseSchemaVersion: 'live_portal_control_lease_v1',
+    controlGenerationSupported: true,
+    atomicHandoffSupported: true,
+  } as const,
   observerWorkspace: {
     supported: true,
     viewSchemaVersion: 'observer_view_v1',
@@ -242,7 +256,9 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
       actionResultSchemaVersion: 'windows_uia_controlled_action_v1',
       supportedActions: ['invoke', 'toggle', 'select', 'set_value'],
       controlOwnerRequired: true,
+      controlGenerationRequired: true,
       freshInspectionRequired: true,
+      preNativeActionLeaseRecheck: true,
       maxInspectionAgeMs: 2000,
       actionValueMaxLength: 2048,
       passwordValueWriteAllowed: false,

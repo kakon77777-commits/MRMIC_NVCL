@@ -22,7 +22,7 @@ test('HTTP and MCP expose one versioned provider-neutral capability document', a
   }
 })
 
-test('capability schema advertises lifecycle-aware Windows visual runtime and controlled semantic UIA actions', async () => {
+test('capability schema advertises generation-bound portal control handoff and controlled semantic UIA actions', async () => {
   const schema = JSON.parse(await readFile('contracts/phase13/mrmic-capabilities-v1.schema.json', 'utf8'))
   assert.equal(schema.$id, 'https://evemisslab.com/schemas/mrmic-capabilities-v1.schema.json')
   assert.deepEqual(schema.required, [
@@ -40,6 +40,13 @@ test('capability schema advertises lifecycle-aware Windows visual runtime and co
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_uia_controlled_action_v1'))
   assert.equal(MRMIC_CAPABILITIES.resourcePortal.supported, true)
   assert.equal(MRMIC_CAPABILITIES.runtimePresence.supported, true)
+  assert.deepEqual(MRMIC_CAPABILITIES.livePortalHost, {
+    supported: true,
+    stateVersion: 'live_portal_host_v1',
+    controlLeaseSchemaVersion: 'live_portal_control_lease_v1',
+    controlGenerationSupported: true,
+    atomicHandoffSupported: true,
+  })
   assert.equal(MRMIC_CAPABILITIES.observerWorkspace.supported, true)
   assert.equal(MRMIC_CAPABILITIES.observerWorkspace.durable, true)
   assert.equal(MRMIC_CAPABILITIES.observerWorkspace.authRequired, true)
@@ -82,7 +89,9 @@ test('capability schema advertises lifecycle-aware Windows visual runtime and co
     actionResultSchemaVersion: 'windows_uia_controlled_action_v1',
     supportedActions: ['invoke', 'toggle', 'select', 'set_value'],
     controlOwnerRequired: true,
+    controlGenerationRequired: true,
     freshInspectionRequired: true,
+    preNativeActionLeaseRecheck: true,
     maxInspectionAgeMs: 2000,
     actionValueMaxLength: 2048,
     passwordValueWriteAllowed: false,

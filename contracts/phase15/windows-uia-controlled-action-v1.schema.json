@@ -10,6 +10,7 @@
     "portalObjectId",
     "providerResourceId",
     "principalId",
+    "controlGeneration",
     "action",
     "inspectionCapturedAt",
     "completedAt"
@@ -20,6 +21,7 @@
     "portalObjectId": { "type": "string", "minLength": 1, "maxLength": 512 },
     "providerResourceId": { "type": "string", "minLength": 1, "maxLength": 512 },
     "principalId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "controlGeneration": { "type": "integer", "minimum": 1 },
     "action": {
       "type": "object",
       "additionalProperties": false,

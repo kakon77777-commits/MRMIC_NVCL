@@ -26,7 +26,18 @@
     "authModes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
     "resourcePortal": { "type": "object", "required": ["supported", "schemaVersion"] },
     "runtimePresence": { "type": "object", "required": ["supported", "schemaVersion", "durable"] },
-    "livePortalHost": { "type": "object", "required": ["supported", "stateVersion"] },
+    "livePortalHost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported", "stateVersion", "controlLeaseSchemaVersion", "controlGenerationSupported", "atomicHandoffSupported"],
+      "properties": {
+        "supported": { "const": true },
+        "stateVersion": { "const": "live_portal_host_v1" },
+        "controlLeaseSchemaVersion": { "const": "live_portal_control_lease_v1" },
+        "controlGenerationSupported": { "const": true },
+        "atomicHandoffSupported": { "const": true }
+      }
+    },
     "observerWorkspace": {
       "type": "object",
       "additionalProperties": false,
@@ -186,7 +197,7 @@
         "automation": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["api", "inspectionSupported", "actionSupported", "snapshotSchemaVersion", "actionResultSchemaVersion", "supportedActions", "controlOwnerRequired", "freshInspectionRequired", "maxInspectionAgeMs", "actionValueMaxLength", "passwordValueWriteAllowed", "maxDepth", "maxElements", "maxPatternsPerElement", "valueTextIncluded", "semanticPatternsPreferred", "inputInjectionFallback", "rawInputInjectionImplemented", "interactiveDesktopRequiredForInjection"],
+          "required": ["api", "inspectionSupported", "actionSupported", "snapshotSchemaVersion", "actionResultSchemaVersion", "supportedActions", "controlOwnerRequired", "controlGenerationRequired", "freshInspectionRequired", "preNativeActionLeaseRecheck", "maxInspectionAgeMs", "actionValueMaxLength", "passwordValueWriteAllowed", "maxDepth", "maxElements", "maxPatternsPerElement", "valueTextIncluded", "semanticPatternsPreferred", "inputInjectionFallback", "rawInputInjectionImplemented", "interactiveDesktopRequiredForInjection"],
           "properties": {
             "api": { "const": "uia" },
             "inspectionSupported": { "const": true },
@@ -195,7 +206,9 @@
             "actionResultSchemaVersion": { "const": "windows_uia_controlled_action_v1" },
             "supportedActions": { "type": "array", "const": ["invoke", "toggle", "select", "set_value"] },
             "controlOwnerRequired": { "const": true },
+            "controlGenerationRequired": { "const": true },
             "freshInspectionRequired": { "const": true },
+            "preNativeActionLeaseRecheck": { "const": true },
             "maxInspectionAgeMs": { "const": 2000 },
             "actionValueMaxLength": { "const": 2048 },
             "passwordValueWriteAllowed": { "const": false },

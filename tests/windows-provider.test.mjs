@@ -159,10 +159,11 @@ test('Windows live host plugs into the existing Canvas live portal coordinator',
   assert.equal(result.provider, 'windows')
   assert.equal(result.mounted, true)
   assert.equal(coordinator.state(portal.id).controlOwner, null)
+  assert.equal(coordinator.controlLease(portal.id).generation, 0)
   await coordinator.deactivate(portal.id)
 })
 
-test('structured UI inspection and semantic action use separate inspect/control authority', async () => {
+test('legacy WindowsProviderAccess remains read-only and cannot bypass generation-bound controlOwner actions', async () => {
   const { native, catalog, resource } = await catalogFixture()
   const access = new WindowsProviderAccess(native, catalog, {
     canInspect: ({ principalId }) => principalId === 'reader' || principalId === 'owner',
@@ -170,15 +171,12 @@ test('structured UI inspection and semantic action use separate inspect/control 
   })
   const snapshot = await access.inspectUi('portal:windows-editor', resource.providerResourceId, 'reader')
   assert.equal(snapshot.providerResourceId, resource.providerResourceId)
-  await assert.rejects(
-    () => access.performUiAction('portal:windows-editor', resource.providerResourceId, 'reader', { kind: 'invoke', runtimeId: 'button:1' }),
-    /does not own Windows portal control/,
-  )
-  const result = await access.performUiAction(
-    'portal:windows-editor',
-    resource.providerResourceId,
-    'owner',
-    { kind: 'invoke', runtimeId: 'button:1' },
-  )
-  assert.equal(result.ok, true)
+
+  for (const principalId of ['reader', 'owner']) {
+    await assert.rejects(
+      () => access.performUiAction('portal:windows-editor', resource.providerResourceId, principalId, { kind: 'invoke', runtimeId: 'button:1' }),
+      /use WindowsUiaControlledAccess/,
+    )
+  }
+  assert.equal(native.calls.some(call => call[0] === 'action'), false)
 })
