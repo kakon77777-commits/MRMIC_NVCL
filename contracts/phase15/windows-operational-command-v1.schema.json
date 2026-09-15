@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/mrmic/contracts/phase15/windows-operational-command-v1.schema.json",
+  "title": "MRMIC Windows Operational Command v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "commandId",
+    "idempotencyKey",
+    "portalObjectId",
+    "providerResourceId",
+    "principalId",
+    "action"
+  ],
+  "properties": {
+    "schema": { "const": "windows_operational_command_v1" },
+    "commandId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "portalObjectId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "providerResourceId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "principalId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "action": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "runtimeId"],
+          "properties": {
+            "kind": { "enum": ["invoke", "toggle", "select"] },
+            "runtimeId": { "type": "string", "minLength": 1, "maxLength": 512 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "runtimeId", "value"],
+          "properties": {
+            "kind": { "const": "set_value" },
+            "runtimeId": { "type": "string", "minLength": 1, "maxLength": 512 },
+            "value": { "type": "string", "maxLength": 2048 }
+          }
+        }
+      ]
+    }
+  }
+}

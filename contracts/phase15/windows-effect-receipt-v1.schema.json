@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/mrmic/contracts/phase15/windows-effect-receipt-v1.schema.json",
+  "title": "MRMIC Windows Effect Receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "status",
+    "effectKind",
+    "provider",
+    "commandId",
+    "idempotencyKey",
+    "commandDigest",
+    "portalObjectId",
+    "providerResourceId",
+    "principalId",
+    "controlGeneration",
+    "action",
+    "completedAt",
+    "deduplicated",
+    "worldStateVerified",
+    "perceptionRequiredForPlanning"
+  ],
+  "properties": {
+    "schema": { "const": "windows_effect_receipt_v1" },
+    "status": { "const": "completed" },
+    "effectKind": { "const": "uia_semantic_action" },
+    "provider": { "const": "windows" },
+    "commandId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "commandDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "portalObjectId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "providerResourceId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "principalId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "controlGeneration": { "type": "integer", "minimum": 1 },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "runtimeId"],
+      "properties": {
+        "kind": { "enum": ["invoke", "toggle", "select", "set_value"] },
+        "runtimeId": { "type": "string", "minLength": 1, "maxLength": 512 }
+      }
+    },
+    "completedAt": { "type": "string", "format": "date-time" },
+    "deduplicated": { "type": "boolean" },
+    "worldStateVerified": { "const": false },
+    "perceptionRequiredForPlanning": { "const": true }
+  }
+}

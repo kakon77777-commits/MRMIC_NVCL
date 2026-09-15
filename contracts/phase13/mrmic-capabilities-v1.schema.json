@@ -98,7 +98,7 @@
     "windowsProvider": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["supported", "providerId", "resourceKind", "resourceSchemaVersion", "providerCapabilitySchemaVersion", "adapterPackage", "adapterVersion", "nativeBridge", "capture", "interactiveValidation", "interactiveControlValidation", "automation"],
+      "required": ["supported", "providerId", "resourceKind", "resourceSchemaVersion", "providerCapabilitySchemaVersion", "adapterPackage", "adapterVersion", "nativeBridge", "capture", "interactiveValidation", "interactiveControlValidation", "operationalRuntime", "automation"],
       "properties": {
         "supported": { "const": true },
         "providerId": { "const": "windows" },
@@ -192,6 +192,23 @@
             "evidencePersistsPixelPayload": { "const": false },
             "evidencePersistsSetValuePayload": { "const": false },
             "rawInputUsed": { "const": false }
+          }
+        },
+        "operationalRuntime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["supported", "commandSchemaVersion", "effectReceiptSchemaVersion", "idempotencyScope", "maxCachedReceipts", "postActionVerificationRequired", "continuousPerceptionDecoupled", "effectReceiptClaimsWorldState", "mrmicHumanApprovalGateRequired", "conformanceHarnessRuntimeAuthority"],
+          "properties": {
+            "supported": { "const": true },
+            "commandSchemaVersion": { "const": "windows_operational_command_v1" },
+            "effectReceiptSchemaVersion": { "const": "windows_effect_receipt_v1" },
+            "idempotencyScope": { "const": "runtime_instance" },
+            "maxCachedReceipts": { "const": 256 },
+            "postActionVerificationRequired": { "const": false },
+            "continuousPerceptionDecoupled": { "const": true },
+            "effectReceiptClaimsWorldState": { "const": false },
+            "mrmicHumanApprovalGateRequired": { "const": false },
+            "conformanceHarnessRuntimeAuthority": { "const": false }
           }
         },
         "automation": {
