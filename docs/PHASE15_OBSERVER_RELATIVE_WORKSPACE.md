@@ -1,6 +1,6 @@
 # Phase 15 - Observer-Relative Workspace
 
-Status: 15.9 observer-gated lifecycle-aware bounded Windows portal refresh baseline.
+Status: 15.10 interactive Windows user-session E2E validation harness baseline.
 
 Phase 15 adds an observer-relative coordination layer above the existing Canvas, identity, resource-portal, recursive-Canvas, runtime-presence and durable-event authorities. It does not replace Windows or provider runtimes: Windows remains a resource host, while MRMIC owns spatial projection, authenticated observer views, selective convergence and resource-control boundaries.
 
@@ -124,7 +124,23 @@ Authenticated human and AI principals may keep different private views of one ca
 - Suspended/denied states use a **1000 ms** policy poll to notice lifecycle or visibility changes without reading provider pixels.
 - ADR-021 records lifecycle-aware cadence, cache, monotonicity and non-overlap semantics.
 
-## Authority model after 15.9
+## Delivered in 15.10 - interactive Windows user-session E2E validation harness
+
+- `interactive_windows_e2e_v1` defines compact validation evidence for a caller-executed Windows session.
+- `runInteractiveWindowsE2E()` reuses the production native bridge, Windows provider catalog, live portal host, Canvas coordinator, observer workspace and refresh/compositor path.
+- `apps/windows-interactive-e2e/` exposes a Windows-only CLI.
+- `scripts/windows-interactive-e2e.ps1` builds both the .NET/CsWinRT helper and TypeScript runtime before invoking the production-path CLI.
+- Root command: `npm run windows:e2e --`.
+- Exactly one real top-level target must be selected by title substring or normalized HWND; ambiguous/missing/minimized targets fail closed.
+- `--confirm-interactive` is required before provider access. The repository does not infer user-session authority from hosted CI.
+- Successful evidence records provider/resource identity, HWND/PID/title, frame sequence/timestamp, independently recomputed PNG SHA-256, byte length/dimensions, SVG projection proof and lifecycle checks.
+- Evidence intentionally excludes Base64 image bytes, data URIs and screenshot payloads.
+- The harness verifies `frozen` keeps the last frame with zero provider reads and `sleeping` clears cached pixels with zero provider reads.
+- Canonical Canvas must retain the `windows://` provider preview URI; any persisted data URI fails the run.
+- Windows hosted CI parses the PowerShell harness and keeps native build/smoke coverage, but `hostedCiAuthoritativeUserDesktop=false` remains machine-readable.
+- ADR-022 records the user-session/evidence boundary.
+
+## Authority model after 15.10
 
 Durable world authority:
 
@@ -140,19 +156,26 @@ Visibility and refresh authority:
 
 - the provider proves which resource a frame belongs to;
 - the observer snapshot decides which principal/view/room may see the semantic portal;
-- the observer lifecycle determines the bounded reference refresh cadence or whether provider I/O is suspended;
+- the observer lifecycle determines the bounded refresh cadence or suspension;
 - the renderer consumes only the resulting ephemeral copy.
 
-Windows continues to own the native window. Visual projection and refresh are neither ownership transfer nor durable world mutation.
+Validation authority:
 
-## Explicit non-goals through 15.9
+- portable tests prove contracts and fail-closed semantics;
+- hosted Windows CI proves native build/helper smoke and harness syntax validity;
+- only a caller-executed interactive Windows run may produce `interactive_windows_e2e_v1` user-session evidence;
+- even that evidence stores hashes/facts, not captured pixel payload.
+
+Windows continues to own the native window. Visual projection, refresh and validation are neither ownership transfer nor durable world mutation.
+
+## Explicit non-goals through 15.10
 
 - Claiming high-FPS continuous compositor streaming or zero-copy cross-process GPU sharing.
 - Claiming that the reference cadence is a guaranteed frame rate; slow work intentionally reduces effective rate because loops do not overlap.
-- Claiming authoritative interactive WGC E2E from GitHub-hosted Windows runners.
+- Treating GitHub-hosted Windows runners as authoritative evidence of a user's interactive desktop.
 - UI Automation inspection or semantic actions in the reference helper.
 - Keyboard/pointer injection, UAC/secure-desktop bypass or credential access.
-- Persisting captured Windows pixels into Canvas, observer durable events or resource metadata.
+- Persisting captured Windows pixels into Canvas, observer durable events, validation evidence or resource metadata.
 - Retaining an unbounded visual history or treating the compositor cache as durable evidence.
 - Exposing a private observer foreground merely because principals share a rendezvous.
 - Treating recovered observer lifecycle intent as proof that a provider process, HWND or WGC session is alive.
@@ -162,9 +185,9 @@ Windows continues to own the native window. Visual projection and refresh are ne
 
 ## Next implementation slices
 
-1. Validate discovery + WGC capture + bounded refresh + observer-gated portal rendering on an interactive Windows user-session host.
+1. Collect at least one real `interactive_windows_e2e_v1` artifact on a local interactive Windows host.
 2. Validate sustained multi-observer isolation and selective convergence against real Windows windows.
 3. Add read-only UI Automation inspection as a separate semantic-observation authority.
 4. Add semantic UIA actions only after inspection is stable and behind the existing `controlOwner` authority.
-5. Consider higher-throughput or zero-copy visual transport only after interactive correctness evidence is closed.
+5. Consider higher-throughput or zero-copy visual transport only after interactive correctness evidence is collected.
 6. Add HDUS bridge contracts after MRMIC semantics are stable.

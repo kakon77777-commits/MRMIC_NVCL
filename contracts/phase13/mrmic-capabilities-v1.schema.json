@@ -87,7 +87,7 @@
     "windowsProvider": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["supported", "providerId", "resourceKind", "resourceSchemaVersion", "providerCapabilitySchemaVersion", "adapterPackage", "adapterVersion", "nativeBridge", "capture", "automation"],
+      "required": ["supported", "providerId", "resourceKind", "resourceSchemaVersion", "providerCapabilitySchemaVersion", "adapterPackage", "adapterVersion", "nativeBridge", "capture", "interactiveValidation", "automation"],
       "properties": {
         "supported": { "const": true },
         "providerId": { "const": "windows" },
@@ -146,6 +146,23 @@
                 "nonOverlapping": { "const": true }
               }
             }
+          }
+        },
+        "interactiveValidation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["supported", "evidenceSchemaVersion", "command", "targetSelectors", "callerConfirmationRequired", "hostedCiAuthoritativeUserDesktop", "evidencePersistsPixelPayload"],
+          "properties": {
+            "supported": { "const": true },
+            "evidenceSchemaVersion": { "const": "interactive_windows_e2e_v1" },
+            "command": { "const": "npm run windows:e2e --" },
+            "targetSelectors": {
+              "type": "array",
+              "const": ["title", "hwnd"]
+            },
+            "callerConfirmationRequired": { "const": true },
+            "hostedCiAuthoritativeUserDesktop": { "const": false },
+            "evidencePersistsPixelPayload": { "const": false }
           }
         },
         "automation": {

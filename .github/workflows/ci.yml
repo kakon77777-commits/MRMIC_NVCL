@@ -27,3 +27,17 @@ jobs:
         shell: pwsh
       - run: .\native\windows-bridge-csharp\smoke.ps1
         shell: pwsh
+      - name: Parse interactive Windows E2E PowerShell harness
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path '.\scripts\windows-interactive-e2e.ps1'),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_ }
+            exit 1
+          }
+        shell: pwsh

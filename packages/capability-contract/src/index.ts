@@ -73,6 +73,15 @@ export interface MrmicCapabilitiesV1 {
         nonOverlapping: true
       }
     }
+    interactiveValidation: {
+      supported: true
+      evidenceSchemaVersion: 'interactive_windows_e2e_v1'
+      command: 'npm run windows:e2e --'
+      targetSelectors: readonly ['title', 'hwnd']
+      callerConfirmationRequired: true
+      hostedCiAuthoritativeUserDesktop: false
+      evidencePersistsPixelPayload: false
+    }
     automation: {
       api: 'uia'
       semanticPatternsPreferred: true
@@ -166,6 +175,15 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
         sleepingDropsFrame: true,
         nonOverlapping: true,
       },
+    },
+    interactiveValidation: {
+      supported: true,
+      evidenceSchemaVersion: 'interactive_windows_e2e_v1',
+      command: 'npm run windows:e2e --',
+      targetSelectors: ['title', 'hwnd'],
+      callerConfirmationRequired: true,
+      hostedCiAuthoritativeUserDesktop: false,
+      evidencePersistsPixelPayload: false,
     },
     automation: {
       api: 'uia',
