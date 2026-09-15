@@ -64,7 +64,7 @@
         "effectReceiptSchemaVersion": { "const": "mrmic_effect_receipt_v1" },
         "idempotencyScope": { "const": "runtime_instance" },
         "maxCachedReceipts": { "const": 256 },
-        "providerAdapters": { "type": "array", "const": ["windows"] },
+        "providerAdapters": { "type": "array", "const": ["windows", "ai_board"] },
         "strongerProviderIdempotencyAllowed": { "const": true },
         "postActionVerificationRequired": { "const": false },
         "continuousPerceptionDecoupled": { "const": true },

@@ -23,7 +23,7 @@ export interface MrmicCapabilitiesV1 {
     effectReceiptSchemaVersion: 'mrmic_effect_receipt_v1'
     idempotencyScope: 'runtime_instance'
     maxCachedReceipts: 256
-    providerAdapters: readonly ['windows']
+    providerAdapters: readonly ['windows', 'ai_board']
     strongerProviderIdempotencyAllowed: true
     postActionVerificationRequired: false
     continuousPerceptionDecoupled: true
@@ -186,7 +186,7 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
     effectReceiptSchemaVersion: 'mrmic_effect_receipt_v1',
     idempotencyScope: 'runtime_instance',
     maxCachedReceipts: 256,
-    providerAdapters: ['windows'],
+    providerAdapters: ['windows', 'ai_board'],
     strongerProviderIdempotencyAllowed: true,
     postActionVerificationRequired: false,
     continuousPerceptionDecoupled: true,
