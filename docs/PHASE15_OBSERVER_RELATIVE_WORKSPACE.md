@@ -1,6 +1,6 @@
 # Phase 15 - Observer-Relative Workspace
 
-Status: 15.11 bounded read-only Windows UI Automation inspection baseline.
+Status: 15.12 control-owner-gated Windows UI Automation semantic action baseline.
 
 Phase 15 adds an observer-relative coordination layer above the existing Canvas, identity, resource-portal, recursive-Canvas, runtime-presence and durable-event authorities. It does not replace Windows or provider runtimes: Windows remains a resource host, while MRMIC owns spatial projection, authenticated observer views, selective convergence and resource-control boundaries.
 
@@ -134,13 +134,30 @@ Authenticated human and AI principals may keep different private views of one ca
 - The reference helper does not read `ValuePattern.Current.Value`, `TextPattern.DocumentRange` or password values.
 - `parseWindowsUiaSnapshot()` independently validates resource identity, bounds, runtime-id uniqueness, parent topology and whitelisted fields at the TypeScript trust boundary.
 - `WindowsUiaReadOnlyAccess.inspect()` checks `canInspect` before provider I/O and exposes no semantic-action method.
-- Native `uia.inspect` is implemented; `uia.action` returns `UIA_ACTION_NOT_IMPLEMENTED`.
-- Global capability reports `automationInspectionImplemented=true` while `automationImplemented=false` and input injection remains disabled.
+- Native `uia.inspect` is implemented.
 - Local command: `npm run windows:uia -- -Title "Notepad"` or `npm run windows:uia -- -Hwnd "0x123456"`.
 - `windows_uia_snapshot_v1` is ephemeral provider/runtime observation; it is not canonical Canvas state, durable observer state or a control lease.
 - ADR-023 records the inspection/control separation and semantic minimization boundary.
 
-## Authority model after 15.11
+## Delivered in 15.12 - semantic UIA actions behind `controlOwner`
+
+- `WindowsUiaControlledAccess` is the reference semantic-control gateway.
+- The requested portal must be mounted and visible and its actual `CanvasLivePortalCoordinator.controlOwner` must equal the requesting principal.
+- `WindowsAccessAuthority.canControl` is checked before any UIA provider I/O.
+- A new `WindowsUiaReadOnlyAccess.inspect()` is executed immediately before every action, preserving the Phase 15.11 `canInspect` gate.
+- Reference inspection freshness bound is **2000 ms**.
+- The target runtime id must still exist in the fresh bounded UIA tree, remain enabled and advertise the required UIA pattern.
+- Supported actions are exactly `invoke`, `toggle`, `select`, and `set_value`.
+- Native execution uses `InvokePattern`, `TogglePattern`, `SelectionItemPattern`, or `ValuePattern`; there is no coordinate/raw-input fallback.
+- Fresh element facts (`processId`, native HWND, optional `AutomationId`, optional control type) are bound into the native request and revalidated after native runtime-id resolution.
+- The native helper revalidates provider epoch, PID, HWND and exact provider-resource identity again before action execution.
+- `set_value` is limited to **2048** characters, refuses password elements and returns redacted native value evidence.
+- `windows_uia_controlled_action_v1` omits the set-value text entirely and contains only bounded identity/action/timestamp facts.
+- Global capability now reports `automationImplemented=true` specifically for these four semantic actions, while `rawInputInjectionImplemented=false` and input-injection fallback remains disabled.
+- No standalone action CLI is exposed in Phase 15.12, avoiding a convenience path that could bypass live MRMIC `controlOwner` state.
+- ADR-024 records the ownership/freshness/element-binding boundary.
+
+## Authority model after 15.12
 
 Durable world authority:
 
@@ -150,39 +167,45 @@ Durable world authority:
 Ephemeral Windows/provider authority:
 
 - HWND liveness, WGC sessions, native frame queues, encoded snapshots, compositor caches, refresh timers and UIA semantic snapshots remain provider/runtime state;
-- visual render copies and UIA trees are observations, not canonical world mutation.
+- visual render copies and UIA trees are observations, not canonical world mutation;
+- UIA action execution is a provider-side runtime effect, not a durable rewrite of Canvas truth.
 
 Visibility and observation authority:
 
 - the provider proves which Windows resource a visual or semantic observation belongs to;
 - observer state decides visual visibility and refresh eligibility;
 - inspect authority is checked before UIA provider access;
-- UIA supported-pattern metadata does not grant control.
+- UIA supported-pattern metadata alone does not grant control.
 
 Control authority:
 
-- `controlOwner` remains unchanged and separate from focus, visibility and inspection;
-- `uia.action` and input injection remain disabled in the Phase 15.11 reference implementation.
+- `controlOwner` remains the single active portal control lease;
+- successful semantic action additionally requires `canControl` and `canInspect` policy permission;
+- each action is rebound to a fresh UIA observation and revalidated against provider/window/element identity;
+- semantic UIA actions do not imply raw keyboard/pointer authority.
 
 Validation authority:
 
-- portable tests prove contracts and fail-closed semantics;
-- hosted Windows CI proves native build/helper smoke and local harness syntax;
-- only a caller-executed interactive Windows run may produce authoritative caller-session visual evidence;
-- local UIA inspection may inspect a caller-selected real window but remains bounded/read-only.
+- portable tests prove control-owner/policy/freshness/pattern/password/value-redaction fail-closed semantics;
+- hosted Windows CI proves native UIA pattern-action compilation, capability smoke and existing PowerShell harness syntax;
+- hosted CI still does not constitute caller-desktop interactive action evidence;
+- a later action E2E harness must acquire a real MRMIC control lease rather than call the native helper directly.
 
 Windows continues to own the native window and UI tree.
 
-## Explicit non-goals through 15.11
+## Explicit non-goals through 15.12
 
 - High-FPS or zero-copy visual streaming.
 - Treating GitHub-hosted runners as authoritative user-desktop evidence.
-- UIA semantic actions, InvokePattern execution, selection changes or text entry.
+- Arbitrary UIA pattern execution beyond invoke/toggle/select/set_value.
 - `ValuePattern`/`TextPattern` content extraction or password extraction.
-- Keyboard/pointer injection, UAC/secure-desktop bypass or credential access.
-- Persisting captured Windows pixels or UIA snapshots into canonical Canvas or durable observer events.
-- Retaining an unbounded visual or semantic history.
-- Exposing private visual state merely because principals share a rendezvous.
+- Setting values on password elements.
+- Raw keyboard/pointer injection, `SendInput`, coordinate clicking or drag gestures.
+- UAC/secure-desktop bypass or credential access.
+- Persisting captured Windows pixels, UIA snapshots or set-value payloads into canonical Canvas or durable observer events.
+- Retaining an unbounded visual, semantic or action-value history.
+- Implicit control acquisition from visibility, foreground state or rendezvous membership.
+- Replaying actions against stale UIA snapshots or fuzzy-retargeting disappeared runtime ids.
 - Treating recovered observer state as proof that a provider process/HWND/UIA element remains live.
 - Letting observer state own/rewrite canonical Canvas topology.
 - Bypassing provider authorization or `controlOwner`.
@@ -191,8 +214,8 @@ Windows continues to own the native window and UI tree.
 ## Next implementation slices
 
 1. Collect real local `interactive_windows_e2e_v1` and `windows_uia_snapshot_v1` evidence against representative Windows applications.
-2. Validate sustained multi-observer isolation/selective convergence against real Windows windows.
-3. Design a minimal Phase 15.12 semantic UIA action set behind fresh resource/element revalidation and existing `controlOwner` authority.
+2. Add an interactive semantic-action E2E harness that constructs a real MRMIC portal, acquires `controlOwner`, performs one bounded action on a dedicated test app, and verifies post-action state through fresh UIA/WGC observation.
+3. Validate sustained multi-observer isolation/selective convergence and control handoff against real Windows windows.
 4. Keep raw input injection separate and disabled unless a later explicit fallback contract requires it.
 5. Consider higher-throughput/zero-copy visual transport only after real interactive evidence is collected.
 6. Add HDUS bridge contracts after MRMIC semantics are stable.

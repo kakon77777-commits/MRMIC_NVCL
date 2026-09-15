@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/mrmic/contracts/phase15/windows-uia-controlled-action-v1.schema.json",
+  "title": "MRMIC Windows UIA Controlled Action v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "ok",
+    "portalObjectId",
+    "providerResourceId",
+    "principalId",
+    "action",
+    "inspectionCapturedAt",
+    "completedAt"
+  ],
+  "properties": {
+    "schema": { "const": "windows_uia_controlled_action_v1" },
+    "ok": { "const": true },
+    "portalObjectId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "providerResourceId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "principalId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "runtimeId"],
+      "properties": {
+        "kind": { "enum": ["invoke", "toggle", "select", "set_value"] },
+        "runtimeId": { "type": "string", "minLength": 1, "maxLength": 512 }
+      }
+    },
+    "inspectionCapturedAt": { "type": "string", "format": "date-time" },
+    "completedAt": { "type": "string", "format": "date-time" }
+  }
+}

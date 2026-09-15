@@ -47,7 +47,8 @@ export interface MrmicCapabilitiesV1 {
       frameTransportImplemented: true
       captureImplemented: true
       automationInspectionImplemented: true
-      automationImplemented: false
+      automationImplemented: true
+      rawInputInjectionImplemented: false
     }
     capture: {
       api: 'windows_graphics_capture'
@@ -86,14 +87,22 @@ export interface MrmicCapabilitiesV1 {
     automation: {
       api: 'uia'
       inspectionSupported: true
-      actionSupported: false
+      actionSupported: true
       snapshotSchemaVersion: 'windows_uia_snapshot_v1'
+      actionResultSchemaVersion: 'windows_uia_controlled_action_v1'
+      supportedActions: readonly ['invoke', 'toggle', 'select', 'set_value']
+      controlOwnerRequired: true
+      freshInspectionRequired: true
+      maxInspectionAgeMs: 2000
+      actionValueMaxLength: 2048
+      passwordValueWriteAllowed: false
       maxDepth: 8
       maxElements: 512
       maxPatternsPerElement: 32
       valueTextIncluded: false
       semanticPatternsPreferred: true
       inputInjectionFallback: 'disabled'
+      rawInputInjectionImplemented: false
       interactiveDesktopRequiredForInjection: true
     }
   }
@@ -113,6 +122,7 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
     'windows_snapshot_portal_v1',
     'observer_portal_refresh_v1',
     'windows_uia_inspection_v1',
+    'windows_uia_controlled_action_v1',
   ],
   authModes: ['legacy_local', 'bearer_principal_v1'],
   resourcePortal: { supported: true, schemaVersion: 'native_resource_portal_v1' },
@@ -159,7 +169,8 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
       frameTransportImplemented: true,
       captureImplemented: true,
       automationInspectionImplemented: true,
-      automationImplemented: false,
+      automationImplemented: true,
+      rawInputInjectionImplemented: false,
     },
     capture: {
       api: 'windows_graphics_capture',
@@ -198,14 +209,22 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
     automation: {
       api: 'uia',
       inspectionSupported: true,
-      actionSupported: false,
+      actionSupported: true,
       snapshotSchemaVersion: 'windows_uia_snapshot_v1',
+      actionResultSchemaVersion: 'windows_uia_controlled_action_v1',
+      supportedActions: ['invoke', 'toggle', 'select', 'set_value'],
+      controlOwnerRequired: true,
+      freshInspectionRequired: true,
+      maxInspectionAgeMs: 2000,
+      actionValueMaxLength: 2048,
+      passwordValueWriteAllowed: false,
       maxDepth: 8,
       maxElements: 512,
       maxPatternsPerElement: 32,
       valueTextIncluded: false,
       semanticPatternsPreferred: true,
       inputInjectionFallback: 'disabled',
+      rawInputInjectionImplemented: false,
       interactiveDesktopRequiredForInjection: true,
     },
   } as const,

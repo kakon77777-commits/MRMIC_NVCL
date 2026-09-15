@@ -31,12 +31,33 @@
     "automation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["api", "supported", "inspectionSupported", "actionSupported", "maxDepth", "maxElements", "maxPatternsPerElement", "valueTextIncluded", "semanticPatternsPreferred", "inputInjectionFallback", "interactiveDesktopRequiredForInjection"],
+      "required": [
+        "api",
+        "supported",
+        "inspectionSupported",
+        "actionSupported",
+        "supportedActions",
+        "actionValueMaxLength",
+        "passwordValueWriteAllowed",
+        "maxDepth",
+        "maxElements",
+        "maxPatternsPerElement",
+        "valueTextIncluded",
+        "semanticPatternsPreferred",
+        "inputInjectionFallback",
+        "interactiveDesktopRequiredForInjection"
+      ],
       "properties": {
         "api": { "const": "uia" },
         "supported": { "const": true },
         "inspectionSupported": { "const": true },
-        "actionSupported": { "const": false },
+        "actionSupported": { "const": true },
+        "supportedActions": {
+          "type": "array",
+          "const": ["invoke", "toggle", "select", "set_value"]
+        },
+        "actionValueMaxLength": { "const": 2048 },
+        "passwordValueWriteAllowed": { "const": false },
         "maxDepth": { "const": 8 },
         "maxElements": { "const": 512 },
         "maxPatternsPerElement": { "const": 32 },

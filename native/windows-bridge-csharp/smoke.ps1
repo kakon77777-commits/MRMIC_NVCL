@@ -40,16 +40,23 @@ if ($cap.result.capture.maxSnapshotPixels -ne 8294400) { throw 'Unexpected snaps
 if ($cap.result.capture.maxSnapshotBytes -ne 16777216) { throw 'Unexpected snapshot byte bound' }
 if (-not $cap.result.capture.supported) { throw 'Snapshot-backed portal capture support was not advertised' }
 
-if (-not $cap.result.automation.supported) { throw 'Phase 15.11 read-only UI Automation inspection was not advertised' }
+if (-not $cap.result.automation.supported) { throw 'UI Automation support was not advertised' }
 if (-not $cap.result.automation.inspectionSupported) { throw 'UIA inspection support was not advertised' }
-if ($cap.result.automation.actionSupported) { throw 'Phase 15.11 must remain read-only' }
+if (-not $cap.result.automation.actionSupported) { throw 'Phase 15.12 semantic UIA action support was not advertised' }
 if ($cap.result.automation.maxDepth -ne 8) { throw 'Unexpected UIA depth bound' }
 if ($cap.result.automation.maxElements -ne 512) { throw 'Unexpected UIA element bound' }
 if ($cap.result.automation.maxPatternsPerElement -ne 32) { throw 'Unexpected UIA pattern bound' }
-if ($cap.result.automation.valueTextIncluded) { throw 'Phase 15.11 must not export UIA value text' }
-if ($cap.result.automation.inputInjectionFallback) { throw 'Phase 15.11 must not enable input injection fallback' }
+if ($cap.result.automation.actionValueMaxLength -ne 2048) { throw 'Unexpected UIA action value bound' }
+if ($cap.result.automation.passwordValueWriteAllowed) { throw 'Phase 15.12 must not set password element values' }
+$expectedActions = @('invoke', 'toggle', 'select', 'set_value')
+if (@($cap.result.automation.supportedActions).Count -ne $expectedActions.Count) { throw 'Unexpected UIA semantic action count' }
+foreach ($action in $expectedActions) {
+  if (-not (@($cap.result.automation.supportedActions) -contains $action)) { throw "Missing UIA semantic action: $action" }
+}
+if ($cap.result.automation.valueTextIncluded) { throw 'UIA inspection must not export value text' }
+if ($cap.result.automation.inputInjectionFallback) { throw 'Phase 15.12 must not enable input injection fallback' }
 
 if (-not $windows -or -not $windows.ok) { throw 'Window enumeration smoke request failed' }
 if ($windows.protocol -ne 'mrmic-windows-native-bridge/v1') { throw 'Unexpected enumeration protocol' }
 
-Write-Host "Windows bridge smoke passed; enumerated $(@($windows.result).Count) top-level window facts with snapshot capture and bounded read-only UIA inspection declared."
+Write-Host "Windows bridge smoke passed; enumerated $(@($windows.result).Count) top-level window facts with snapshot capture, bounded UIA inspection, and semantic UIA actions declared."

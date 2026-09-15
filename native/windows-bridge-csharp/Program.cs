@@ -53,16 +53,21 @@ internal static class Program
 
         using var captures = new WindowsCaptureSessionManager(ProviderEpoch);
         var uia = new WindowsUiaInspector(ProviderEpoch);
+        var uiaActions = new WindowsUiaActionExecutor(ProviderEpoch);
         string? line;
         while ((line = Console.ReadLine()) is not null)
         {
             if (string.IsNullOrWhiteSpace(line)) continue;
-            HandleLine(line, captures, uia);
+            HandleLine(line, captures, uia, uiaActions);
         }
         return 0;
     }
 
-    private static void HandleLine(string line, WindowsCaptureSessionManager captures, WindowsUiaInspector uia)
+    private static void HandleLine(
+        string line,
+        WindowsCaptureSessionManager captures,
+        WindowsUiaInspector uia,
+        WindowsUiaActionExecutor uiaActions)
     {
         string requestId = "unknown";
         try
@@ -116,7 +121,12 @@ internal static class Program
                         RequiredUInt32(parameters, "processId")));
                     break;
                 case "uia.action":
-                    WriteFailure(requestId, "UIA_ACTION_NOT_IMPLEMENTED", "Phase 15.11 is read-only and does not implement UI Automation actions");
+                    WriteSuccess(requestId, uiaActions.Execute(
+                        RequiredString(parameters, "providerResourceId"),
+                        RequiredString(parameters, "providerEpoch"),
+                        RequiredString(parameters, "hwndHex"),
+                        RequiredUInt32(parameters, "processId"),
+                        RequiredObject(parameters, "action")));
                     break;
                 default:
                     WriteFailure(requestId, "METHOD_NOT_FOUND", $"Unsupported Windows bridge method: {method}");
@@ -158,7 +168,10 @@ internal static class Program
             api = "uia",
             supported = true,
             inspectionSupported = true,
-            actionSupported = false,
+            actionSupported = true,
+            supportedActions = new[] { "invoke", "toggle", "select", "set_value" },
+            actionValueMaxLength = WindowsUiaActionExecutor.MaxValueLength,
+            passwordValueWriteAllowed = false,
             maxDepth = WindowsUiaInspector.MaxDepth,
             maxElements = WindowsUiaInspector.MaxElements,
             maxPatternsPerElement = WindowsUiaInspector.MaxPatternsPerElement,

@@ -22,7 +22,7 @@ test('HTTP and MCP expose one versioned provider-neutral capability document', a
   }
 })
 
-test('capability schema advertises lifecycle-aware Windows visual runtime and read-only UIA inspection', async () => {
+test('capability schema advertises lifecycle-aware Windows visual runtime and controlled semantic UIA actions', async () => {
   const schema = JSON.parse(await readFile('contracts/phase13/mrmic-capabilities-v1.schema.json', 'utf8'))
   assert.equal(schema.$id, 'https://evemisslab.com/schemas/mrmic-capabilities-v1.schema.json')
   assert.deepEqual(schema.required, [
@@ -37,6 +37,7 @@ test('capability schema advertises lifecycle-aware Windows visual runtime and re
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_snapshot_portal_v1'))
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('observer_portal_refresh_v1'))
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_uia_inspection_v1'))
+  assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_uia_controlled_action_v1'))
   assert.equal(MRMIC_CAPABILITIES.resourcePortal.supported, true)
   assert.equal(MRMIC_CAPABILITIES.runtimePresence.supported, true)
   assert.equal(MRMIC_CAPABILITIES.observerWorkspace.supported, true)
@@ -71,18 +72,27 @@ test('capability schema advertises lifecycle-aware Windows visual runtime and re
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.frameTransportImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.captureImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.automationInspectionImplemented, true)
-  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.automationImplemented, false)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.automationImplemented, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.rawInputInjectionImplemented, false)
   assert.deepEqual(MRMIC_CAPABILITIES.windowsProvider.automation, {
     api: 'uia',
     inspectionSupported: true,
-    actionSupported: false,
+    actionSupported: true,
     snapshotSchemaVersion: 'windows_uia_snapshot_v1',
+    actionResultSchemaVersion: 'windows_uia_controlled_action_v1',
+    supportedActions: ['invoke', 'toggle', 'select', 'set_value'],
+    controlOwnerRequired: true,
+    freshInspectionRequired: true,
+    maxInspectionAgeMs: 2000,
+    actionValueMaxLength: 2048,
+    passwordValueWriteAllowed: false,
     maxDepth: 8,
     maxElements: 512,
     maxPatternsPerElement: 32,
     valueTextIncluded: false,
     semanticPatternsPreferred: true,
     inputInjectionFallback: 'disabled',
+    rawInputInjectionImplemented: false,
     interactiveDesktopRequiredForInjection: true,
   })
 })

@@ -99,7 +99,7 @@
         "nativeBridge": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["required", "protocolVersion", "referenceImplementation", "referenceProject", "scope", "discoveryImplemented", "captureSessionImplemented", "frameTransportImplemented", "captureImplemented", "automationInspectionImplemented", "automationImplemented"],
+          "required": ["required", "protocolVersion", "referenceImplementation", "referenceProject", "scope", "discoveryImplemented", "captureSessionImplemented", "frameTransportImplemented", "captureImplemented", "automationInspectionImplemented", "automationImplemented", "rawInputInjectionImplemented"],
           "properties": {
             "required": { "const": true },
             "protocolVersion": { "const": "mrmic-windows-native-bridge/v1" },
@@ -111,7 +111,8 @@
             "frameTransportImplemented": { "const": true },
             "captureImplemented": { "const": true },
             "automationInspectionImplemented": { "const": true },
-            "automationImplemented": { "const": false }
+            "automationImplemented": { "const": true },
+            "rawInputInjectionImplemented": { "const": false }
           }
         },
         "capture": {
@@ -166,18 +167,26 @@
         "automation": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["api", "inspectionSupported", "actionSupported", "snapshotSchemaVersion", "maxDepth", "maxElements", "maxPatternsPerElement", "valueTextIncluded", "semanticPatternsPreferred", "inputInjectionFallback", "interactiveDesktopRequiredForInjection"],
+          "required": ["api", "inspectionSupported", "actionSupported", "snapshotSchemaVersion", "actionResultSchemaVersion", "supportedActions", "controlOwnerRequired", "freshInspectionRequired", "maxInspectionAgeMs", "actionValueMaxLength", "passwordValueWriteAllowed", "maxDepth", "maxElements", "maxPatternsPerElement", "valueTextIncluded", "semanticPatternsPreferred", "inputInjectionFallback", "rawInputInjectionImplemented", "interactiveDesktopRequiredForInjection"],
           "properties": {
             "api": { "const": "uia" },
             "inspectionSupported": { "const": true },
-            "actionSupported": { "const": false },
+            "actionSupported": { "const": true },
             "snapshotSchemaVersion": { "const": "windows_uia_snapshot_v1" },
+            "actionResultSchemaVersion": { "const": "windows_uia_controlled_action_v1" },
+            "supportedActions": { "type": "array", "const": ["invoke", "toggle", "select", "set_value"] },
+            "controlOwnerRequired": { "const": true },
+            "freshInspectionRequired": { "const": true },
+            "maxInspectionAgeMs": { "const": 2000 },
+            "actionValueMaxLength": { "const": 2048 },
+            "passwordValueWriteAllowed": { "const": false },
             "maxDepth": { "const": 8 },
             "maxElements": { "const": 512 },
             "maxPatternsPerElement": { "const": 32 },
             "valueTextIncluded": { "const": false },
             "semanticPatternsPreferred": { "const": true },
             "inputInjectionFallback": { "const": "disabled" },
+            "rawInputInjectionImplemented": { "const": false },
             "interactiveDesktopRequiredForInjection": { "const": true }
           }
         }
