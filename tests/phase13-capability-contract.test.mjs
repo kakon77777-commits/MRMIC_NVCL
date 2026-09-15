@@ -22,7 +22,7 @@ test('HTTP and MCP expose one versioned provider-neutral capability document', a
   }
 })
 
-test('capability schema advertises provider-neutral operational runtime plus Windows adapter', async () => {
+test('capability schema advertises provider-neutral operational runtime plus Windows and AI Board adapters', async () => {
   const schema = JSON.parse(await readFile('contracts/phase13/mrmic-capabilities-v1.schema.json', 'utf8'))
   assert.equal(schema.$id, 'https://evemisslab.com/schemas/mrmic-capabilities-v1.schema.json')
   assert.deepEqual(schema.required, [
@@ -58,7 +58,7 @@ test('capability schema advertises provider-neutral operational runtime plus Win
     effectReceiptSchemaVersion: 'mrmic_effect_receipt_v1',
     idempotencyScope: 'runtime_instance',
     maxCachedReceipts: 256,
-    providerAdapters: ['windows'],
+    providerAdapters: ['windows', 'ai_board'],
     strongerProviderIdempotencyAllowed: true,
     postActionVerificationRequired: false,
     continuousPerceptionDecoupled: true,
@@ -70,6 +70,7 @@ test('capability schema advertises provider-neutral operational runtime plus Win
   assert.equal(schema.properties.operationalRuntime.properties.runtimeVersion.const, 'provider_operational_runtime_v1')
   assert.equal(schema.properties.operationalRuntime.properties.commandSchemaVersion.const, 'mrmic_operational_command_v1')
   assert.equal(schema.properties.operationalRuntime.properties.effectReceiptSchemaVersion.const, 'mrmic_effect_receipt_v1')
+  assert.deepEqual(schema.properties.operationalRuntime.properties.providerAdapters.const, ['windows', 'ai_board'])
   assert.equal(schema.properties.operationalRuntime.properties.postActionVerificationRequired.const, false)
   assert.equal(schema.properties.operationalRuntime.properties.continuousPerceptionDecoupled.const, true)
 

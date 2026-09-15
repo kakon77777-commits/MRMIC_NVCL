@@ -23,6 +23,7 @@
 - [Phase 15.14 Multi-Observer Control Handoff](PHASE15_14_MULTI_OBSERVER_CONTROL_HANDOFF.md)
 - [Phase 15.15 AI-Native Operational Runtime](PHASE15_15_AI_NATIVE_OPERATIONAL_RUNTIME.md)
 - [Phase 15.16 Provider-Neutral Operational Runtime](PHASE15_16_PROVIDER_NEUTRAL_OPERATIONAL_RUNTIME.md)
+- [Phase 15.17 AI Board Production Operational Adapter](PHASE15_17_AI_BOARD_OPERATIONAL_ADAPTER.md)
 - [ADR-013 Durable Observer Workspace Event Stream](ADR-013_OBSERVER_WORKSPACE_EVENT_DURABILITY.md)
 - [ADR-014 Authenticated Observer Re-entry Protocol](ADR-014_OBSERVER_PROTOCOL_GATEWAY.md)
 - [ADR-015 Observer Nested Canvas Topology](ADR-015_OBSERVER_NESTED_CANVAS_TOPOLOGY.md)
@@ -39,6 +40,7 @@
 - [ADR-026 Multi-Observer Control Handoff](ADR-026_MULTI_OBSERVER_CONTROL_HANDOFF.md)
 - [ADR-027 AI-Native Operational Runtime](ADR-027_AI_NATIVE_OPERATIONAL_RUNTIME.md)
 - [ADR-028 Provider-Neutral Operational Runtime](ADR-028_PROVIDER_NEUTRAL_OPERATIONAL_RUNTIME.md)
+- [ADR-029 AI Board Production Operational Adapter](ADR-029_AI_BOARD_PRODUCTION_OPERATIONAL_ADAPTER.md)
 - [HDSRC × MRMIC/NVCL Integration Architecture v0.1](HDSRC_MRMIC_NVCL_INTEGRATION_ARCHITECTURE_v0.1.md)
 - [HDSRC × MRMIC/NVCL Authority Matrix v0.1](HDSRC_MRMIC_NVCL_AUTHORITY_MATRIX_v0.1.md)
 - [HDSRC × MRMIC/NVCL Integration Status v0.1](HDSRC_MRMIC_NVCL_INTEGRATION_STATUS_v0.1.md)
@@ -52,19 +54,18 @@
 ## Phase 15 目前狀態
 
 - [Observer-relative workspace, durability, authenticated re-entry, nested topology and Windows provider status](PHASE15_OBSERVER_RELATIVE_WORKSPACE.md)
-- [Current operational slice: Phase 15.16](PHASE15_16_PROVIDER_NEUTRAL_OPERATIONAL_RUNTIME.md)
-- `contracts/phase15/` now includes provider-neutral `mrmic_operational_command_v1` / `mrmic_effect_receipt_v1` in addition to the stricter Windows operational schemas.
+- [Current operational slice: Phase 15.17](PHASE15_17_AI_BOARD_OPERATIONAL_ADAPTER.md)
+- `contracts/phase15/` contains provider-neutral `mrmic_operational_command_v1` / `mrmic_effect_receipt_v1`, stricter Windows operational schemas, and the AI Board operational capability profile.
 - `packages/operational-runtime/src/index.ts` owns provider-neutral command digesting, runtime-instance idempotency, concurrent duplicate coalescing, conflict rejection and bounded LRU completed-receipt caching.
-- `packages/provider-windows/src/operational-runtime.ts` is now a Windows adapter over the shared runtime; Windows no longer owns a second idempotency engine.
-- The portable suite includes a synthetic `terminal` provider to prove the shared runtime does not depend on Windows/UIA/WGC.
+- `packages/provider-windows/src/operational-runtime.ts` is a Windows adapter over the shared runtime; Windows no longer owns a second idempotency engine.
+- `packages/provider-ai-board/src/operational-runtime.ts` is the first real non-Windows production adapter. It appends messages to existing AI Board thread roots while binding provider identity from the authenticated MRMIC principal.
+- The portable suite still includes a synthetic `terminal` provider only as shared-runtime conformance evidence; it is not a production Terminal adapter.
+- Top-level operational capability now registers `windows` and `ai_board` as production adapters.
+- AI Board ambiguous POST outcomes are not replayed or synchronously verified; the live adapter marks the command digest ambiguous and refuses same-command replay before another HTTP request.
 - Reference re-entry server: `npm run observer` (default `127.0.0.1:4180`). Nested entry requires an injected canonical Canvas topology authority.
-- `@mrmic/provider-windows` remains the Windows provider adapter boundary.
-- `native/windows-bridge-csharp/` covers Win32 discovery, HWND-bound WGC session lifecycle, bounded `png_base64_snapshot_v1` transport, bounded UIA inspection, and the four semantic UIA pattern actions.
-- `native/windows-controlled-action-target/` is the repository-owned safe WPF application used only for conformance/development validation; it is not production runtime authority.
-- Phase 15.8 projects snapshots only into observer-authorized ephemeral render copies; Phase 15.9 adds lifecycle-aware bounded refresh; Phase 15.10 adds caller-executed visual validation; Phase 15.11 adds read-only semantic UIA perception; Phase 15.12 adds controlled semantic UIA actions; Phase 15.13 adds a conformance-only dual UIA+WGC safe-target harness; Phase 15.14 makes control a generation-bound handoff-safe live lease; Phase 15.15 adds AI-native Windows command/effect semantics; Phase 15.16 extracts common operational mechanics into a provider-neutral runtime.
-- UIA inspection remains bounded to depth 8 / 512 descendants / 32 pattern names and still does not export `ValuePattern`/`TextPattern` value text.
-- UIA action remains limited to `invoke`, `toggle`, `select`, and `set_value`; `set_value` is bounded to 2048 characters and denied for password elements.
-- `WindowsUiaControlledAccess` remains the authority/lease/element-binding execution boundary for Windows semantic actions.
+- `native/windows-bridge-csharp/` continues to cover Windows discovery/WGC/UIA surfaces; Phase 15.17 does not alter native Windows code.
+- `native/windows-controlled-action-target/` remains conformance/development validation only and is not production runtime authority.
+- Phase 15.8 projects snapshots into observer-authorized ephemeral render copies; 15.9 adds lifecycle-aware refresh; 15.10-15.13 establish bounded conformance harnesses; 15.14 makes Windows control generation-bound; 15.15 introduces AI-native command/effect semantics; 15.16 extracts the provider-neutral operational kernel; 15.17 proves it against AI Board's real HTTP mutation surface.
 - Effect receipts explicitly do not claim world-state verification; perception continues independently for the agent's next planning cycle.
 - MRMIC does not insert a generic human approval/login gate into ordinary AI-native operations; external systems may still impose their own authentication/consent policy.
 - Raw keyboard/pointer injection remains unimplemented and disabled.
@@ -86,7 +87,7 @@
 
 ## 設計決策
 
-ADR-001 至 ADR-028 位於本目錄。ADR-013 至 ADR-015 固定 observer durability、authenticated re-entry 與 single-topology nested visibility；ADR-016 至 ADR-019 固定 Windows provider identity、native discovery、WGC session lifecycle 與有界 frame transport；ADR-020 固定 observer gate 必須先於 provider snapshot I/O、semantic `portalId` 與 canonical `portalObjectId` 分離，以及 Windows pixels 只能存在於 ephemeral render copy；ADR-021 固定 lifecycle-aware cadence、frozen/sleeping frame retention semantics、四項 LRU cache bound 與 non-overlapping refresh loop；ADR-022 固定 user-session E2E 必須由 caller 明確執行且 hosted CI 不得冒充 user-desktop evidence；ADR-023 固定 UI Automation inspection 與 control 分離、8/512/32 有界 tree contract、value/text payload 最小化；ADR-024 固定 UIA semantic action 必須受 `controlOwner`、control policy、fresh inspection、pattern/element identity binding 與 provider identity revalidation共同約束，且不得退化成 raw input fallback；ADR-025 固定 interactive semantic-action E2E 只能使用 repository-owned safe target；ADR-026 固定 live control lease generation、atomic handoff、ABA 防護與 native action 前 generation/policy 重驗證；ADR-027 固定 production runtime 使用 command/effect receipt + continuous perception，而不是同步 post-action verifier/human approval pipeline；ADR-028 固定共通 operational runtime 只擁有 provider-neutral idempotency mechanics，provider authority/effect semantics 留在 adapter。
+ADR-001 至 ADR-029 位於本目錄。ADR-013 至 ADR-015 固定 observer durability、authenticated re-entry 與 single-topology nested visibility；ADR-016 至 ADR-019 固定 Windows provider identity、native discovery、WGC session lifecycle 與有界 frame transport；ADR-020 固定 observer gate 必須先於 provider snapshot I/O、semantic `portalId` 與 canonical `portalObjectId` 分離，以及 Windows pixels 只能存在於 ephemeral render copy；ADR-021 固定 lifecycle-aware cadence、frozen/sleeping frame retention semantics、四項 LRU cache bound 與 non-overlapping refresh loop；ADR-022 固定 user-session E2E 必須由 caller 明確執行且 hosted CI 不得冒充 user-desktop evidence；ADR-023 固定 UI Automation inspection 與 control 分離、8/512/32 有界 tree contract、value/text payload 最小化；ADR-024 固定 UIA semantic action 必須受 `controlOwner`、control policy、fresh inspection、pattern/element identity binding 與 provider identity revalidation共同約束，且不得退化成 raw input fallback；ADR-025 固定 interactive semantic-action E2E 只能使用 repository-owned safe target；ADR-026 固定 live control lease generation、atomic handoff、ABA 防護與 native action 前 generation/policy 重驗證；ADR-027 固定 production runtime 使用 command/effect receipt + continuous perception，而不是同步 post-action verifier/human approval pipeline；ADR-028 固定共通 operational runtime 只擁有 provider-neutral idempotency mechanics，provider authority/effect semantics 留在 adapter；ADR-029 固定 AI Board production adapter 的 authority-bound identity、content-free receipts 與 ambiguous replay refusal。
 
 ## 驗收與證據
 
