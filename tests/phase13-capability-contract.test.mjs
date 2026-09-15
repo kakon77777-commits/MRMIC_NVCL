@@ -22,12 +22,12 @@ test('HTTP and MCP expose one versioned provider-neutral capability document', a
   }
 })
 
-test('capability schema advertises generation-bound control and AI-native operational runtime', async () => {
+test('capability schema advertises provider-neutral operational runtime plus Windows adapter', async () => {
   const schema = JSON.parse(await readFile('contracts/phase13/mrmic-capabilities-v1.schema.json', 'utf8'))
   assert.equal(schema.$id, 'https://evemisslab.com/schemas/mrmic-capabilities-v1.schema.json')
   assert.deepEqual(schema.required, [
     'schema', 'mrmicVersion', 'canvasSchemaVersion', 'mcpProtocolProfile', 'projectionModes',
-    'authModes', 'resourcePortal', 'runtimePresence', 'livePortalHost', 'observerWorkspace', 'windowsProvider',
+    'authModes', 'resourcePortal', 'runtimePresence', 'livePortalHost', 'operationalRuntime', 'observerWorkspace', 'windowsProvider',
   ])
   assert.equal(MRMIC_CAPABILITIES.schema, 'mrmic-capabilities/v1')
   assert.equal(MRMIC_CAPABILITIES.mrmicVersion, '0.14.0')
@@ -39,6 +39,8 @@ test('capability schema advertises generation-bound control and AI-native operat
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_uia_inspection_v1'))
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_uia_controlled_action_v1'))
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_ai_native_operational_runtime_v1'))
+  assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('provider_neutral_operational_runtime_v1'))
+
   assert.equal(MRMIC_CAPABILITIES.resourcePortal.supported, true)
   assert.equal(MRMIC_CAPABILITIES.runtimePresence.supported, true)
   assert.deepEqual(MRMIC_CAPABILITIES.livePortalHost, {
@@ -48,9 +50,33 @@ test('capability schema advertises generation-bound control and AI-native operat
     controlGenerationSupported: true,
     atomicHandoffSupported: true,
   })
+
+  assert.deepEqual(MRMIC_CAPABILITIES.operationalRuntime, {
+    supported: true,
+    runtimeVersion: 'provider_operational_runtime_v1',
+    commandSchemaVersion: 'mrmic_operational_command_v1',
+    effectReceiptSchemaVersion: 'mrmic_effect_receipt_v1',
+    idempotencyScope: 'runtime_instance',
+    maxCachedReceipts: 256,
+    providerAdapters: ['windows'],
+    strongerProviderIdempotencyAllowed: true,
+    postActionVerificationRequired: false,
+    continuousPerceptionDecoupled: true,
+    effectReceiptClaimsWorldState: false,
+    mrmicHumanApprovalGateRequired: false,
+    conformanceHarnessRuntimeAuthority: false,
+  })
+
+  assert.equal(schema.properties.operationalRuntime.properties.runtimeVersion.const, 'provider_operational_runtime_v1')
+  assert.equal(schema.properties.operationalRuntime.properties.commandSchemaVersion.const, 'mrmic_operational_command_v1')
+  assert.equal(schema.properties.operationalRuntime.properties.effectReceiptSchemaVersion.const, 'mrmic_effect_receipt_v1')
+  assert.equal(schema.properties.operationalRuntime.properties.postActionVerificationRequired.const, false)
+  assert.equal(schema.properties.operationalRuntime.properties.continuousPerceptionDecoupled.const, true)
+
   assert.equal(MRMIC_CAPABILITIES.observerWorkspace.supported, true)
   assert.equal(MRMIC_CAPABILITIES.observerWorkspace.durable, true)
   assert.equal(MRMIC_CAPABILITIES.observerWorkspace.authRequired, true)
+
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.providerId, 'windows')
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.api, 'windows_graphics_capture')
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.minimumBuild, 18362)
@@ -82,18 +108,15 @@ test('capability schema advertises generation-bound control and AI-native operat
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.automationInspectionImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.automationImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.rawInputInjectionImplemented, false)
-  assert.deepEqual(MRMIC_CAPABILITIES.windowsProvider.operationalRuntime, {
+
+  assert.deepEqual(MRMIC_CAPABILITIES.windowsProvider.operationalAdapter, {
     supported: true,
+    sharedRuntimeVersion: 'provider_operational_runtime_v1',
     commandSchemaVersion: 'windows_operational_command_v1',
     effectReceiptSchemaVersion: 'windows_effect_receipt_v1',
-    idempotencyScope: 'runtime_instance',
-    maxCachedReceipts: 256,
-    postActionVerificationRequired: false,
-    continuousPerceptionDecoupled: true,
-    effectReceiptClaimsWorldState: false,
-    mrmicHumanApprovalGateRequired: false,
-    conformanceHarnessRuntimeAuthority: false,
   })
+  assert.equal(Object.hasOwn(MRMIC_CAPABILITIES.windowsProvider, 'operationalRuntime'), false)
+
   assert.deepEqual(MRMIC_CAPABILITIES.windowsProvider.automation, {
     api: 'uia',
     inspectionSupported: true,
