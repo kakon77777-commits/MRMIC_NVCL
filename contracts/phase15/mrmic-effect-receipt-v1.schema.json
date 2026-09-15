@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/mrmic/contracts/phase15/mrmic-effect-receipt-v1.schema.json",
+  "title": "MRMIC Provider-Neutral Effect Receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "status",
+    "provider",
+    "effectKind",
+    "commandId",
+    "idempotencyKey",
+    "commandDigest",
+    "principalId",
+    "resourceRef",
+    "effect",
+    "completedAt",
+    "deduplicated",
+    "worldStateVerified",
+    "perceptionRequiredForPlanning"
+  ],
+  "properties": {
+    "schema": { "const": "mrmic_effect_receipt_v1" },
+    "status": { "const": "completed" },
+    "provider": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "effectKind": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "commandId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "idempotencyKey": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "commandDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "principalId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "resourceRef": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 16
+    },
+    "effect": {
+      "type": "object",
+      "maxProperties": 64
+    },
+    "completedAt": { "type": "string", "format": "date-time" },
+    "deduplicated": { "type": "boolean" },
+    "worldStateVerified": { "const": false },
+    "perceptionRequiredForPlanning": { "const": true }
+  }
+}

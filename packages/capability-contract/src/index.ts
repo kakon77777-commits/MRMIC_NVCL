@@ -16,6 +16,21 @@ export interface MrmicCapabilitiesV1 {
     controlGenerationSupported: true
     atomicHandoffSupported: true
   }
+  operationalRuntime: {
+    supported: true
+    runtimeVersion: 'provider_operational_runtime_v1'
+    commandSchemaVersion: 'mrmic_operational_command_v1'
+    effectReceiptSchemaVersion: 'mrmic_effect_receipt_v1'
+    idempotencyScope: 'runtime_instance'
+    maxCachedReceipts: 256
+    providerAdapters: readonly ['windows']
+    strongerProviderIdempotencyAllowed: true
+    postActionVerificationRequired: false
+    continuousPerceptionDecoupled: true
+    effectReceiptClaimsWorldState: false
+    mrmicHumanApprovalGateRequired: false
+    conformanceHarnessRuntimeAuthority: false
+  }
   observerWorkspace: {
     supported: boolean
     viewSchemaVersion: string
@@ -84,7 +99,7 @@ export interface MrmicCapabilitiesV1 {
     interactiveValidation: {
       supported: true
       evidenceSchemaVersion: 'interactive_windows_e2e_v1'
-      command: 'npm run windows:e2e --'
+      command: string
       targetSelectors: readonly ['title', 'hwnd']
       callerConfirmationRequired: true
       hostedCiAuthoritativeUserDesktop: false
@@ -93,10 +108,10 @@ export interface MrmicCapabilitiesV1 {
     interactiveControlValidation: {
       supported: true
       evidenceSchemaVersion: 'interactive_windows_controlled_action_e2e_v1'
-      command: 'npm run windows:control-e2e --'
+      command: string
       safeTargetOnly: true
-      targetTitle: 'MRMIC Phase 15.13 Controlled Action Target'
-      rootAutomationId: 'MrmicControlledActionTargetRoot'
+      targetTitle: string
+      rootAutomationId: string
       callerConfirmationRequired: true
       hostedCiAuthoritativeInteractiveAction: false
       supportedActions: readonly ['invoke', 'toggle', 'select', 'set_value']
@@ -104,17 +119,11 @@ export interface MrmicCapabilitiesV1 {
       evidencePersistsSetValuePayload: false
       rawInputUsed: false
     }
-    operationalRuntime: {
+    operationalAdapter: {
       supported: true
+      sharedRuntimeVersion: 'provider_operational_runtime_v1'
       commandSchemaVersion: 'windows_operational_command_v1'
       effectReceiptSchemaVersion: 'windows_effect_receipt_v1'
-      idempotencyScope: 'runtime_instance'
-      maxCachedReceipts: 256
-      postActionVerificationRequired: false
-      continuousPerceptionDecoupled: true
-      effectReceiptClaimsWorldState: false
-      mrmicHumanApprovalGateRequired: false
-      conformanceHarnessRuntimeAuthority: false
     }
     automation: {
       api: 'uia'
@@ -158,6 +167,7 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
     'windows_uia_inspection_v1',
     'windows_uia_controlled_action_v1',
     'windows_ai_native_operational_runtime_v1',
+    'provider_neutral_operational_runtime_v1',
   ],
   authModes: ['legacy_local', 'bearer_principal_v1'],
   resourcePortal: { supported: true, schemaVersion: 'native_resource_portal_v1' },
@@ -168,6 +178,21 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
     controlLeaseSchemaVersion: 'live_portal_control_lease_v1',
     controlGenerationSupported: true,
     atomicHandoffSupported: true,
+  } as const,
+  operationalRuntime: {
+    supported: true,
+    runtimeVersion: 'provider_operational_runtime_v1',
+    commandSchemaVersion: 'mrmic_operational_command_v1',
+    effectReceiptSchemaVersion: 'mrmic_effect_receipt_v1',
+    idempotencyScope: 'runtime_instance',
+    maxCachedReceipts: 256,
+    providerAdapters: ['windows'],
+    strongerProviderIdempotencyAllowed: true,
+    postActionVerificationRequired: false,
+    continuousPerceptionDecoupled: true,
+    effectReceiptClaimsWorldState: false,
+    mrmicHumanApprovalGateRequired: false,
+    conformanceHarnessRuntimeAuthority: false,
   } as const,
   observerWorkspace: {
     supported: true,
@@ -261,17 +286,11 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
       evidencePersistsSetValuePayload: false,
       rawInputUsed: false,
     },
-    operationalRuntime: {
+    operationalAdapter: {
       supported: true,
+      sharedRuntimeVersion: 'provider_operational_runtime_v1',
       commandSchemaVersion: 'windows_operational_command_v1',
       effectReceiptSchemaVersion: 'windows_effect_receipt_v1',
-      idempotencyScope: 'runtime_instance',
-      maxCachedReceipts: 256,
-      postActionVerificationRequired: false,
-      continuousPerceptionDecoupled: true,
-      effectReceiptClaimsWorldState: false,
-      mrmicHumanApprovalGateRequired: false,
-      conformanceHarnessRuntimeAuthority: false,
     },
     automation: {
       api: 'uia',

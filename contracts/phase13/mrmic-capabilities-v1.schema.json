@@ -14,6 +14,7 @@
     "resourcePortal",
     "runtimePresence",
     "livePortalHost",
+    "operationalRuntime",
     "observerWorkspace",
     "windowsProvider"
   ],
@@ -36,6 +37,40 @@
         "controlLeaseSchemaVersion": { "const": "live_portal_control_lease_v1" },
         "controlGenerationSupported": { "const": true },
         "atomicHandoffSupported": { "const": true }
+      }
+    },
+    "operationalRuntime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supported",
+        "runtimeVersion",
+        "commandSchemaVersion",
+        "effectReceiptSchemaVersion",
+        "idempotencyScope",
+        "maxCachedReceipts",
+        "providerAdapters",
+        "strongerProviderIdempotencyAllowed",
+        "postActionVerificationRequired",
+        "continuousPerceptionDecoupled",
+        "effectReceiptClaimsWorldState",
+        "mrmicHumanApprovalGateRequired",
+        "conformanceHarnessRuntimeAuthority"
+      ],
+      "properties": {
+        "supported": { "const": true },
+        "runtimeVersion": { "const": "provider_operational_runtime_v1" },
+        "commandSchemaVersion": { "const": "mrmic_operational_command_v1" },
+        "effectReceiptSchemaVersion": { "const": "mrmic_effect_receipt_v1" },
+        "idempotencyScope": { "const": "runtime_instance" },
+        "maxCachedReceipts": { "const": 256 },
+        "providerAdapters": { "type": "array", "const": ["windows"] },
+        "strongerProviderIdempotencyAllowed": { "const": true },
+        "postActionVerificationRequired": { "const": false },
+        "continuousPerceptionDecoupled": { "const": true },
+        "effectReceiptClaimsWorldState": { "const": false },
+        "mrmicHumanApprovalGateRequired": { "const": false },
+        "conformanceHarnessRuntimeAuthority": { "const": false }
       }
     },
     "observerWorkspace": {
@@ -98,7 +133,7 @@
     "windowsProvider": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["supported", "providerId", "resourceKind", "resourceSchemaVersion", "providerCapabilitySchemaVersion", "adapterPackage", "adapterVersion", "nativeBridge", "capture", "interactiveValidation", "interactiveControlValidation", "operationalRuntime", "automation"],
+      "required": ["supported", "providerId", "resourceKind", "resourceSchemaVersion", "providerCapabilitySchemaVersion", "adapterPackage", "adapterVersion", "nativeBridge", "capture", "interactiveValidation", "interactiveControlValidation", "operationalAdapter", "automation"],
       "properties": {
         "supported": { "const": true },
         "providerId": { "const": "windows" },
@@ -194,21 +229,15 @@
             "rawInputUsed": { "const": false }
           }
         },
-        "operationalRuntime": {
+        "operationalAdapter": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["supported", "commandSchemaVersion", "effectReceiptSchemaVersion", "idempotencyScope", "maxCachedReceipts", "postActionVerificationRequired", "continuousPerceptionDecoupled", "effectReceiptClaimsWorldState", "mrmicHumanApprovalGateRequired", "conformanceHarnessRuntimeAuthority"],
+          "required": ["supported", "sharedRuntimeVersion", "commandSchemaVersion", "effectReceiptSchemaVersion"],
           "properties": {
             "supported": { "const": true },
+            "sharedRuntimeVersion": { "const": "provider_operational_runtime_v1" },
             "commandSchemaVersion": { "const": "windows_operational_command_v1" },
-            "effectReceiptSchemaVersion": { "const": "windows_effect_receipt_v1" },
-            "idempotencyScope": { "const": "runtime_instance" },
-            "maxCachedReceipts": { "const": 256 },
-            "postActionVerificationRequired": { "const": false },
-            "continuousPerceptionDecoupled": { "const": true },
-            "effectReceiptClaimsWorldState": { "const": false },
-            "mrmicHumanApprovalGateRequired": { "const": false },
-            "conformanceHarnessRuntimeAuthority": { "const": false }
+            "effectReceiptSchemaVersion": { "const": "windows_effect_receipt_v1" }
           }
         },
         "automation": {
