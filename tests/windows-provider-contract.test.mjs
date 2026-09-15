@@ -3,17 +3,19 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { MRMIC_CAPABILITIES } from '../dist/packages/capability-contract/src/index.js'
 
-test('Windows provider schemas publish bounded snapshot, portal visual, and refresh policy contracts', async () => {
+test('Windows provider schemas publish visual, refresh, and bounded read-only UIA contracts', async () => {
   const capabilitySchema = JSON.parse(await readFile('contracts/phase15/windows-provider-capabilities-v1.schema.json', 'utf8'))
   const resourceSchema = JSON.parse(await readFile('contracts/phase15/windows-window-resource-v1.schema.json', 'utf8'))
   const snapshotSchema = JSON.parse(await readFile('contracts/phase15/windows-capture-snapshot-v1.schema.json', 'utf8'))
   const visualSchema = JSON.parse(await readFile('contracts/phase15/live-portal-visual-frame-v1.schema.json', 'utf8'))
   const refreshSchema = JSON.parse(await readFile('contracts/phase15/observer-portal-refresh-policy-v1.schema.json', 'utf8'))
+  const uiaSchema = JSON.parse(await readFile('contracts/phase15/windows-uia-snapshot-v1.schema.json', 'utf8'))
   assert.equal(capabilitySchema.$id, 'https://evemisslab.com/mrmic/contracts/phase15/windows-provider-capabilities-v1.schema.json')
   assert.equal(resourceSchema.$id, 'https://evemisslab.com/mrmic/contracts/phase15/windows-window-resource-v1.schema.json')
   assert.equal(snapshotSchema.$id, 'https://evemisslab.com/mrmic/contracts/phase15/windows-capture-snapshot-v1.schema.json')
   assert.equal(visualSchema.$id, 'https://evemisslab.com/mrmic/contracts/phase15/live-portal-visual-frame-v1.schema.json')
   assert.equal(refreshSchema.$id, 'https://evemisslab.com/mrmic/contracts/phase15/observer-portal-refresh-policy-v1.schema.json')
+  assert.equal(uiaSchema.$id, 'https://evemisslab.com/mrmic/contracts/phase15/windows-uia-snapshot-v1.schema.json')
   assert.equal(capabilitySchema.properties.capture.properties.minimumBuild.const, 18362)
   assert.deepEqual(capabilitySchema.properties.capture.properties.frameTransport.enum, ['none', 'png_base64_snapshot_v1'])
   assert.equal(snapshotSchema.properties.mimeType.const, 'image/png')
@@ -31,11 +33,15 @@ test('Windows provider schemas publish bounded snapshot, portal visual, and refr
   assert.equal(refreshSchema.properties.frozenRetainsLastFrame.const, true)
   assert.equal(refreshSchema.properties.sleepingDropsFrame.const, true)
   assert.equal(refreshSchema.properties.nonOverlapping.const, true)
+  assert.equal(uiaSchema.properties.maxDepth.const, 8)
+  assert.equal(uiaSchema.properties.maxElements.const, 512)
+  assert.equal(uiaSchema.properties.maxPatternsPerElement.const, 32)
+  assert.equal('value' in uiaSchema.$defs.element.properties, false)
   assert.equal(resourceSchema.properties.provider.const, 'windows')
   assert.equal(resourceSchema.properties.resourceKind.const, 'desktop_window')
 })
 
-test('global capability claims bounded observer-gated refresh but not UIA', () => {
+test('global capability claims read-only UIA inspection while semantic actions remain unimplemented', () => {
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.supported, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.adapterPackage, '@mrmic/provider-windows')
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.adapterVersion, '0.15.4')
@@ -47,6 +53,7 @@ test('global capability claims bounded observer-gated refresh but not UIA', () =
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.captureSessionImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.frameTransportImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.captureImplemented, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.automationInspectionImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.automationImplemented, false)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.frameTransport, 'png_base64_snapshot_v1')
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.portalProjection, 'ephemeral_render_copy_v1')
@@ -64,4 +71,12 @@ test('global capability claims bounded observer-gated refresh but not UIA', () =
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.refresh.sleepingDropsFrame, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.refresh.nonOverlapping, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.automation.api, 'uia')
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.automation.inspectionSupported, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.automation.actionSupported, false)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.automation.snapshotSchemaVersion, 'windows_uia_snapshot_v1')
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.automation.maxDepth, 8)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.automation.maxElements, 512)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.automation.maxPatternsPerElement, 32)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.automation.valueTextIncluded, false)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.automation.inputInjectionFallback, 'disabled')
 })

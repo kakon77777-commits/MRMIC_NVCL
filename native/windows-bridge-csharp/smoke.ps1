@@ -38,10 +38,18 @@ if ($cap.result.capture.maxActiveMounts -ne 4) { throw 'Unexpected Windows captu
 if ($cap.result.capture.frameQueueCapacity -ne 2) { throw 'Unexpected bounded frame queue capacity' }
 if ($cap.result.capture.maxSnapshotPixels -ne 8294400) { throw 'Unexpected snapshot pixel bound' }
 if ($cap.result.capture.maxSnapshotBytes -ne 16777216) { throw 'Unexpected snapshot byte bound' }
-if (-not $cap.result.capture.supported) { throw 'Phase 15.8 snapshot-backed portal capture support was not advertised' }
-if ($cap.result.automation.supported) { throw 'Phase 15.8 must not advertise UI Automation' }
+if (-not $cap.result.capture.supported) { throw 'Snapshot-backed portal capture support was not advertised' }
+
+if (-not $cap.result.automation.supported) { throw 'Phase 15.11 read-only UI Automation inspection was not advertised' }
+if (-not $cap.result.automation.inspectionSupported) { throw 'UIA inspection support was not advertised' }
+if ($cap.result.automation.actionSupported) { throw 'Phase 15.11 must remain read-only' }
+if ($cap.result.automation.maxDepth -ne 8) { throw 'Unexpected UIA depth bound' }
+if ($cap.result.automation.maxElements -ne 512) { throw 'Unexpected UIA element bound' }
+if ($cap.result.automation.maxPatternsPerElement -ne 32) { throw 'Unexpected UIA pattern bound' }
+if ($cap.result.automation.valueTextIncluded) { throw 'Phase 15.11 must not export UIA value text' }
+if ($cap.result.automation.inputInjectionFallback) { throw 'Phase 15.11 must not enable input injection fallback' }
 
 if (-not $windows -or -not $windows.ok) { throw 'Window enumeration smoke request failed' }
 if ($windows.protocol -ne 'mrmic-windows-native-bridge/v1') { throw 'Unexpected enumeration protocol' }
 
-Write-Host "Windows bridge smoke passed; enumerated $(@($windows.result).Count) top-level window facts with snapshot-backed portal capture support declared."
+Write-Host "Windows bridge smoke passed; enumerated $(@($windows.result).Count) top-level window facts with snapshot capture and bounded read-only UIA inspection declared."

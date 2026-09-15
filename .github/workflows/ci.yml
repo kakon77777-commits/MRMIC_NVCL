@@ -27,17 +27,19 @@ jobs:
         shell: pwsh
       - run: .\native\windows-bridge-csharp\smoke.ps1
         shell: pwsh
-      - name: Parse interactive Windows E2E PowerShell harness
+      - name: Parse Windows local-validation PowerShell harnesses
         run: |
-          $tokens = $null
-          $errors = $null
-          [System.Management.Automation.Language.Parser]::ParseFile(
-            (Resolve-Path '.\scripts\windows-interactive-e2e.ps1'),
-            [ref]$tokens,
-            [ref]$errors
-          ) | Out-Null
-          if ($errors.Count -gt 0) {
-            $errors | ForEach-Object { Write-Error $_ }
-            exit 1
+          foreach ($path in @('.\scripts\windows-interactive-e2e.ps1', '.\scripts\windows-uia-inspect.ps1')) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $path),
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_ }
+              exit 1
+            }
           }
         shell: pwsh

@@ -1,8 +1,8 @@
-# MRMIC Windows Native Bridge — Phase 15.8 Snapshot-Backed Portal Integration
+# MRMIC Windows Native Bridge — Phase 15.11 Read-Only UIA Inspection
 
 This Windows-only helper is the reference native process behind the `WindowsNativeBridge` boundary.
 
-Phase 15.5 established Win32/DWM window discovery. Phase 15.6 added HWND-bound Windows Graphics Capture sessions. Phase 15.7 added bounded PNG snapshot transport. Phase 15.8 keeps the helper provider-owned while the MRMIC TypeScript layer projects those snapshots into observer-authorized ephemeral resource-portal render copies.
+Phase 15.5 established Win32/DWM discovery. Phase 15.6 added HWND-bound Windows Graphics Capture sessions. Phase 15.7 added bounded PNG snapshot transport. Phase 15.8–15.10 connected that visual path to observer-authorized portals, bounded refresh and local user-session validation. Phase 15.11 adds bounded **read-only** Windows UI Automation inspection while keeping semantic actions unimplemented.
 
 ## Implemented native surface
 
@@ -12,79 +12,84 @@ Discovery:
 - visibility / minimized / DWM cloak state
 - PID / TID / title / class / normalized HWND
 
-WGC lifecycle:
+WGC lifecycle and transport:
 
 - `capture.mount`
 - `capture.update`
+- `capture.snapshot`
 - `capture.unmount`
-- `GraphicsCaptureItem` from HWND
-- BGRA-capable D3D11 + WinRT `IDirect3DDevice`
-- free-threaded frame pool + `GraphicsCaptureSession`
-- resize-safe frame-pool recreation
+- HWND `GraphicsCaptureItem`
+- D3D11 + WinRT capture session
+- bounded two-frame queue
+- maximum four active mounts
+- maximum 8,294,400 pixels
+- maximum 16 MiB encoded PNG
+- latest-only `windows_capture_snapshot_v1`
 
-Bounded frame transport:
+Read-only UI Automation:
 
-- queue capacity: **2 frames per mount**
-- active mount limit: **4**
-- snapshot pixel limit: **8,294,400**
-- encoded PNG limit: **16 MiB**
-- latest encoded snapshot retained per mount
-- `capture.snapshot` returns `windows_capture_snapshot_v1`
+- `uia.inspect`
+- `AutomationElement.FromHandle(HWND)`
+- `TreeWalker.ControlViewWalker`
+- maximum depth **8**
+- maximum descendants **512**
+- maximum supported-pattern names per element **32**
+- `windows_uia_snapshot_v1`
 
-## Callback / worker boundary
+UIA inspection exposes bounded structural metadata such as runtime topology, `Name`, `AutomationId`, class/control type, enabled/offscreen/focusable state, `IsPassword`, bounds and supported pattern names.
 
-`FrameArrived` does not perform synchronous image readback or PNG encoding. It obtains the WGC frame and transfers ownership to `BoundedPngFrameTransport`.
+It does **not** read `ValuePattern.Current.Value`, `TextPattern.DocumentRange`, password values, or equivalent UI content streams.
 
-The background worker performs:
+## Identity boundary
+
+Both visual and semantic native reads are rooted in a provider-owned Windows resource identity:
 
 ```text
-Direct3D11CaptureFrame.Surface
-  -> SoftwareBitmap.CreateCopyFromSurfaceAsync
-  -> BitmapEncoder(PNG)
-  -> SHA-256
-  -> latest bounded snapshot
+providerEpoch + processId + HWND -> providerResourceId
 ```
 
-If the queue is saturated, older pending frames are disposed and dropped. This transport is for fresh observer evidence, not lossless video recording.
+Before UIA inspection the helper revalidates provider epoch, HWND liveness, PID and exact resource identity. Stale/reused HWND identity fails closed.
 
-On a WGC content-size change, new frames are temporarily dropped, pending transport frames are drained, and only then is `Direct3D11CaptureFramePool.Recreate` called.
+## Read-only authority boundary
 
-## Phase 15.8 portal boundary
+Phase 15.11 deliberately separates inspection from control:
 
-The native helper now reports `capture.supported=true` because the reference MRMIC stack has an actual bounded projection path for its snapshots.
+```text
+uia.inspect -> implemented
+uia.action  -> UIA_ACTION_NOT_IMPLEMENTED
+```
 
-That projection path remains outside the helper:
+Native capability reports:
+
+```text
+automation.supported = true
+automation.inspectionSupported = true
+automation.actionSupported = false
+automation.maxDepth = 8
+automation.maxElements = 512
+automation.maxPatternsPerElement = 32
+automation.valueTextIncluded = false
+automation.inputInjectionFallback = false
+```
+
+MRMIC independently validates the returned semantic tree and applies inspect authority before provider I/O. Supported pattern names describe capability only; they do not authorize execution.
+
+`controlOwner` remains outside the helper and is unchanged by Phase 15.11.
+
+## Visual callback / worker boundary
+
+`FrameArrived` still does not perform synchronous image readback or PNG encoding. It transfers the WGC frame to `BoundedPngFrameTransport`, whose background worker performs deep copy, PNG encoding and SHA-256.
+
+The visual path remains:
 
 ```text
 windows_capture_snapshot_v1
   -> WindowsSnapshotLivePortalHost
-  -> live_portal_visual_frame_v1
   -> observer gate
   -> ephemeral Canvas render copy
-  -> existing resource_portal SVG/image rendering
 ```
 
-The helper does **not** know observer identities, private views, rendezvous membership, Canvas object durability or `controlOwner`.
-
-MRMIC performs observer authorization before provider snapshot I/O. The provider visual frame is then checked against canonical `portalObjectId + provider + providerResourceId`. Only an ephemeral clone receives the `data:image/png;base64,...` preview; canonical Canvas state retains the provider URI and stores no pixels.
-
-## Capability boundary
-
-Phase 15.8 native capabilities report:
-
-```text
-capture.supported = true
-capture.sessionLifecycleSupported = true
-capture.frameTransportSupported = true
-capture.frameTransport = png_base64_snapshot_v1
-capture.maxActiveMounts = 4
-capture.frameQueueCapacity = 2
-capture.maxSnapshotPixels = 8294400
-capture.maxSnapshotBytes = 16777216
-automation.supported = false
-```
-
-`capture.supported=true` means snapshot-backed resource-portal rendering exists in the reference MRMIC stack. It does not mean high-FPS live streaming, zero-copy compositor integration or UI Automation is complete.
+Canonical Canvas stores no captured pixels.
 
 ## JSONL protocol
 
@@ -103,49 +108,63 @@ capture.mount
 capture.update
 capture.snapshot
 capture.unmount
+uia.inspect
 ```
 
-Still unimplemented and fail-closed:
+Explicitly unimplemented:
 
 ```text
-uia.inspect
 uia.action
 ```
 
-A `capture.snapshot` success returns mount/resource identity, frame sequence, timestamp, dimensions, `image/png`, encoded byte count, SHA-256, Base64 bytes and `png_base64_snapshot_v1` transport metadata.
+## Local usage
 
-The TypeScript process client independently verifies those fields and the decoded SHA-256 before accepting the snapshot.
-
-## Windows build/run
-
-PowerShell from the repository root:
+Build/run the raw helper:
 
 ```powershell
  dotnet build .\native\windows-bridge-csharp\MRMIC.WindowsBridge.csproj -c Release
  dotnet run --project .\native\windows-bridge-csharp\MRMIC.WindowsBridge.csproj -c Release
 ```
 
-The project compiles against the current Windows SDK while retaining Windows 10 build 18362 as its declared minimum OS platform for the HWND WGC boundary.
+Use the bounded MRMIC UIA CLI from repository root:
+
+```powershell
+npm run windows:uia -- -Title "Notepad"
+```
+
+or:
+
+```powershell
+npm run windows:uia -- -Hwnd "0x123456"
+```
+
+The PowerShell wrapper builds both native and TypeScript layers and writes a bounded `windows_uia_snapshot_v1` artifact.
 
 ## CI evidence
 
-The repository keeps portable Node/TypeScript validation and Windows-native validation separate.
+Portable CI runs strict TypeScript and the complete Node regression suite.
 
-Windows CI builds the CsWinRT helper and launches the resulting process for real `capabilities` and `window.enumerate` JSONL smoke requests. Hosted CI is not treated as authoritative interactive-desktop WGC capture E2E evidence.
+Windows CI:
 
-Portable tests exercise observer-gated private/shared projection and verify that denied views do not trigger provider snapshot I/O.
+- compiles the real `.NET 8 / System.Windows.Automation` reference path;
+- launches the native helper for capability/window-enumeration smoke;
+- validates UIA inspection capability while asserting actions remain disabled;
+- parses the local Windows PowerShell validation harnesses.
 
-## Security and authority boundary
+Hosted CI is not treated as proof that a particular caller-owned application's UIA tree is useful or complete.
+
+## Security and non-goals
 
 The helper does not:
 
+- execute UIA patterns or semantic actions;
 - inject keyboard or pointer input;
-- cross UAC/secure desktop boundaries;
+- read UI value/text streams;
+- read password values;
+- cross UAC/secure-desktop boundaries;
 - read credentials;
-- own MRMIC observer identity, Canvas topology or `controlOwner`;
-- persist HWND/capture identity across provider restart;
-- retain an unbounded frame history;
-- decide which observer or rendezvous may see a frame;
-- persist frame bytes into canonical Canvas state.
+- own observer identity, Canvas topology or `controlOwner`;
+- persist UIA snapshots as canonical Canvas truth;
+- retain an unbounded visual or semantic history.
 
 Stdout is protocol-only. Diagnostics belong on stderr so malformed stdout remains a fail-closed contract violation.

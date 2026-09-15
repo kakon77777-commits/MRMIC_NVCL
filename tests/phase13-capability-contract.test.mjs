@@ -22,7 +22,7 @@ test('HTTP and MCP expose one versioned provider-neutral capability document', a
   }
 })
 
-test('capability schema advertises observer-gated lifecycle-aware Windows portal refresh', async () => {
+test('capability schema advertises lifecycle-aware Windows visual runtime and read-only UIA inspection', async () => {
   const schema = JSON.parse(await readFile('contracts/phase13/mrmic-capabilities-v1.schema.json', 'utf8'))
   assert.equal(schema.$id, 'https://evemisslab.com/schemas/mrmic-capabilities-v1.schema.json')
   assert.deepEqual(schema.required, [
@@ -36,6 +36,7 @@ test('capability schema advertises observer-gated lifecycle-aware Windows portal
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_desktop_window_v1'))
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_snapshot_portal_v1'))
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('observer_portal_refresh_v1'))
+  assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_uia_inspection_v1'))
   assert.equal(MRMIC_CAPABILITIES.resourcePortal.supported, true)
   assert.equal(MRMIC_CAPABILITIES.runtimePresence.supported, true)
   assert.equal(MRMIC_CAPABILITIES.observerWorkspace.supported, true)
@@ -69,5 +70,19 @@ test('capability schema advertises observer-gated lifecycle-aware Windows portal
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.captureSessionImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.frameTransportImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.captureImplemented, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.automationInspectionImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.automationImplemented, false)
+  assert.deepEqual(MRMIC_CAPABILITIES.windowsProvider.automation, {
+    api: 'uia',
+    inspectionSupported: true,
+    actionSupported: false,
+    snapshotSchemaVersion: 'windows_uia_snapshot_v1',
+    maxDepth: 8,
+    maxElements: 512,
+    maxPatternsPerElement: 32,
+    valueTextIncluded: false,
+    semanticPatternsPreferred: true,
+    inputInjectionFallback: 'disabled',
+    interactiveDesktopRequiredForInjection: true,
+  })
 })

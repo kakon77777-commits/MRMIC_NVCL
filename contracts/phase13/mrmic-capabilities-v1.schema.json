@@ -99,7 +99,7 @@
         "nativeBridge": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["required", "protocolVersion", "referenceImplementation", "referenceProject", "scope", "discoveryImplemented", "captureSessionImplemented", "frameTransportImplemented", "captureImplemented", "automationImplemented"],
+          "required": ["required", "protocolVersion", "referenceImplementation", "referenceProject", "scope", "discoveryImplemented", "captureSessionImplemented", "frameTransportImplemented", "captureImplemented", "automationInspectionImplemented", "automationImplemented"],
           "properties": {
             "required": { "const": true },
             "protocolVersion": { "const": "mrmic-windows-native-bridge/v1" },
@@ -110,6 +110,7 @@
             "captureSessionImplemented": { "const": true },
             "frameTransportImplemented": { "const": true },
             "captureImplemented": { "const": true },
+            "automationInspectionImplemented": { "const": true },
             "automationImplemented": { "const": false }
           }
         },
@@ -156,10 +157,7 @@
             "supported": { "const": true },
             "evidenceSchemaVersion": { "const": "interactive_windows_e2e_v1" },
             "command": { "const": "npm run windows:e2e --" },
-            "targetSelectors": {
-              "type": "array",
-              "const": ["title", "hwnd"]
-            },
+            "targetSelectors": { "type": "array", "const": ["title", "hwnd"] },
             "callerConfirmationRequired": { "const": true },
             "hostedCiAuthoritativeUserDesktop": { "const": false },
             "evidencePersistsPixelPayload": { "const": false }
@@ -168,11 +166,18 @@
         "automation": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["api", "semanticPatternsPreferred", "inputInjectionFallback", "interactiveDesktopRequiredForInjection"],
+          "required": ["api", "inspectionSupported", "actionSupported", "snapshotSchemaVersion", "maxDepth", "maxElements", "maxPatternsPerElement", "valueTextIncluded", "semanticPatternsPreferred", "inputInjectionFallback", "interactiveDesktopRequiredForInjection"],
           "properties": {
             "api": { "const": "uia" },
+            "inspectionSupported": { "const": true },
+            "actionSupported": { "const": false },
+            "snapshotSchemaVersion": { "const": "windows_uia_snapshot_v1" },
+            "maxDepth": { "const": 8 },
+            "maxElements": { "const": 512 },
+            "maxPatternsPerElement": { "const": 32 },
+            "valueTextIncluded": { "const": false },
             "semanticPatternsPreferred": { "const": true },
-            "inputInjectionFallback": { "const": "bridge-declared" },
+            "inputInjectionFallback": { "const": "disabled" },
             "interactiveDesktopRequiredForInjection": { "const": true }
           }
         }

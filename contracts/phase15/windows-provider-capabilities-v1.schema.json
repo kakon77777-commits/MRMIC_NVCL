@@ -31,12 +31,18 @@
     "automation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["api", "supported", "semanticPatternsPreferred", "inputInjectionFallback", "interactiveDesktopRequiredForInjection"],
+      "required": ["api", "supported", "inspectionSupported", "actionSupported", "maxDepth", "maxElements", "maxPatternsPerElement", "valueTextIncluded", "semanticPatternsPreferred", "inputInjectionFallback", "interactiveDesktopRequiredForInjection"],
       "properties": {
         "api": { "const": "uia" },
-        "supported": { "type": "boolean" },
+        "supported": { "const": true },
+        "inspectionSupported": { "const": true },
+        "actionSupported": { "const": false },
+        "maxDepth": { "const": 8 },
+        "maxElements": { "const": 512 },
+        "maxPatternsPerElement": { "const": 32 },
+        "valueTextIncluded": { "const": false },
         "semanticPatternsPreferred": { "const": true },
-        "inputInjectionFallback": { "type": "boolean" },
+        "inputInjectionFallback": { "const": false },
         "interactiveDesktopRequiredForInjection": { "const": true }
       }
     }

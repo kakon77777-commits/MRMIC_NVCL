@@ -52,16 +52,17 @@ internal static class Program
         }
 
         using var captures = new WindowsCaptureSessionManager(ProviderEpoch);
+        var uia = new WindowsUiaInspector(ProviderEpoch);
         string? line;
         while ((line = Console.ReadLine()) is not null)
         {
             if (string.IsNullOrWhiteSpace(line)) continue;
-            HandleLine(line, captures);
+            HandleLine(line, captures, uia);
         }
         return 0;
     }
 
-    private static void HandleLine(string line, WindowsCaptureSessionManager captures)
+    private static void HandleLine(string line, WindowsCaptureSessionManager captures, WindowsUiaInspector uia)
     {
         string requestId = "unknown";
         try
@@ -108,8 +109,14 @@ internal static class Program
                         RequiredString(parameters, "providerResourceId")));
                     break;
                 case "uia.inspect":
+                    WriteSuccess(requestId, uia.Inspect(
+                        RequiredString(parameters, "providerResourceId"),
+                        RequiredString(parameters, "providerEpoch"),
+                        RequiredString(parameters, "hwndHex"),
+                        RequiredUInt32(parameters, "processId")));
+                    break;
                 case "uia.action":
-                    WriteFailure(requestId, "UIA_NOT_IMPLEMENTED", "Phase 15.8 does not implement UI Automation yet");
+                    WriteFailure(requestId, "UIA_ACTION_NOT_IMPLEMENTED", "Phase 15.11 is read-only and does not implement UI Automation actions");
                     break;
                 default:
                     WriteFailure(requestId, "METHOD_NOT_FOUND", $"Unsupported Windows bridge method: {method}");
@@ -149,7 +156,13 @@ internal static class Program
         automation = new
         {
             api = "uia",
-            supported = false,
+            supported = true,
+            inspectionSupported = true,
+            actionSupported = false,
+            maxDepth = WindowsUiaInspector.MaxDepth,
+            maxElements = WindowsUiaInspector.MaxElements,
+            maxPatternsPerElement = WindowsUiaInspector.MaxPatternsPerElement,
+            valueTextIncluded = false,
             semanticPatternsPreferred = true,
             inputInjectionFallback = false,
             interactiveDesktopRequiredForInjection = true

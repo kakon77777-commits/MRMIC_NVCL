@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/mrmic/contracts/phase15/windows-uia-snapshot-v1.schema.json",
+  "title": "MRMIC Windows UI Automation Snapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "providerResourceId", "capturedAt", "maxDepth", "maxElements", "maxPatternsPerElement", "truncated", "root", "elements"],
+  "properties": {
+    "schema": { "const": "windows_uia_snapshot_v1" },
+    "providerResourceId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "capturedAt": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "maxDepth": { "const": 8 },
+    "maxElements": { "const": 512 },
+    "maxPatternsPerElement": { "const": 32 },
+    "truncated": { "type": "boolean" },
+    "root": { "$ref": "#/$defs/element" },
+    "elements": {
+      "type": "array",
+      "maxItems": 512,
+      "items": { "$ref": "#/$defs/element" }
+    }
+  },
+  "$defs": {
+    "bounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number", "minimum": 0 },
+        "height": { "type": "number", "minimum": 0 }
+      }
+    },
+    "element": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtimeId", "depth", "parentRuntimeId", "name", "automationId", "className", "controlType", "localizedControlType", "processId", "nativeWindowHandle", "enabled", "offscreen", "keyboardFocusable", "password", "bounds", "patterns"],
+      "properties": {
+        "runtimeId": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "depth": { "type": "integer", "minimum": 0, "maximum": 8 },
+        "parentRuntimeId": { "type": ["string", "null"], "maxLength": 512 },
+        "name": { "type": ["string", "null"], "maxLength": 2048 },
+        "automationId": { "type": ["string", "null"], "maxLength": 2048 },
+        "className": { "type": ["string", "null"], "maxLength": 2048 },
+        "controlType": { "type": ["string", "null"], "maxLength": 512 },
+        "localizedControlType": { "type": ["string", "null"], "maxLength": 512 },
+        "processId": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+        "nativeWindowHandle": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+        "enabled": { "type": "boolean" },
+        "offscreen": { "type": "boolean" },
+        "keyboardFocusable": { "type": "boolean" },
+        "password": { "type": "boolean" },
+        "bounds": {
+          "oneOf": [
+            { "$ref": "#/$defs/bounds" },
+            { "type": "null" }
+          ]
+        },
+        "patterns": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+        }
+      }
+    }
+  }
+}

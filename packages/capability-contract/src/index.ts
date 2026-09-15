@@ -46,6 +46,7 @@ export interface MrmicCapabilitiesV1 {
       captureSessionImplemented: true
       frameTransportImplemented: true
       captureImplemented: true
+      automationInspectionImplemented: true
       automationImplemented: false
     }
     capture: {
@@ -84,8 +85,15 @@ export interface MrmicCapabilitiesV1 {
     }
     automation: {
       api: 'uia'
+      inspectionSupported: true
+      actionSupported: false
+      snapshotSchemaVersion: 'windows_uia_snapshot_v1'
+      maxDepth: 8
+      maxElements: 512
+      maxPatternsPerElement: 32
+      valueTextIncluded: false
       semanticPatternsPreferred: true
-      inputInjectionFallback: 'bridge-declared'
+      inputInjectionFallback: 'disabled'
       interactiveDesktopRequiredForInjection: true
     }
   }
@@ -104,6 +112,7 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
     'windows_desktop_window_v1',
     'windows_snapshot_portal_v1',
     'observer_portal_refresh_v1',
+    'windows_uia_inspection_v1',
   ],
   authModes: ['legacy_local', 'bearer_principal_v1'],
   resourcePortal: { supported: true, schemaVersion: 'native_resource_portal_v1' },
@@ -149,6 +158,7 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
       captureSessionImplemented: true,
       frameTransportImplemented: true,
       captureImplemented: true,
+      automationInspectionImplemented: true,
       automationImplemented: false,
     },
     capture: {
@@ -187,8 +197,15 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
     },
     automation: {
       api: 'uia',
+      inspectionSupported: true,
+      actionSupported: false,
+      snapshotSchemaVersion: 'windows_uia_snapshot_v1',
+      maxDepth: 8,
+      maxElements: 512,
+      maxPatternsPerElement: 32,
+      valueTextIncluded: false,
       semanticPatternsPreferred: true,
-      inputInjectionFallback: 'bridge-declared',
+      inputInjectionFallback: 'disabled',
       interactiveDesktopRequiredForInjection: true,
     },
   } as const,

@@ -21,6 +21,7 @@
     "web": "npm run build && node --no-warnings dist/apps/web/src/server.js",
     "observer": "npm run build && node --no-warnings dist/apps/observer-protocol-server/src/index.js",
     "windows:e2e": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\windows-interactive-e2e.ps1",
+    "windows:uia": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\windows-uia-inspect.ps1",
     "phase1:demo": "npm run build && node --no-warnings dist/apps/phase1-demo/src/index.js",
     "phase2:demo": "npm run build && node --no-warnings dist/apps/phase2-demo/src/index.js",
     "sync": "npm run build && node --no-warnings dist/apps/web/src/server.js",
