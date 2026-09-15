@@ -84,6 +84,20 @@ export interface MrmicCapabilitiesV1 {
       hostedCiAuthoritativeUserDesktop: false
       evidencePersistsPixelPayload: false
     }
+    interactiveControlValidation: {
+      supported: true
+      evidenceSchemaVersion: 'interactive_windows_controlled_action_e2e_v1'
+      command: 'npm run windows:control-e2e --'
+      safeTargetOnly: true
+      targetTitle: 'MRMIC Phase 15.13 Controlled Action Target'
+      rootAutomationId: 'MrmicControlledActionTargetRoot'
+      callerConfirmationRequired: true
+      hostedCiAuthoritativeInteractiveAction: false
+      supportedActions: readonly ['invoke', 'toggle', 'select', 'set_value']
+      evidencePersistsPixelPayload: false
+      evidencePersistsSetValuePayload: false
+      rawInputUsed: false
+    }
     automation: {
       api: 'uia'
       inspectionSupported: true
@@ -205,6 +219,20 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
       callerConfirmationRequired: true,
       hostedCiAuthoritativeUserDesktop: false,
       evidencePersistsPixelPayload: false,
+    },
+    interactiveControlValidation: {
+      supported: true,
+      evidenceSchemaVersion: 'interactive_windows_controlled_action_e2e_v1',
+      command: 'npm run windows:control-e2e --',
+      safeTargetOnly: true,
+      targetTitle: 'MRMIC Phase 15.13 Controlled Action Target',
+      rootAutomationId: 'MrmicControlledActionTargetRoot',
+      callerConfirmationRequired: true,
+      hostedCiAuthoritativeInteractiveAction: false,
+      supportedActions: ['invoke', 'toggle', 'select', 'set_value'],
+      evidencePersistsPixelPayload: false,
+      evidencePersistsSetValuePayload: false,
+      rawInputUsed: false,
     },
     automation: {
       api: 'uia',

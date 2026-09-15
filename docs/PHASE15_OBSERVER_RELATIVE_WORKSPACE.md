@@ -1,6 +1,6 @@
 # Phase 15 - Observer-Relative Workspace
 
-Status: 15.12 control-owner-gated Windows UI Automation semantic action baseline.
+Status: 15.13 interactive controlled-action E2E baseline.
 
 Phase 15 adds an observer-relative coordination layer above the existing Canvas, identity, resource-portal, recursive-Canvas, runtime-presence and durable-event authorities. It does not replace Windows or provider runtimes: Windows remains a resource host, while MRMIC owns spatial projection, authenticated observer views, selective convergence and resource-control boundaries.
 
@@ -153,11 +153,26 @@ Authenticated human and AI principals may keep different private views of one ca
 - The native helper revalidates provider epoch, PID, HWND and exact provider-resource identity again before action execution.
 - `set_value` is limited to **2048** characters, refuses password elements and returns redacted native value evidence.
 - `windows_uia_controlled_action_v1` omits the set-value text entirely and contains only bounded identity/action/timestamp facts.
-- Global capability now reports `automationImplemented=true` specifically for these four semantic actions, while `rawInputInjectionImplemented=false` and input-injection fallback remains disabled.
+- Global capability reports `automationImplemented=true` specifically for these four semantic actions, while `rawInputInjectionImplemented=false` and input-injection fallback remains disabled.
 - No standalone action CLI is exposed in Phase 15.12, avoiding a convenience path that could bypass live MRMIC `controlOwner` state.
 - ADR-024 records the ownership/freshness/element-binding boundary.
 
-## Authority model after 15.12
+## Delivered in 15.13 - interactive controlled-action E2E
+
+- `native/windows-controlled-action-target/` adds a repository-owned WPF validation application with fixed title/root AutomationId and no arbitrary external target selection.
+- The target exposes one safe fixture for each Phase 15.12 semantic action: invoke, toggle, select and set_value.
+- Synthetic status UIA Name reports only invoke count, toggle state, selection state and value length; it never echoes set-value text.
+- `runInteractiveWindowsControlledActionE2E()` creates the real Windows resource portal, private observer foreground and live host, then explicitly acquires `CanvasLivePortalCoordinator.controlOwner`.
+- The E2E calls `WindowsUiaControlledAccess`; it does not invoke native `uia.action` directly.
+- Every action must pass a fresh UIA postcondition on `MrmicStatusText` and a fresh observer-authorized WGC frame whose SHA-256 differs from the pre-action frame.
+- The fixed non-secret ValuePattern fixture is `MRMIC-PHASE-15.13`; evidence stores only its SHA-256 and status `valueLength=17`.
+- `interactive_windows_controlled_action_e2e_v1` stores identities, timestamps, bounded status facts and visual hashes/dimensions only; no pixel bytes/data URI or set-value plaintext are persisted.
+- Root command: `npm run windows:control-e2e --`.
+- The PowerShell runner builds/launches the repository target itself and passes only its PID to the TypeScript harness; it accepts no arbitrary title/HWND application selector.
+- Hosted Windows CI builds the dedicated WPF target and parses the runner but does not execute the interactive action sequence or claim caller-desktop action evidence.
+- ADR-025 records the safe-target and dual-postcondition boundary.
+
+## Authority model after 15.13
 
 Durable world authority:
 
@@ -186,18 +201,20 @@ Control authority:
 
 Validation authority:
 
-- portable tests prove control-owner/policy/freshness/pattern/password/value-redaction fail-closed semantics;
-- hosted Windows CI proves native UIA pattern-action compilation, capability smoke and existing PowerShell harness syntax;
+- portable tests prove control-owner/policy/freshness/pattern/password/value-redaction fail-closed semantics and the complete four-action UIA+WGC E2E against a deterministic fake provider;
+- hosted Windows CI proves native semantic-action compilation, native smoke, dedicated WPF target compilation and PowerShell harness syntax;
 - hosted CI still does not constitute caller-desktop interactive action evidence;
-- a later action E2E harness must acquire a real MRMIC control lease rather than call the native helper directly.
+- only `npm run windows:control-e2e --` in a caller-owned interactive Windows session can produce `interactive_windows_controlled_action_e2e_v1` evidence;
+- that command is intentionally pinned to the repository-owned safe target and is not a general automation selector.
 
 Windows continues to own the native window and UI tree.
 
-## Explicit non-goals through 15.12
+## Explicit non-goals through 15.13
 
 - High-FPS or zero-copy visual streaming.
-- Treating GitHub-hosted runners as authoritative user-desktop evidence.
+- Treating GitHub-hosted runners as authoritative user-desktop action evidence.
 - Arbitrary UIA pattern execution beyond invoke/toggle/select/set_value.
+- Arbitrary application selection in the controlled-action E2E runner.
 - `ValuePattern`/`TextPattern` content extraction or password extraction.
 - Setting values on password elements.
 - Raw keyboard/pointer injection, `SendInput`, coordinate clicking or drag gestures.
@@ -213,9 +230,9 @@ Windows continues to own the native window and UI tree.
 
 ## Next implementation slices
 
-1. Collect real local `interactive_windows_e2e_v1` and `windows_uia_snapshot_v1` evidence against representative Windows applications.
-2. Add an interactive semantic-action E2E harness that constructs a real MRMIC portal, acquires `controlOwner`, performs one bounded action on a dedicated test app, and verifies post-action state through fresh UIA/WGC observation.
-3. Validate sustained multi-observer isolation/selective convergence and control handoff against real Windows windows.
+1. Run `interactive_windows_e2e_v1`, `windows_uia_snapshot_v1` and `interactive_windows_controlled_action_e2e_v1` on a real caller-owned interactive Windows desktop and archive only the bounded non-pixel evidence artifacts intended for retention.
+2. Validate multi-observer control handoff: revoke one `controlOwner`, acquire another, and prove the former principal can no longer execute semantic actions before provider I/O.
+3. Validate sustained multi-observer isolation/selective convergence while visual observation and control ownership change independently.
 4. Keep raw input injection separate and disabled unless a later explicit fallback contract requires it.
 5. Consider higher-throughput/zero-copy visual transport only after real interactive evidence is collected.
 6. Add HDUS bridge contracts after MRMIC semantics are stable.

@@ -87,7 +87,7 @@
     "windowsProvider": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["supported", "providerId", "resourceKind", "resourceSchemaVersion", "providerCapabilitySchemaVersion", "adapterPackage", "adapterVersion", "nativeBridge", "capture", "interactiveValidation", "automation"],
+      "required": ["supported", "providerId", "resourceKind", "resourceSchemaVersion", "providerCapabilitySchemaVersion", "adapterPackage", "adapterVersion", "nativeBridge", "capture", "interactiveValidation", "interactiveControlValidation", "automation"],
       "properties": {
         "supported": { "const": true },
         "providerId": { "const": "windows" },
@@ -162,6 +162,25 @@
             "callerConfirmationRequired": { "const": true },
             "hostedCiAuthoritativeUserDesktop": { "const": false },
             "evidencePersistsPixelPayload": { "const": false }
+          }
+        },
+        "interactiveControlValidation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["supported", "evidenceSchemaVersion", "command", "safeTargetOnly", "targetTitle", "rootAutomationId", "callerConfirmationRequired", "hostedCiAuthoritativeInteractiveAction", "supportedActions", "evidencePersistsPixelPayload", "evidencePersistsSetValuePayload", "rawInputUsed"],
+          "properties": {
+            "supported": { "const": true },
+            "evidenceSchemaVersion": { "const": "interactive_windows_controlled_action_e2e_v1" },
+            "command": { "const": "npm run windows:control-e2e --" },
+            "safeTargetOnly": { "const": true },
+            "targetTitle": { "const": "MRMIC Phase 15.13 Controlled Action Target" },
+            "rootAutomationId": { "const": "MrmicControlledActionTargetRoot" },
+            "callerConfirmationRequired": { "const": true },
+            "hostedCiAuthoritativeInteractiveAction": { "const": false },
+            "supportedActions": { "type": "array", "const": ["invoke", "toggle", "select", "set_value"] },
+            "evidencePersistsPixelPayload": { "const": false },
+            "evidencePersistsSetValuePayload": { "const": false },
+            "rawInputUsed": { "const": false }
           }
         },
         "automation": {
