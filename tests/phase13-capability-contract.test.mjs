@@ -22,7 +22,7 @@ test('HTTP and MCP expose one versioned provider-neutral capability document', a
   }
 })
 
-test('capability schema advertises generation-bound portal control handoff and controlled semantic UIA actions', async () => {
+test('capability schema advertises generation-bound control and AI-native operational runtime', async () => {
   const schema = JSON.parse(await readFile('contracts/phase13/mrmic-capabilities-v1.schema.json', 'utf8'))
   assert.equal(schema.$id, 'https://evemisslab.com/schemas/mrmic-capabilities-v1.schema.json')
   assert.deepEqual(schema.required, [
@@ -38,6 +38,7 @@ test('capability schema advertises generation-bound portal control handoff and c
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('observer_portal_refresh_v1'))
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_uia_inspection_v1'))
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_uia_controlled_action_v1'))
+  assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_ai_native_operational_runtime_v1'))
   assert.equal(MRMIC_CAPABILITIES.resourcePortal.supported, true)
   assert.equal(MRMIC_CAPABILITIES.runtimePresence.supported, true)
   assert.deepEqual(MRMIC_CAPABILITIES.livePortalHost, {
@@ -81,6 +82,18 @@ test('capability schema advertises generation-bound portal control handoff and c
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.automationInspectionImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.automationImplemented, true)
   assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.rawInputInjectionImplemented, false)
+  assert.deepEqual(MRMIC_CAPABILITIES.windowsProvider.operationalRuntime, {
+    supported: true,
+    commandSchemaVersion: 'windows_operational_command_v1',
+    effectReceiptSchemaVersion: 'windows_effect_receipt_v1',
+    idempotencyScope: 'runtime_instance',
+    maxCachedReceipts: 256,
+    postActionVerificationRequired: false,
+    continuousPerceptionDecoupled: true,
+    effectReceiptClaimsWorldState: false,
+    mrmicHumanApprovalGateRequired: false,
+    conformanceHarnessRuntimeAuthority: false,
+  })
   assert.deepEqual(MRMIC_CAPABILITIES.windowsProvider.automation, {
     api: 'uia',
     inspectionSupported: true,

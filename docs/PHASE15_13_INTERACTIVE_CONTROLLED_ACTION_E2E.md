@@ -1,6 +1,8 @@
 # Phase 15.13 — Interactive Controlled-Action E2E
 
-Status: staging validation in progress.
+Status: conformance/development harness; **not production runtime authority** as of Phase 15.15.
+
+> Phase 15.15 supersedes the runtime interpretation of this harness. The UIA+WGC dual postcondition remains useful for implementation validation, debugging and regression testing, but autonomous production actions do not synchronously call this verifier path. Production uses operational command -> authorized provider effect -> effect receipt, while UIA/WGC continue as independent perception channels for the next AI planning cycle.
 
 ## Goal
 
@@ -49,11 +51,11 @@ The PowerShell runner:
 
 There is no arbitrary title/HWND parameter.
 
-## Runtime closure
+## Conformance path
 
 The TypeScript harness selects exactly one discovered resource whose PID matches the launched target process and whose title matches the fixed Phase 15.13 target title.
 
-It then constructs the normal production path:
+It then constructs the normal control stack:
 
 ```text
 WindowsProviderCatalog
@@ -71,6 +73,8 @@ The root UIA snapshot must additionally report:
 ```text
 AutomationId = MrmicControlledActionTargetRoot
 ```
+
+This harness is not invoked by `WindowsOperationalRuntime`.
 
 ## Fixed action sequence
 
@@ -93,9 +97,9 @@ set_value -> MrmicValueTextBox
 
 The status string never displays the value itself.
 
-## Dual verification
+## Dual postcondition — conformance only
 
-For each action, success requires both:
+For this **development/conformance harness**, success requires both:
 
 ```text
 fresh UIA inspection satisfies expected status token
@@ -103,7 +107,33 @@ AND
 fresh observer-authorized WGC frame SHA-256 differs from the pre-action frame
 ```
 
-This prevents a native `ok=true` response from being treated as sufficient evidence.
+This is intentionally stronger than the production effect-receipt contract because its purpose is to falsify implementation bugs in a deterministic safe target.
+
+It must not be interpreted as a requirement that every autonomous AI action block on a second UIA/WGC verification stage.
+
+## Production runtime after Phase 15.15
+
+Production operation is:
+
+```text
+AI intent
+-> authority / capability
+-> generation-bound control lease
+-> semantic command
+-> provider effect
+-> effect receipt
+-> continuous perception
+-> next AI decision
+```
+
+UIA and WGC are perception channels, not synchronous judges.
+
+`windows_effect_receipt_v1` explicitly reports:
+
+```text
+worldStateVerified = false
+perceptionRequiredForPlanning = true
+```
 
 ## Evidence
 
@@ -136,7 +166,7 @@ native/windows-bridge-csharp/MRMIC.WindowsBridge.csproj
 native/windows-controlled-action-target/MRMIC.WindowsControlledActionTarget.csproj
 ```
 
-It also runs the existing native smoke and parses the new PowerShell runner.
+It also runs the existing native smoke and parses the PowerShell runner.
 
 Hosted CI does not execute the interactive target/action sequence and remains non-authoritative for real interactive action evidence.
 
@@ -144,6 +174,7 @@ Hosted CI does not execute the interactive target/action sequence and remains no
 
 Phase 15.13 does not add:
 
+- production verifier authority;
 - a general action CLI;
 - arbitrary application selectors;
 - raw keyboard/pointer injection;
@@ -154,4 +185,4 @@ Phase 15.13 does not add:
 - arbitrary UIA patterns;
 - durable screenshot/action-value storage.
 
-A successful local artifact proves the reference chain only for the dedicated safe target and the caller's interactive Windows session.
+A successful local artifact proves the reference implementation against the dedicated safe target. It does not become a mandatory step in the autonomous operational loop.

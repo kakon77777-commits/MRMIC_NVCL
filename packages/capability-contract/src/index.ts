@@ -104,6 +104,18 @@ export interface MrmicCapabilitiesV1 {
       evidencePersistsSetValuePayload: false
       rawInputUsed: false
     }
+    operationalRuntime: {
+      supported: true
+      commandSchemaVersion: 'windows_operational_command_v1'
+      effectReceiptSchemaVersion: 'windows_effect_receipt_v1'
+      idempotencyScope: 'runtime_instance'
+      maxCachedReceipts: 256
+      postActionVerificationRequired: false
+      continuousPerceptionDecoupled: true
+      effectReceiptClaimsWorldState: false
+      mrmicHumanApprovalGateRequired: false
+      conformanceHarnessRuntimeAuthority: false
+    }
     automation: {
       api: 'uia'
       inspectionSupported: true
@@ -145,6 +157,7 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
     'observer_portal_refresh_v1',
     'windows_uia_inspection_v1',
     'windows_uia_controlled_action_v1',
+    'windows_ai_native_operational_runtime_v1',
   ],
   authModes: ['legacy_local', 'bearer_principal_v1'],
   resourcePortal: { supported: true, schemaVersion: 'native_resource_portal_v1' },
@@ -247,6 +260,18 @@ export const MRMIC_CAPABILITIES: MrmicCapabilitiesV1 = Object.freeze({
       evidencePersistsPixelPayload: false,
       evidencePersistsSetValuePayload: false,
       rawInputUsed: false,
+    },
+    operationalRuntime: {
+      supported: true,
+      commandSchemaVersion: 'windows_operational_command_v1',
+      effectReceiptSchemaVersion: 'windows_effect_receipt_v1',
+      idempotencyScope: 'runtime_instance',
+      maxCachedReceipts: 256,
+      postActionVerificationRequired: false,
+      continuousPerceptionDecoupled: true,
+      effectReceiptClaimsWorldState: false,
+      mrmicHumanApprovalGateRequired: false,
+      conformanceHarnessRuntimeAuthority: false,
     },
     automation: {
       api: 'uia',
