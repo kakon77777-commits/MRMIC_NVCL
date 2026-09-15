@@ -43,7 +43,7 @@ export interface ObjectContent {
   previewUri?: string
 }
 
-export type ResourceProvider = 'mrmic' | 'tandem' | 'herdr' | 'ai_board' | 'github' | 'ctcl' | 'external'
+export type ResourceProvider = 'mrmic' | 'tandem' | 'herdr' | 'ai_board' | 'github' | 'ctcl' | 'windows' | 'external'
 export type ResourceKind =
   | 'browser_tab'
   | 'browser_workspace'
@@ -56,6 +56,7 @@ export type ResourceKind =
   | 'image'
   | 'video'
   | 'artifact'
+  | 'desktop_window'
   | 'external_generic'
 export type ResourcePortalDisplayMode = 'snapshot' | 'live' | 'summary' | 'hidden'
 export type ResourcePortalInteractionMode = 'inspect' | 'interact' | 'control' | 'read_only'
@@ -233,10 +234,10 @@ const objectTypes = new Set<CanvasObjectType>([
   'rectangle', 'ellipse', 'line', 'freehand', 'text', 'image',
   'group', 'frame', 'subcanvas', 'agent_note', 'resource_portal',
 ])
-const resourceProviders = new Set<ResourceProvider>(['mrmic', 'tandem', 'herdr', 'ai_board', 'github', 'ctcl', 'external'])
+const resourceProviders = new Set<ResourceProvider>(['mrmic', 'tandem', 'herdr', 'ai_board', 'github', 'ctcl', 'windows', 'external'])
 const resourceKinds = new Set<ResourceKind>([
   'browser_tab', 'browser_workspace', 'browser_state_node', 'terminal_agent', 'terminal_pane',
-  'ai_board_thread', 'code_diff', 'document', 'image', 'video', 'artifact', 'external_generic',
+  'ai_board_thread', 'code_diff', 'document', 'image', 'video', 'artifact', 'desktop_window', 'external_generic',
 ])
 const portalDisplayModes = new Set<ResourcePortalDisplayMode>(['snapshot', 'live', 'summary', 'hidden'])
 const portalInteractionModes = new Set<ResourcePortalInteractionMode>(['inspect', 'interact', 'control', 'read_only'])

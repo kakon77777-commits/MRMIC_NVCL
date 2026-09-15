@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/mrmic/contracts/phase15/observer-workspace-event-v1.schema.json",
+  "title": "MRMIC Observer Workspace Event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "eventId",
+    "eventType",
+    "entityKind",
+    "entityId",
+    "worldId",
+    "canvasId",
+    "principal",
+    "revision",
+    "command",
+    "state",
+    "createdAt"
+  ],
+  "properties": {
+    "schema": { "const": "observer_workspace_event_v1" },
+    "eventId": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "eventType": {
+      "enum": [
+        "view_created",
+        "view_foreground_set",
+        "view_lifecycle_set",
+        "view_subcanvas_entered",
+        "view_subcanvas_left",
+        "view_nested_visibility_set",
+        "view_nested_foreground_set",
+        "rendezvous_opened",
+        "rendezvous_invited",
+        "rendezvous_joined",
+        "projection_added",
+        "projection_removed",
+        "rendezvous_closed"
+      ]
+    },
+    "entityKind": { "enum": ["observer_view", "rendezvous"] },
+    "entityId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "worldId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "canvasId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "principal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["principalId", "role", "actor"],
+      "properties": {
+        "principalId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "role": { "enum": ["viewer", "agent-direct", "owner"] },
+        "actor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["actorType", "actorId"],
+          "properties": {
+            "actorType": { "enum": ["user", "agent", "system"] },
+            "actorId": { "type": "string", "minLength": 1, "maxLength": 256 }
+          }
+        },
+        "semanticAgentId": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    },
+    "revision": { "type": "integer", "minimum": 0 },
+    "command": {
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "create_view",
+            "set_foreground",
+            "set_lifecycle",
+            "enter_subcanvas",
+            "leave_subcanvas",
+            "set_nested_visibility",
+            "set_nested_foreground",
+            "open_rendezvous",
+            "invite",
+            "join",
+            "project_portal",
+            "remove_projection",
+            "close_rendezvous"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "state": {
+      "oneOf": [
+        { "$ref": "observer-view-v1.schema.json" },
+        { "$ref": "shared-rendezvous-v1.schema.json" }
+      ]
+    },
+    "createdAt": { "type": "string", "minLength": 1, "maxLength": 128 }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "entityKind": { "const": "observer_view" } } },
+      "then": {
+        "properties": {
+          "eventType": {
+            "enum": [
+              "view_created",
+              "view_foreground_set",
+              "view_lifecycle_set",
+              "view_subcanvas_entered",
+              "view_subcanvas_left",
+              "view_nested_visibility_set",
+              "view_nested_foreground_set"
+            ]
+          },
+          "state": { "$ref": "observer-view-v1.schema.json" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "entityKind": { "const": "rendezvous" } } },
+      "then": {
+        "properties": {
+          "eventType": {
+            "enum": [
+              "rendezvous_opened",
+              "rendezvous_invited",
+              "rendezvous_joined",
+              "projection_added",
+              "projection_removed",
+              "rendezvous_closed"
+            ]
+          },
+          "state": { "$ref": "shared-rendezvous-v1.schema.json" }
+        }
+      }
+    }
+  ]
+}

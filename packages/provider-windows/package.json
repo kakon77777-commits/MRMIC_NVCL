@@ -1,0 +1,7 @@
+{
+  "name": "@mrmic/provider-windows",
+  "version": "0.15.4",
+  "private": true,
+  "type": "module",
+  "description": "Windows desktop-window provider adapter for MRMIC resource portals."
+}

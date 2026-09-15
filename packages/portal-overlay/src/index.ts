@@ -22,10 +22,38 @@ export interface LivePortalHandle {
   providerResourceId: string
 }
 
+export interface LivePortalVisualFrame {
+  schema: 'live_portal_visual_frame_v1'
+  portalObjectId: string
+  provider: string
+  providerResourceId: string
+  frameSequence: number
+  capturedAt: string
+  width: number
+  height: number
+  mimeType: 'image/png'
+  sha256: string
+  bytesBase64: string
+  transport: string
+}
+
 export interface LivePortalHost {
   mount(handle: LivePortalHandle, rect: OverlayRect): void | Promise<void>
   update(handle: LivePortalHandle, rect: OverlayRect): void | Promise<void>
   unmount(handle: LivePortalHandle): void | Promise<void>
+  snapshot?(handle: LivePortalHandle): LivePortalVisualFrame | null | Promise<LivePortalVisualFrame | null>
+}
+
+export function livePortalVisualFrameDataUri(frame: LivePortalVisualFrame): string {
+  if (frame.schema !== 'live_portal_visual_frame_v1') throw new Error('invalid live portal visual frame schema')
+  if (frame.mimeType !== 'image/png') throw new Error('unsupported live portal visual frame MIME type')
+  if (!Number.isSafeInteger(frame.frameSequence) || frame.frameSequence < 1) throw new Error('live portal frameSequence must be positive')
+  if (!Number.isSafeInteger(frame.width) || frame.width < 1 || !Number.isSafeInteger(frame.height) || frame.height < 1) {
+    throw new Error('live portal visual frame dimensions must be positive integers')
+  }
+  if (!/^[0-9a-f]{64}$/.test(frame.sha256)) throw new Error('live portal visual frame sha256 is malformed')
+  if (!frame.bytesBase64) throw new Error('live portal visual frame payload is empty')
+  return `data:${frame.mimeType};base64,${frame.bytesBase64}`
 }
 
 export function worldTransformToOverlayRect(

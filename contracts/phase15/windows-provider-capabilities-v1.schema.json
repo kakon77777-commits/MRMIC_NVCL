@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/mrmic/contracts/phase15/windows-provider-capabilities-v1.schema.json",
+  "title": "MRMIC Windows Provider Capabilities v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "provider", "providerEpoch", "platform", "capture", "automation"],
+  "properties": {
+    "schema": { "const": "windows_provider_capabilities_v1" },
+    "provider": { "const": "windows" },
+    "providerEpoch": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "platform": { "const": "win32" },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["api", "supported", "sessionLifecycleSupported", "frameTransport", "minimumBuild", "target"],
+      "properties": {
+        "api": { "const": "windows_graphics_capture" },
+        "supported": { "type": "boolean" },
+        "sessionLifecycleSupported": { "type": "boolean" },
+        "frameTransport": { "enum": ["none", "png_base64_snapshot_v1"] },
+        "frameTransportSupported": { "type": "boolean" },
+        "maxActiveMounts": { "type": "integer", "minimum": 1, "maximum": 64 },
+        "frameQueueCapacity": { "type": "integer", "minimum": 1, "maximum": 16 },
+        "maxSnapshotPixels": { "type": "integer", "minimum": 1 },
+        "maxSnapshotBytes": { "type": "integer", "minimum": 1024 },
+        "minimumBuild": { "const": 18362 },
+        "target": { "const": "hwnd" }
+      }
+    },
+    "automation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "api",
+        "supported",
+        "inspectionSupported",
+        "actionSupported",
+        "supportedActions",
+        "actionValueMaxLength",
+        "passwordValueWriteAllowed",
+        "maxDepth",
+        "maxElements",
+        "maxPatternsPerElement",
+        "valueTextIncluded",
+        "semanticPatternsPreferred",
+        "inputInjectionFallback",
+        "interactiveDesktopRequiredForInjection"
+      ],
+      "properties": {
+        "api": { "const": "uia" },
+        "supported": { "const": true },
+        "inspectionSupported": { "const": true },
+        "actionSupported": { "const": true },
+        "supportedActions": {
+          "type": "array",
+          "const": ["invoke", "toggle", "select", "set_value"]
+        },
+        "actionValueMaxLength": { "const": 2048 },
+        "passwordValueWriteAllowed": { "const": false },
+        "maxDepth": { "const": 8 },
+        "maxElements": { "const": 512 },
+        "maxPatternsPerElement": { "const": 32 },
+        "valueTextIncluded": { "const": false },
+        "semanticPatternsPreferred": { "const": true },
+        "inputInjectionFallback": { "const": false },
+        "interactiveDesktopRequiredForInjection": { "const": true }
+      }
+    }
+  }
+}

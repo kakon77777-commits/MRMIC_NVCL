@@ -15,6 +15,7 @@ const expectedTheory = new Map([
   ['MCP原生遞歸多模態無限畫布_MRMIC_架構命題論文_v1.0.md', 'e572b7e1c912242acf8f23b83c4a082ee5a81a266ac0cf38a262a1666c97d8e5'],
   ['MRMIC_NVCL_MVP技術白皮書_v0.1.md', '7cdbebffa010497502b69c5661bf7e894451d261d41ee40c8d5fc641f5db2451'],
   ['視之基底系列_10_視之一般算子論_差異的場化位格化與回饋化_v1.0.md', '4fc1356435bda6a7ef4d5ca89585ed026b9319cbefc621c9ddbb36f21a7704d9'],
+  ['MRMIC_NVCL_Observer_Relative_Shared_World_Whitepaper_v0.1.md', '4e08692b038e8ca16ce2dc047460fc1ac22025add1a6b61f07510723a292940f'],
 ])
 
 const sha256 = path => createHash('sha256').update(readFileSync(path)).digest('hex')

@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/mrmic/contracts/phase15/observer-view-v1.schema.json",
+  "title": "MRMIC Observer View v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "viewId",
+    "worldId",
+    "canvasId",
+    "observerPrincipalId",
+    "lifecycle",
+    "foregroundPortalIds",
+    "revision",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "schema": { "const": "observer_view_v1" },
+    "viewId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "worldId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "canvasId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "label": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "observerPrincipalId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "observerSemanticAgentId": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "lifecycle": { "enum": ["live", "warm", "frozen", "sleeping"] },
+    "foregroundPortalIds": {
+      "type": "array",
+      "maxItems": 128,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+    },
+    "nestedCanvasContexts": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "parentCanvasId",
+          "canvasId",
+          "portalObjectId",
+          "visibility",
+          "foregroundPortalIds",
+          "enteredAt"
+        ],
+        "properties": {
+          "schema": { "const": "observer_nested_canvas_v1" },
+          "parentCanvasId": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "canvasId": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "portalObjectId": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "visibility": { "enum": ["inherit", "hidden"] },
+          "foregroundPortalIds": {
+            "type": "array",
+            "maxItems": 128,
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+          },
+          "enteredAt": { "type": "string", "minLength": 1, "maxLength": 128 }
+        }
+      }
+    },
+    "revision": { "type": "integer", "minimum": 0 },
+    "createdAt": { "type": "string", "minLength": 1 },
+    "updatedAt": { "type": "string", "minLength": 1 }
+  }
+}

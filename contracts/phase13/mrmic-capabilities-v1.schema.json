@@ -4,7 +4,19 @@
   "title": "MRMIC Capabilities v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "mrmicVersion", "canvasSchemaVersion", "mcpProtocolProfile", "projectionModes", "authModes", "resourcePortal", "runtimePresence", "livePortalHost"],
+  "required": [
+    "schema",
+    "mrmicVersion",
+    "canvasSchemaVersion",
+    "mcpProtocolProfile",
+    "projectionModes",
+    "authModes",
+    "resourcePortal",
+    "runtimePresence",
+    "livePortalHost",
+    "observerWorkspace",
+    "windowsProvider"
+  ],
   "properties": {
     "schema": { "const": "mrmic-capabilities/v1" },
     "mrmicVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
@@ -14,6 +26,203 @@
     "authModes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
     "resourcePortal": { "type": "object", "required": ["supported", "schemaVersion"] },
     "runtimePresence": { "type": "object", "required": ["supported", "schemaVersion", "durable"] },
-    "livePortalHost": { "type": "object", "required": ["supported", "stateVersion"] }
+    "livePortalHost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported", "stateVersion", "controlLeaseSchemaVersion", "controlGenerationSupported", "atomicHandoffSupported"],
+      "properties": {
+        "supported": { "const": true },
+        "stateVersion": { "const": "live_portal_host_v1" },
+        "controlLeaseSchemaVersion": { "const": "live_portal_control_lease_v1" },
+        "controlGenerationSupported": { "const": true },
+        "atomicHandoffSupported": { "const": true }
+      }
+    },
+    "observerWorkspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported", "viewSchemaVersion", "rendezvousSchemaVersion", "durableEventSchemaVersion", "durable", "authRequired", "nestedCanvas", "http", "mcp", "referenceServer"],
+      "properties": {
+        "supported": { "const": true },
+        "viewSchemaVersion": { "const": "observer_view_v1" },
+        "rendezvousSchemaVersion": { "const": "shared_rendezvous_v1" },
+        "durableEventSchemaVersion": { "const": "observer_workspace_event_v1" },
+        "durable": { "const": true },
+        "authRequired": { "const": true },
+        "nestedCanvas": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["supported", "contextSchemaVersion", "visibilityModes", "maxDepth", "topologyAuthorityRequired"],
+          "properties": {
+            "supported": { "const": true },
+            "contextSchemaVersion": { "const": "observer_nested_canvas_v1" },
+            "visibilityModes": { "type": "array", "uniqueItems": true, "items": { "enum": ["inherit", "hidden"] } },
+            "maxDepth": { "const": 64 },
+            "topologyAuthorityRequired": { "const": true }
+          }
+        },
+        "http": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["snapshotPath", "commandPath"],
+          "properties": {
+            "snapshotPath": { "const": "/api/observer/snapshot" },
+            "commandPath": { "const": "/api/observer/command" }
+          }
+        },
+        "mcp": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "selfResourceUri", "tools"],
+          "properties": {
+            "path": { "const": "/mcp/observer" },
+            "selfResourceUri": { "const": "mrmic://observer/self" },
+            "tools": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "enum": ["observer.get_snapshot", "observer.get_canvas_contexts", "observer.command"] }
+            }
+          }
+        },
+        "referenceServer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["command", "defaultPort"],
+          "properties": {
+            "command": { "const": "npm run observer" },
+            "defaultPort": { "const": 4180 }
+          }
+        }
+      }
+    },
+    "windowsProvider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["supported", "providerId", "resourceKind", "resourceSchemaVersion", "providerCapabilitySchemaVersion", "adapterPackage", "adapterVersion", "nativeBridge", "capture", "interactiveValidation", "interactiveControlValidation", "automation"],
+      "properties": {
+        "supported": { "const": true },
+        "providerId": { "const": "windows" },
+        "resourceKind": { "const": "desktop_window" },
+        "resourceSchemaVersion": { "const": "windows_window_resource_v1" },
+        "providerCapabilitySchemaVersion": { "const": "windows_provider_capabilities_v1" },
+        "adapterPackage": { "const": "@mrmic/provider-windows" },
+        "adapterVersion": { "const": "0.15.4" },
+        "nativeBridge": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["required", "protocolVersion", "referenceImplementation", "referenceProject", "scope", "discoveryImplemented", "captureSessionImplemented", "frameTransportImplemented", "captureImplemented", "automationInspectionImplemented", "automationImplemented", "rawInputInjectionImplemented"],
+          "properties": {
+            "required": { "const": true },
+            "protocolVersion": { "const": "mrmic-windows-native-bridge/v1" },
+            "referenceImplementation": { "const": true },
+            "referenceProject": { "const": "native/windows-bridge-csharp" },
+            "scope": { "const": "observer_gated_snapshot_portal" },
+            "discoveryImplemented": { "const": true },
+            "captureSessionImplemented": { "const": true },
+            "frameTransportImplemented": { "const": true },
+            "captureImplemented": { "const": true },
+            "automationInspectionImplemented": { "const": true },
+            "automationImplemented": { "const": true },
+            "rawInputInjectionImplemented": { "const": false }
+          }
+        },
+        "capture": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["api", "target", "minimumBuild", "sessionLifecycleSupported", "frameTransport", "portalProjection", "observerGated", "canonicalPixelsDurable", "maxActiveMounts", "frameQueueCapacity", "maxSnapshotPixels", "maxSnapshotBytes", "refresh"],
+          "properties": {
+            "api": { "const": "windows_graphics_capture" },
+            "target": { "const": "hwnd" },
+            "minimumBuild": { "const": 18362 },
+            "sessionLifecycleSupported": { "const": true },
+            "frameTransport": { "const": "png_base64_snapshot_v1" },
+            "portalProjection": { "const": "ephemeral_render_copy_v1" },
+            "observerGated": { "const": true },
+            "canonicalPixelsDurable": { "const": false },
+            "maxActiveMounts": { "const": 4 },
+            "frameQueueCapacity": { "const": 2 },
+            "maxSnapshotPixels": { "const": 8294400 },
+            "maxSnapshotBytes": { "const": 16777216 },
+            "refresh": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["policySchemaVersion", "liveRefreshMs", "warmRefreshMs", "sharedRefreshMs", "policyPollMs", "maxCachedFramesPerTarget", "frozenRetainsLastFrame", "sleepingDropsFrame", "nonOverlapping"],
+              "properties": {
+                "policySchemaVersion": { "const": "observer_portal_refresh_policy_v1" },
+                "liveRefreshMs": { "const": 250 },
+                "warmRefreshMs": { "const": 2000 },
+                "sharedRefreshMs": { "const": 500 },
+                "policyPollMs": { "const": 1000 },
+                "maxCachedFramesPerTarget": { "const": 4 },
+                "frozenRetainsLastFrame": { "const": true },
+                "sleepingDropsFrame": { "const": true },
+                "nonOverlapping": { "const": true }
+              }
+            }
+          }
+        },
+        "interactiveValidation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["supported", "evidenceSchemaVersion", "command", "targetSelectors", "callerConfirmationRequired", "hostedCiAuthoritativeUserDesktop", "evidencePersistsPixelPayload"],
+          "properties": {
+            "supported": { "const": true },
+            "evidenceSchemaVersion": { "const": "interactive_windows_e2e_v1" },
+            "command": { "const": "npm run windows:e2e --" },
+            "targetSelectors": { "type": "array", "const": ["title", "hwnd"] },
+            "callerConfirmationRequired": { "const": true },
+            "hostedCiAuthoritativeUserDesktop": { "const": false },
+            "evidencePersistsPixelPayload": { "const": false }
+          }
+        },
+        "interactiveControlValidation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["supported", "evidenceSchemaVersion", "command", "safeTargetOnly", "targetTitle", "rootAutomationId", "callerConfirmationRequired", "hostedCiAuthoritativeInteractiveAction", "supportedActions", "evidencePersistsPixelPayload", "evidencePersistsSetValuePayload", "rawInputUsed"],
+          "properties": {
+            "supported": { "const": true },
+            "evidenceSchemaVersion": { "const": "interactive_windows_controlled_action_e2e_v1" },
+            "command": { "const": "npm run windows:control-e2e --" },
+            "safeTargetOnly": { "const": true },
+            "targetTitle": { "const": "MRMIC Phase 15.13 Controlled Action Target" },
+            "rootAutomationId": { "const": "MrmicControlledActionTargetRoot" },
+            "callerConfirmationRequired": { "const": true },
+            "hostedCiAuthoritativeInteractiveAction": { "const": false },
+            "supportedActions": { "type": "array", "const": ["invoke", "toggle", "select", "set_value"] },
+            "evidencePersistsPixelPayload": { "const": false },
+            "evidencePersistsSetValuePayload": { "const": false },
+            "rawInputUsed": { "const": false }
+          }
+        },
+        "automation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["api", "inspectionSupported", "actionSupported", "snapshotSchemaVersion", "actionResultSchemaVersion", "supportedActions", "controlOwnerRequired", "controlGenerationRequired", "freshInspectionRequired", "preNativeActionLeaseRecheck", "maxInspectionAgeMs", "actionValueMaxLength", "passwordValueWriteAllowed", "maxDepth", "maxElements", "maxPatternsPerElement", "valueTextIncluded", "semanticPatternsPreferred", "inputInjectionFallback", "rawInputInjectionImplemented", "interactiveDesktopRequiredForInjection"],
+          "properties": {
+            "api": { "const": "uia" },
+            "inspectionSupported": { "const": true },
+            "actionSupported": { "const": true },
+            "snapshotSchemaVersion": { "const": "windows_uia_snapshot_v1" },
+            "actionResultSchemaVersion": { "const": "windows_uia_controlled_action_v1" },
+            "supportedActions": { "type": "array", "const": ["invoke", "toggle", "select", "set_value"] },
+            "controlOwnerRequired": { "const": true },
+            "controlGenerationRequired": { "const": true },
+            "freshInspectionRequired": { "const": true },
+            "preNativeActionLeaseRecheck": { "const": true },
+            "maxInspectionAgeMs": { "const": 2000 },
+            "actionValueMaxLength": { "const": 2048 },
+            "passwordValueWriteAllowed": { "const": false },
+            "maxDepth": { "const": 8 },
+            "maxElements": { "const": 512 },
+            "maxPatternsPerElement": { "const": 32 },
+            "valueTextIncluded": { "const": false },
+            "semanticPatternsPreferred": { "const": true },
+            "inputInjectionFallback": { "const": "disabled" },
+            "rawInputInjectionImplemented": { "const": false },
+            "interactiveDesktopRequiredForInjection": { "const": true }
+          }
+        }
+      }
+    }
   }
 }

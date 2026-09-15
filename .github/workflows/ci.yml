@@ -12,6 +12,40 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - run: npm install
+      - run: npm ci
       - run: npm run check
       - run: npm test
+
+  windows-native:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+      - run: dotnet build .\native\windows-bridge-csharp\MRMIC.WindowsBridge.csproj -c Release
+        shell: pwsh
+      - run: dotnet build .\native\windows-controlled-action-target\MRMIC.WindowsControlledActionTarget.csproj -c Release
+        shell: pwsh
+      - run: .\native\windows-bridge-csharp\smoke.ps1
+        shell: pwsh
+      - name: Parse Windows local-validation PowerShell harnesses
+        run: |
+          foreach ($path in @(
+            '.\scripts\windows-interactive-e2e.ps1',
+            '.\scripts\windows-uia-inspect.ps1',
+            '.\scripts\windows-controlled-action-e2e.ps1'
+          )) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $path),
+              [ref]$tokens,
+              [ref]$errors
+            ) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_ }
+              exit 1
+            }
+          }
+        shell: pwsh

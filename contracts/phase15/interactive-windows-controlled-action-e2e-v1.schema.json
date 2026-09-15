@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evemisslab.com/mrmic/contracts/phase15/interactive-windows-controlled-action-e2e-v1.schema.json",
+  "title": "MRMIC Interactive Windows Controlled Action E2E Evidence v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "passed", "startedAt", "completedAt", "interactiveSessionConfirmedByCaller", "target", "portal", "baseline", "actions", "canonical", "privacy"],
+  "properties": {
+    "schema": { "const": "interactive_windows_controlled_action_e2e_v1" },
+    "passed": { "const": true },
+    "startedAt": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "completedAt": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "interactiveSessionConfirmedByCaller": { "const": true },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["providerResourceId", "providerEpoch", "hwndHex", "processId", "title", "rootAutomationId"],
+      "properties": {
+        "providerResourceId": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "providerEpoch": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "hwndHex": { "type": "string", "pattern": "^0x[0-9a-f]+$" },
+        "processId": { "type": "integer", "minimum": 1 },
+        "title": { "const": "MRMIC Phase 15.13 Controlled Action Target" },
+        "rootAutomationId": { "const": "MrmicControlledActionTargetRoot" }
+      }
+    },
+    "portal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["portalId", "portalObjectId", "canvasId", "viewId", "controlOwner"],
+      "properties": {
+        "portalId": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "portalObjectId": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "canvasId": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "viewId": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "controlOwner": { "const": "principal:windows-controlled-action-e2e" }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statusName", "visual"],
+      "properties": {
+        "statusName": { "const": "invoke=0;toggle=off;selection=alpha;valueLength=0" },
+        "visual": { "$ref": "#/$defs/visual" }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": { "$ref": "#/$defs/action" }
+    },
+    "canonical": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["providerPreviewUriRetained", "dataUriPersisted"],
+      "properties": {
+        "providerPreviewUriRetained": { "const": true },
+        "dataUriPersisted": { "const": false }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pixelPayloadPersisted", "setValuePayloadPersisted", "rawInputUsed"],
+      "properties": {
+        "pixelPayloadPersisted": { "const": false },
+        "setValuePayloadPersisted": { "const": false },
+        "rawInputUsed": { "const": false }
+      }
+    }
+  },
+  "$defs": {
+    "visual": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frameSequence", "sha256", "encodedBytes", "width", "height", "svgContainsProjectedImage"],
+      "properties": {
+        "frameSequence": { "type": "integer", "minimum": 1 },
+        "capturedAt": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "encodedBytes": { "type": "integer", "minimum": 1, "maximum": 16777216 },
+        "width": { "type": "integer", "minimum": 1, "maximum": 32768 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 32768 },
+        "svgContainsProjectedImage": { "const": true }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "targetAutomationId", "inspectionCapturedAt", "completedAt", "postInspectionCapturedAt", "postStatusName", "uiaPostcondition", "beforeFrameSha256", "afterFrameSha256", "visualChanged"],
+      "properties": {
+        "kind": { "enum": ["invoke", "toggle", "select", "set_value"] },
+        "targetAutomationId": { "enum": ["MrmicInvokeButton", "MrmicToggleCheckBox", "MrmicSelectItemBeta", "MrmicValueTextBox"] },
+        "inspectionCapturedAt": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "completedAt": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "postInspectionCapturedAt": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "postStatusName": { "type": "string", "minLength": 1, "maxLength": 2048 },
+        "uiaPostcondition": { "const": true },
+        "beforeFrameSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "afterFrameSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "visualChanged": { "const": true },
+        "valueSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    }
+  }
+}

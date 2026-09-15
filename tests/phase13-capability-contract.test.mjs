@@ -22,16 +22,86 @@ test('HTTP and MCP expose one versioned provider-neutral capability document', a
   }
 })
 
-test('capability schema and document advertise the required Phase 13 contract surface', async () => {
+test('capability schema advertises generation-bound portal control handoff and controlled semantic UIA actions', async () => {
   const schema = JSON.parse(await readFile('contracts/phase13/mrmic-capabilities-v1.schema.json', 'utf8'))
   assert.equal(schema.$id, 'https://evemisslab.com/schemas/mrmic-capabilities-v1.schema.json')
   assert.deepEqual(schema.required, [
     'schema', 'mrmicVersion', 'canvasSchemaVersion', 'mcpProtocolProfile', 'projectionModes',
-    'authModes', 'resourcePortal', 'runtimePresence', 'livePortalHost',
+    'authModes', 'resourcePortal', 'runtimePresence', 'livePortalHost', 'observerWorkspace', 'windowsProvider',
   ])
   assert.equal(MRMIC_CAPABILITIES.schema, 'mrmic-capabilities/v1')
   assert.equal(MRMIC_CAPABILITIES.mrmicVersion, '0.14.0')
   assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('native_resource_portal_v1'))
+  assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('observer_relative_view_v1'))
+  assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_desktop_window_v1'))
+  assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_snapshot_portal_v1'))
+  assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('observer_portal_refresh_v1'))
+  assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_uia_inspection_v1'))
+  assert.ok(MRMIC_CAPABILITIES.projectionModes.includes('windows_uia_controlled_action_v1'))
   assert.equal(MRMIC_CAPABILITIES.resourcePortal.supported, true)
   assert.equal(MRMIC_CAPABILITIES.runtimePresence.supported, true)
+  assert.deepEqual(MRMIC_CAPABILITIES.livePortalHost, {
+    supported: true,
+    stateVersion: 'live_portal_host_v1',
+    controlLeaseSchemaVersion: 'live_portal_control_lease_v1',
+    controlGenerationSupported: true,
+    atomicHandoffSupported: true,
+  })
+  assert.equal(MRMIC_CAPABILITIES.observerWorkspace.supported, true)
+  assert.equal(MRMIC_CAPABILITIES.observerWorkspace.durable, true)
+  assert.equal(MRMIC_CAPABILITIES.observerWorkspace.authRequired, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.providerId, 'windows')
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.api, 'windows_graphics_capture')
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.minimumBuild, 18362)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.sessionLifecycleSupported, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.frameTransport, 'png_base64_snapshot_v1')
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.portalProjection, 'ephemeral_render_copy_v1')
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.observerGated, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.canonicalPixelsDurable, false)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.maxActiveMounts, 4)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.frameQueueCapacity, 2)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.maxSnapshotPixels, 8294400)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.capture.maxSnapshotBytes, 16777216)
+  assert.deepEqual(MRMIC_CAPABILITIES.windowsProvider.capture.refresh, {
+    policySchemaVersion: 'observer_portal_refresh_policy_v1',
+    liveRefreshMs: 250,
+    warmRefreshMs: 2000,
+    sharedRefreshMs: 500,
+    policyPollMs: 1000,
+    maxCachedFramesPerTarget: 4,
+    frozenRetainsLastFrame: true,
+    sleepingDropsFrame: true,
+    nonOverlapping: true,
+  })
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.scope, 'observer_gated_snapshot_portal')
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.discoveryImplemented, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.captureSessionImplemented, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.frameTransportImplemented, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.captureImplemented, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.automationInspectionImplemented, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.automationImplemented, true)
+  assert.equal(MRMIC_CAPABILITIES.windowsProvider.nativeBridge.rawInputInjectionImplemented, false)
+  assert.deepEqual(MRMIC_CAPABILITIES.windowsProvider.automation, {
+    api: 'uia',
+    inspectionSupported: true,
+    actionSupported: true,
+    snapshotSchemaVersion: 'windows_uia_snapshot_v1',
+    actionResultSchemaVersion: 'windows_uia_controlled_action_v1',
+    supportedActions: ['invoke', 'toggle', 'select', 'set_value'],
+    controlOwnerRequired: true,
+    controlGenerationRequired: true,
+    freshInspectionRequired: true,
+    preNativeActionLeaseRecheck: true,
+    maxInspectionAgeMs: 2000,
+    actionValueMaxLength: 2048,
+    passwordValueWriteAllowed: false,
+    maxDepth: 8,
+    maxElements: 512,
+    maxPatternsPerElement: 32,
+    valueTextIncluded: false,
+    semanticPatternsPreferred: true,
+    inputInjectionFallback: 'disabled',
+    rawInputInjectionImplemented: false,
+    interactiveDesktopRequiredForInjection: true,
+  })
 })
